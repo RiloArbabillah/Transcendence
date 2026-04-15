@@ -567,6 +567,37 @@ The simplest migration path appears to be:
 
 ## Recommended strategy based on the audit
 
+## Current implementation progress
+
+The following implementation progress has already landed relative to the original audit:
+
+- `CResourcePathResolver` has been added in `Transcendence/Transcendence/CResourcePathResolver.cpp`
+- `CG16bitFont::CreateFromFile` has been added in `Alchemy/DirectXUtil/CG16bitFont.cpp`
+- file-based `.dxfn` loading now reaches both early font initialization sites:
+  - `Mammoth/TSUI/CVisualPalette.cpp`
+  - `Transcendence/Transcendence/CTranscendenceWnd.cpp`
+- file-based image wrappers now exist and are used by the main milestone-1 callers:
+  - `Transcendence/Transcendence/CLoadingSession.cpp`
+  - `Mammoth/TSUI/CVisualPalette.cpp`
+  - `Transcendence/Transcendence/CButtonBarData.cpp`
+
+### What this means
+
+The project has moved past the original state where title/menu bring-up depended directly on Win32 resource lookup for the main early boot path.
+
+The remaining problem is now narrower:
+
+- resource lookup for key milestone-1 callers is mostly file-based
+- image decode and image-object creation are still Windows-centric because they still flow through `HBITMAP`
+
+### Remaining nearby callers still using old image resource loading
+
+- `Transcendence/Transcendence/CHelpSession.cpp`
+- `Transcendence/Transcendence/CStatsSession.cpp`
+- `Transcendence/Transcendence/CModExchangeSession.cpp`
+
+These are not as critical as the loading screen, visual palette, and intro button bar for the first native title/menu milestone.
+
 ### What should happen first
 
 1. Replace resource loading assumptions for fonts and UI images with file/bundle-based lookup

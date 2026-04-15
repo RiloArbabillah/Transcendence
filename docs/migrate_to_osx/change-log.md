@@ -152,6 +152,30 @@ Summary:
 - Change Type: updated
 - Summary: added navigation and usage guidance for `resource-loader-plan.md` so implementation can move from audit into a concrete loader plan
 
+### 2026-04-15
+
+- Document: `resource-loader-plan.md`
+- Change Type: updated
+- Summary: recorded implementation progress for the resolver, file-based font loading, and early menu image callers, and clarified that the next blocker is `HBITMAP`-based image portability
+
+### 2026-04-15
+
+- Document: `source-audit-handoff.md`
+- Change Type: updated
+- Summary: added current implementation status showing that milestone-1 font and early image lookup now use file-based resource resolution, plus noted the remaining non-critical callers and the unresolved `HBITMAP` dependency
+
+### 2026-04-15
+
+- Document: `image-portability-seam.md`
+- Change Type: created
+- Summary: added the next-phase design for removing `HBITMAP` from milestone-1 image ingestion, including the proposed neutral decoded-image seam and caller migration order
+
+### 2026-04-15
+
+- Document: `index.md`
+- Change Type: updated
+- Summary: added navigation and usage guidance for `image-portability-seam.md` so future work can move from file-based lookup into true image portability work
+
 ## Maintenance Notes
 
 - Add a new entry when a document is created, significantly restructured, or materially changes scope or execution direction.

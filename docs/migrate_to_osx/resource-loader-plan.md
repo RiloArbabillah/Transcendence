@@ -2,7 +2,7 @@
 
 ## Document Status
 
-- Version: v1.0
+- Version: v1.1
 - Last Updated: 2026-04-15
 - Project: Native macOS Apple Silicon port of `kronosaur/TranscendenceDev`
 - Purpose: define the smallest file-based resource loader needed to unblock milestone-1 loading screen and intro menu bring-up
@@ -309,12 +309,49 @@ This loader design is successful when:
 - `.dxfn` fonts can be loaded without `FindResource`
 - the remaining image portability problem is isolated to a small number of file-based loader functions instead of being spread through sessions and UI code
 
+## Current implementation status
+
+The following steps from this plan are now implemented in the source tree:
+
+- `CResourcePathResolver` exists in `Transcendence/Transcendence/CResourcePathResolver.cpp`
+- `CG16bitFont::CreateFromFile` exists in `Alchemy/DirectXUtil/CG16bitFont.cpp`
+- `Mammoth/TSUI/CVisualPalette.cpp` now resolves `DXFN_*` fonts through `CResourcePathResolver` and `CreateFromFile`, with fallback to `CreateFromResource`
+- `Transcendence/Transcendence/CTranscendenceWnd.cpp` now resolves `DXFN_*` fonts through `CResourcePathResolver` and `CreateFromFile`, with fallback to `CreateFromResource`
+- image wrappers now exist:
+  - `LoadJPEGResourceAsDIB`
+  - `LoadBMPResourceAsDIB`
+- `Transcendence/Transcendence/CLoadingSession.cpp` now uses the image wrappers for loading screen assets
+- `Mammoth/TSUI/CVisualPalette.cpp` now uses the image wrappers for UI atlas and mask lookup
+- `Transcendence/Transcendence/CButtonBarData.cpp` now uses the image wrappers for title/menu button art lookup
+
+## Remaining work after the current implementation slice
+
+Still not migrated to the wrapper path:
+
+- `Transcendence/Transcendence/CHelpSession.cpp`
+- `Transcendence/Transcendence/CStatsSession.cpp`
+- `Transcendence/Transcendence/CModExchangeSession.cpp`
+
+Still not portable enough for macOS compilation/runtime:
+
+- `LoadJPEGResourceAsDIB` still ends in `JPEGLoadFromFile`, which returns `HBITMAP`
+- `LoadBMPResourceAsDIB` still ends in `dibLoadFromFile`, which returns `HBITMAP`
+- `CG32bitImage::CreateFromBitmap` and related image creation still depend on Windows bitmap objects
+
+### Practical interpretation
+
+The current implementation has largely solved resource lookup portability for milestone-1 callers.
+
+It has not yet solved graphics-object portability.
+
+That means the project is now in a better state to attack the next real blocker: replacing or isolating the `HBITMAP`-based image decode path.
+
 ## Recommended next implementation step
 
-The best next code step is:
+The best next code step is now:
 
-1. implement `CResourcePathResolver`
-2. implement `CG16bitFont::CreateFromFile`
-3. switch `CVisualPalette::Init` and `CTranscendenceWnd::WMCreate` to file-based `.dxfn` loading on the macOS path
+1. migrate the remaining low-priority image callers (`CHelpSession.cpp`, `CStatsSession.cpp`, `CModExchangeSession.cpp`) if desired for consistency
+2. then design the next seam that removes or isolates `HBITMAP` from the file-based image path
+3. keep the font path as-is unless a later layer move is needed to reduce temporary TSUI-to-app coupling
 
-This is the highest-leverage change because it attacks the font blocker first while keeping the design compatible with the broader milestone-1 plan.
+This keeps progress aligned with milestone 1 while making the next portability blocker explicit.

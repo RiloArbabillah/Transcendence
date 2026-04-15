@@ -61,6 +61,9 @@ Use this file as the primary entry point for the documentation set.
 - `resource-loader-plan.md`
   - implementation plan for replacing Win32 resource loading with a minimal file-based loader for milestone-1 fonts and UI assets
 
+- `image-portability-seam.md`
+  - next-phase design for removing `HBITMAP` from the milestone-1 image path after resource lookup has been made file-based
+
 ### Validation and Governance
 
 - `qa-test-matrix.md`
@@ -85,6 +88,7 @@ Use this file as the primary entry point for the documentation set.
 | `cmake-build-plan.md` | how the macOS build graph should be introduced |
 | `source-audit-handoff.md` | what the current source tree actually does and where milestone-1 blockers are |
 | `resource-loader-plan.md` | how to replace milestone-1 Win32 resource loading with a file-based path |
+| `image-portability-seam.md` | how to remove the remaining `HBITMAP` dependency from milestone-1 image ingestion |
 | `qa-test-matrix.md` | how milestone success is validated |
 | `decision-log.md` | why key technical decisions were made |
 | `change-log.md` | what changed in the documentation set over time |
@@ -117,6 +121,12 @@ Use this file as the primary entry point for the documentation set.
 - use `source-audit-handoff.md` for the real asset and call-site inventory
 - use `resource-loader-plan.md` for the minimum loader shape and implementation order
 - keep `milestone-1-plan.md` in view to avoid expanding scope beyond loading screen and intro menu
+
+### During Image Portability Work
+
+- use `resource-loader-plan.md` for the current lookup-layer status
+- use `image-portability-seam.md` for the next seam after file-based lookup
+- keep `source-audit-handoff.md` nearby to confirm that the target callers are still aligned with milestone-1 priorities
 
 ### During Milestone Validation
 
@@ -161,6 +171,7 @@ Use this file as the primary entry point for the documentation set.
 - `cmake-build-plan.md`
 - `source-audit-handoff.md`
 - `resource-loader-plan.md`
+- `image-portability-seam.md`
 - `qa-test-matrix.md`
 - `decision-log.md`
 - `change-log.md`
