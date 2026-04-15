@@ -55,6 +55,9 @@ Use this file as the primary entry point for the documentation set.
 - `cmake-build-plan.md`
   - proposed `CMake` target graph, build order, presets, framework links, and fallback strategy
 
+- `source-audit-handoff.md`
+  - source-level handoff capturing actual boot path, runtime blockers, host contract findings, and font/resource pipeline risks discovered during code audit
+
 ### Validation and Governance
 
 - `qa-test-matrix.md`
@@ -77,6 +80,7 @@ Use this file as the primary entry point for the documentation set.
 | `architecture.md` | how the system should be structured |
 | `milestone-1-plan.md` | how to execute the first milestone without scope creep |
 | `cmake-build-plan.md` | how the macOS build graph should be introduced |
+| `source-audit-handoff.md` | what the current source tree actually does and where milestone-1 blockers are |
 | `qa-test-matrix.md` | how milestone success is validated |
 | `decision-log.md` | why key technical decisions were made |
 | `change-log.md` | what changed in the documentation set over time |
@@ -95,7 +99,14 @@ Use this file as the primary entry point for the documentation set.
 - use `task-backlog.md`
 - use `dependency-matrix.md`
 - use `cmake-build-plan.md`
+- use `source-audit-handoff.md` to cross-check the real code path and blocker files
 - update `decision-log.md` when a build or architecture choice is locked
+
+### During Source Audit or Early Bring-Up
+
+- use `source-audit-handoff.md`
+- cross-check assumptions against `dependency-matrix.md`
+- use `milestone-1-plan.md` to keep early work focused on menu bring-up
 
 ### During Milestone Validation
 
@@ -138,6 +149,7 @@ Use this file as the primary entry point for the documentation set.
 - `architecture.md`
 - `milestone-1-plan.md`
 - `cmake-build-plan.md`
+- `source-audit-handoff.md`
 - `qa-test-matrix.md`
 - `decision-log.md`
 - `change-log.md`

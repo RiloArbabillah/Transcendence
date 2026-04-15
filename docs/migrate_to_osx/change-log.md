@@ -2,8 +2,8 @@
 
 ## Document Status
 
-- Version: v1.0
-- Last Updated: 2026-04-14
+- Version: v1.1
+- Last Updated: 2026-04-15
 - Scope: documentation-only changes for the macOS port planning set
 
 ## Purpose
@@ -121,6 +121,18 @@ Summary:
 - Document: `index.md`
 - Change Type: updated
 - Summary: clarified that `PRD.md` is the source of truth and added an explicit source-of-truth section
+
+### 2026-04-15
+
+- Document: `source-audit-handoff.md`
+- Change Type: created
+- Summary: added source-level audit handoff covering real menu boot path, milestone-1 blockers, host contract findings, and font/resource pipeline risks from the live codebase
+
+### 2026-04-15
+
+- Document: `index.md`
+- Change Type: updated
+- Summary: added navigation and usage references for `source-audit-handoff.md` so future implementation work can cross-check planning docs against the actual source audit
 
 ## Maintenance Notes
 
