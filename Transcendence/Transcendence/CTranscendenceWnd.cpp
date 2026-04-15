@@ -751,13 +751,41 @@ LONG CTranscendenceWnd::WMCreate (CString *retsError)
 	m_Fonts.Large.Create(STR_MEDIUM_TYPEFACE, -16);
 	m_Fonts.LargeBold.Create(STR_MEDIUM_TYPEFACE, -16, true);
 
-	m_Fonts.Header.CreateFromResource(NULL, "DXFN_HEADER");
-	m_Fonts.HeaderBold.CreateFromResource(NULL, "DXFN_HEADER_BOLD");
-	m_Fonts.SubTitle.CreateFromResource(NULL, "DXFN_SUBTITLE");
-	m_Fonts.SubTitleBold.CreateFromResource(NULL, "DXFN_SUBTITLE_BOLD");
-	m_Fonts.SubTitleHeavyBold.CreateFromResource(NULL, "DXFN_SUBTITLE_HEAVY_BOLD");
-	m_Fonts.Title.CreateFromResource(NULL, "DXFN_TITLE");
-	m_Fonts.LogoTitle.CreateFromResource(NULL, "DXFN_LOGO_TITLE");
+	CString sFilespec;
+	if (CResourcePathResolver::FindFontResource(CONSTLIT("DXFN_HEADER"), &sFilespec))
+		m_Fonts.Header.CreateFromFile(sFilespec);
+	else
+		m_Fonts.Header.CreateFromResource(NULL, "DXFN_HEADER");
+
+	if (CResourcePathResolver::FindFontResource(CONSTLIT("DXFN_HEADER_BOLD"), &sFilespec))
+		m_Fonts.HeaderBold.CreateFromFile(sFilespec);
+	else
+		m_Fonts.HeaderBold.CreateFromResource(NULL, "DXFN_HEADER_BOLD");
+
+	if (CResourcePathResolver::FindFontResource(CONSTLIT("DXFN_SUBTITLE"), &sFilespec))
+		m_Fonts.SubTitle.CreateFromFile(sFilespec);
+	else
+		m_Fonts.SubTitle.CreateFromResource(NULL, "DXFN_SUBTITLE");
+
+	if (CResourcePathResolver::FindFontResource(CONSTLIT("DXFN_SUBTITLE_BOLD"), &sFilespec))
+		m_Fonts.SubTitleBold.CreateFromFile(sFilespec);
+	else
+		m_Fonts.SubTitleBold.CreateFromResource(NULL, "DXFN_SUBTITLE_BOLD");
+
+	if (CResourcePathResolver::FindFontResource(CONSTLIT("DXFN_SUBTITLE_HEAVY_BOLD"), &sFilespec))
+		m_Fonts.SubTitleHeavyBold.CreateFromFile(sFilespec);
+	else
+		m_Fonts.SubTitleHeavyBold.CreateFromResource(NULL, "DXFN_SUBTITLE_HEAVY_BOLD");
+
+	if (CResourcePathResolver::FindFontResource(CONSTLIT("DXFN_TITLE"), &sFilespec))
+		m_Fonts.Title.CreateFromFile(sFilespec);
+	else
+		m_Fonts.Title.CreateFromResource(NULL, "DXFN_TITLE");
+
+	if (CResourcePathResolver::FindFontResource(CONSTLIT("DXFN_LOGO_TITLE"), &sFilespec))
+		m_Fonts.LogoTitle.CreateFromFile(sFilespec);
+	else
+		m_Fonts.LogoTitle.CreateFromResource(NULL, "DXFN_LOGO_TITLE");
 	m_Fonts.Console.Create(STR_FIXED_TYPEFACE, -14);
 
 	//	Output the typeface that we got

@@ -98,6 +98,9 @@
     <ClCompile Include="CProfileSession.cpp">
       <Filter>Source Files\Sessions</Filter>
     </ClCompile>
+    <ClCompile Include="CResourcePathResolver.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="CStatsSession.cpp">
       <Filter>Source Files\Sessions</Filter>
     </ClCompile>

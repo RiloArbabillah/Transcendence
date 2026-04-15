@@ -442,6 +442,7 @@ class CG16bitFont
 		CG16bitFont &operator= (const CG16bitFont &Src);
 
 		ALERROR Create (const CString &sTypeface, int iSize, bool bBold = false, bool bItalic = false, bool bUnderline = false);
+		ALERROR CreateFromFile (const CString &sFilespec);
 		ALERROR CreateFromFont (HFONT hFont);
 		ALERROR CreateFromResource (HINSTANCE hInst, const char *pszRes);
 		void Destroy (void) { m_FontImage.Destroy(); m_Metrics.DeleteAll(); }
@@ -776,4 +777,3 @@ class CG16bitLinePainter
 		double m_rWIncX;
 		double m_rWIncY;
 	};
-

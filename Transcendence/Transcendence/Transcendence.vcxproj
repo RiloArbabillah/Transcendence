@@ -1462,6 +1462,7 @@
     <ClCompile Include="CModExchangeSession.cpp" />
     <ClCompile Include="CNewGameSession.cpp" />
     <ClCompile Include="CProfileSession.cpp" />
+    <ClCompile Include="CResourcePathResolver.cpp" />
     <ClCompile Include="CStatsSession.cpp" />
     <ClCompile Include="CTextCrawlSession.cpp" />
     <ClCompile Include="CWaitSession.cpp" />

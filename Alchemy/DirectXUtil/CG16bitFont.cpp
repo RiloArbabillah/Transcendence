@@ -432,6 +432,30 @@ Fail:
 	return error;
 	}
 
+ALERROR CG16bitFont::CreateFromFile (const CString &sFilespec)
+
+//	CreateFromFile
+//
+//	Loads the font from a file.
+
+	{
+	ALERROR error;
+	CFileReadStream Stream(sFilespec);
+
+	if (error = Stream.Open())
+		return error;
+
+	if (error = ReadFromStream(&Stream))
+		{
+		Stream.Close();
+		return error;
+		}
+
+	Stream.Close();
+
+	return NOERROR;
+	}
+
 ALERROR CG16bitFont::CreateFromResource (HINSTANCE hInst, const char *pszRes)
 
 //	CreateFromResource
@@ -1276,4 +1300,3 @@ void FormatLine (char *pPos, int iLen, bool *ioInSmartQuotes, TArray<CString> *r
 	else
 		retLines->Insert(CString(pPos, iLen));
 	}
-

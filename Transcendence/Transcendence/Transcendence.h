@@ -25,6 +25,19 @@ class CUIResources;
 class CTranscendenceController;
 class CTranscendenceModel;
 
+class CResourcePathResolver
+	{
+	public:
+		static CString GetResourcesRoot (void);
+
+		static bool FindBitmapResource (const CString &sName, CString *retsFilespec = NULL);
+		static bool FindFontResource (const CString &sName, CString *retsFilespec = NULL);
+		static bool FindJPEGResource (const CString &sName, CString *retsFilespec = NULL);
+	};
+
+ALERROR LoadBMPResourceAsDIB (const CString &sName, HBITMAP *rethBitmap, EBitmapTypes *retiType = NULL);
+ALERROR LoadJPEGResourceAsDIB (const CString &sName, HBITMAP *rethBitmap);
+
 extern int g_cxScreen;
 extern int g_cyScreen;
 const int g_iColorDepth =					16;		//	Desired color depth

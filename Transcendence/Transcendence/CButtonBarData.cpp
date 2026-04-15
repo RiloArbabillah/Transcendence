@@ -122,11 +122,7 @@ ALERROR CButtonBarData::Init (void)
 	//	Load images
 
 	HBITMAP hDIB;
-	if (error = JPEGLoadFromResource(NULL,
-			MAKEINTRESOURCE(IDR_GAME_BUTTONS_IMAGE),
-			JPEG_LFR_DIB, 
-			NULL, 
-			&hDIB))
+	if (error = LoadJPEGResourceAsDIB(CONSTLIT("IDR_GAME_BUTTONS_IMAGE"), &hDIB))
 		return error;
 
 	bool bSuccess = m_Images.CreateFromBitmap(hDIB);
@@ -136,4 +132,3 @@ ALERROR CButtonBarData::Init (void)
 
 	return NOERROR;
 	}
-

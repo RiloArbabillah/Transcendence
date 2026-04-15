@@ -26,11 +26,7 @@ ALERROR CLoadingSession::OnInit (CString *retsError)
 	//	Load a JPEG of the background image
 
 	HBITMAP hDIB;
-	if (error = JPEGLoadFromResource(NULL,
-			MAKEINTRESOURCE(IDR_TITLE_IMAGE),
-			JPEG_LFR_DIB, 
-			NULL,
-			&hDIB))
+	if (error = LoadJPEGResourceAsDIB(CONSTLIT("IDR_TITLE_IMAGE"), &hDIB))
 		return error;
 
 	bool bSuccess = m_TitleImage.CreateFromBitmap(hDIB);
@@ -40,17 +36,11 @@ ALERROR CLoadingSession::OnInit (CString *retsError)
 
 	//	Load stargate image
 
-	if (error = JPEGLoadFromResource(NULL,
-			MAKEINTRESOURCE(IDR_STARGATE_IMAGE),
-			JPEG_LFR_DIB, 
-			NULL, 
-			&hDIB))
+	if (error = LoadJPEGResourceAsDIB(CONSTLIT("IDR_STARGATE_IMAGE"), &hDIB))
 		return error;
 
 	HBITMAP hBitmask;
-	if (error = dibLoadFromResource(NULL,
-			MAKEINTRESOURCE(IDR_STARGATE_MASK),
-			&hBitmask))
+	if (error = LoadBMPResourceAsDIB(CONSTLIT("IDR_STARGATE_MASK"), &hBitmask))
 		return error;
 
 	bSuccess = m_StargateImage.CreateFromBitmap(hDIB, hBitmask);

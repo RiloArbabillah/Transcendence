@@ -5,6 +5,15 @@
 
 #include "stdafx.h"
 
+class CResourcePathResolver
+	{
+	public:
+		static bool FindFontResource (const CString &sName, CString *retsFilespec = NULL);
+	};
+
+ALERROR LoadBMPResourceAsDIB (const CString &sName, HBITMAP *rethBitmap, EBitmapTypes *retiType = NULL);
+ALERROR LoadJPEGResourceAsDIB (const CString &sName, HBITMAP *rethBitmap);
+
 const int DAMAGE_TYPE_ICON_WIDTH =			16;
 const int DAMAGE_TYPE_ICON_HEIGHT =			16;
 
@@ -430,7 +439,17 @@ ALERROR CVisualPalette::Init (HMODULE hModule, CString *retsError)
 		{
 		if (FONT_TABLE[i].pszResID)
 			{
-			if (error = m_Font[i].CreateFromResource(hModule, FONT_TABLE[i].pszResID))
+			CString sFilespec;
+			if (CResourcePathResolver::FindFontResource(CString(FONT_TABLE[i].pszResID), &sFilespec))
+				{
+				if (error = m_Font[i].CreateFromFile(sFilespec))
+					{
+					if (retsError)
+						*retsError = strPatternSubst(CONSTLIT("Unable to load font file: %s"), sFilespec);
+					return error;
+					}
+				}
+			else if (error = m_Font[i].CreateFromResource(hModule, FONT_TABLE[i].pszResID))
 				{
 				if (retsError)
 					*retsError = strPatternSubst(CONSTLIT("Unable to load font resource: %s"), CString(FONT_TABLE[i].pszResID));
@@ -503,19 +522,14 @@ CG32bitImage *CResourceImageCache::GetImage (const CString &sImage, const CStrin
 		return pImage;
 
 	HBITMAP hImage;
-	if (JPEGLoadFromResource(m_hModule,
-			sImage.GetASCIIZPointer(),
-			JPEG_LFR_DIB, 
-			NULL, 
-			&hImage) != NOERROR)
+	if (LoadJPEGResourceAsDIB(sImage, &hImage) != NOERROR)
 		return NULL;
 	
 	HBITMAP hMask = NULL;
 	EBitmapTypes iMaskType = bitmapNone;
 	if (!sMask.IsBlank())
 		{
-		if (dibLoadFromResource(m_hModule,
-				sMask.GetASCIIZPointer(),
+		if (LoadBMPResourceAsDIB(sMask,
 				&hMask,
 				&iMaskType) != NOERROR)
 			{
@@ -534,4 +548,3 @@ CG32bitImage *CResourceImageCache::GetImage (const CString &sImage, const CStrin
 
 	return pImage;
 	}
-
