@@ -323,6 +323,7 @@ The following steps from this plan are now implemented in the source tree:
 - `Transcendence/Transcendence/CLoadingSession.cpp` now uses the image wrappers for loading screen assets
 - `Mammoth/TSUI/CVisualPalette.cpp` now uses the image wrappers for UI atlas and mask lookup
 - `Transcendence/Transcendence/CButtonBarData.cpp` now uses the image wrappers for title/menu button art lookup
+- `Transcendence/Transcendence/CLoadingSession.cpp` now also has a proof-of-concept neutral image path for `Title.JPG`, `Stargate.JPG`, and `StargateMask.BMP`, bypassing `HBITMAP` for those loading-screen assets
 
 ## Remaining work after the current implementation slice
 
@@ -332,11 +333,15 @@ Still not migrated to the wrapper path:
 - `Transcendence/Transcendence/CStatsSession.cpp`
 - `Transcendence/Transcendence/CModExchangeSession.cpp`
 
-Still not portable enough for macOS compilation/runtime:
+Still not fully portable enough for macOS compilation/runtime:
 
 - `LoadJPEGResourceAsDIB` still ends in `JPEGLoadFromFile`, which returns `HBITMAP`
 - `LoadBMPResourceAsDIB` still ends in `dibLoadFromFile`, which returns `HBITMAP`
 - `CG32bitImage::CreateFromBitmap` and related image creation still depend on Windows bitmap objects
+
+But note:
+
+- `CLoadingSession.cpp` is no longer blocked by those legacy image paths for its main loading-screen assets, because it now uses the new neutral JPEG/BMP decode path and `CG32bitImage::CreateFromRaw(...)`
 
 ### Practical interpretation
 
@@ -350,8 +355,8 @@ That means the project is now in a better state to attack the next real blocker:
 
 The best next code step is now:
 
-1. migrate the remaining low-priority image callers (`CHelpSession.cpp`, `CStatsSession.cpp`, `CModExchangeSession.cpp`) if desired for consistency
-2. then design the next seam that removes or isolates `HBITMAP` from the file-based image path
-3. keep the font path as-is unless a later layer move is needed to reduce temporary TSUI-to-app coupling
+1. migrate `Mammoth/TSUI/CVisualPalette.cpp` to the neutral image path used by `CLoadingSession.cpp`
+2. migrate `Transcendence/Transcendence/CButtonBarData.cpp` to the same path
+3. defer the remaining low-priority callers until milestone-1 title/menu needs are satisfied
 
-This keeps progress aligned with milestone 1 while making the next portability blocker explicit.
+This keeps progress aligned with milestone 1 while extending the proven no-`HBITMAP` path to the rest of the title/menu-critical callers.

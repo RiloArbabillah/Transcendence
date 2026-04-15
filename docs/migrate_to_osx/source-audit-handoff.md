@@ -580,6 +580,7 @@ The following implementation progress has already landed relative to the origina
   - `Transcendence/Transcendence/CLoadingSession.cpp`
   - `Mammoth/TSUI/CVisualPalette.cpp`
   - `Transcendence/Transcendence/CButtonBarData.cpp`
+- `Transcendence/Transcendence/CLoadingSession.cpp` has now moved one step further and uses a neutral in-memory image path for `Title.JPG`, `Stargate.JPG`, and `StargateMask.BMP`, bypassing `HBITMAP` for the loading-screen proof of concept
 
 ### What this means
 
@@ -588,7 +589,8 @@ The project has moved past the original state where title/menu bring-up depended
 The remaining problem is now narrower:
 
 - resource lookup for key milestone-1 callers is mostly file-based
-- image decode and image-object creation are still Windows-centric because they still flow through `HBITMAP`
+- `CLoadingSession.cpp` has a working proof-of-concept path that no longer flows through `HBITMAP`
+- the remaining title/menu callers still need that same neutral image path propagated outward
 
 ### Remaining nearby callers still using old image resource loading
 

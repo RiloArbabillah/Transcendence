@@ -176,6 +176,24 @@ Summary:
 - Change Type: updated
 - Summary: added navigation and usage guidance for `image-portability-seam.md` so future work can move from file-based lookup into true image portability work
 
+### 2026-04-15
+
+- Document: `image-portability-seam.md`
+- Change Type: updated
+- Summary: recorded that `CLoadingSession.cpp` now uses the neutral image path for title and stargate loading-screen assets, and updated the next recommended callers to `CVisualPalette.cpp` and `CButtonBarData.cpp`
+
+### 2026-04-15
+
+- Document: `resource-loader-plan.md`
+- Change Type: updated
+- Summary: noted that the loading-screen caller now has a no-`HBITMAP` proof-of-concept path and shifted the next implementation target to `CVisualPalette.cpp` and `CButtonBarData.cpp`
+
+### 2026-04-15
+
+- Document: `source-audit-handoff.md`
+- Change Type: updated
+- Summary: added the current milestone-1 status showing that `CLoadingSession.cpp` now bypasses `HBITMAP` for its loading-screen assets while the remaining title/menu callers still need that neutral path propagated
+
 ## Maintenance Notes
 
 - Add a new entry when a document is created, significantly restructured, or materially changes scope or execution direction.

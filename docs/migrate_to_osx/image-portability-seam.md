@@ -2,7 +2,7 @@
 
 ## Document Status
 
-- Version: v1.0
+- Version: v1.1
 - Last Updated: 2026-04-15
 - Project: Native macOS Apple Silicon port of `kronosaur/TranscendenceDev`
 - Purpose: define the next seam after file-based resource lookup, focused on isolating or removing `HBITMAP` from the milestone-1 image path
@@ -269,12 +269,48 @@ The next seam is successful when:
 - `CLoadingSession` can load title and stargate assets through a platform-neutral path
 - the `HBITMAP` dependency is pushed out of the milestone-1 boot path, even if legacy callers still use it elsewhere
 
+## Current implementation status
+
+The following parts of this seam are now implemented:
+
+- `CG32bitImage::CreateFromRaw(...)` exists in `Alchemy/DirectXUtil/CG32bitImage.cpp`
+- `SJPEGLoadInfo` exists in `Alchemy/Include/JPEGUtil.h`
+- `JPEGLoadToRGBAFromFile(...)` and `JPEGLoadToRGBAFromMemory(...)` exist in `Alchemy/IntelJPEGUtil/Load.cpp`
+- `SBMPImageLoad` exists in `Alchemy/Include/Graphics.h`
+- `dibLoadToBuffer(...)` and `dibLoadToBufferFromFile(...)` exist in `Alchemy/Graphics/DIB.cpp`
+- `Transcendence/Transcendence/CLoadingSession.cpp` now uses the neutral image path for:
+  - `Title.JPG`
+  - `Stargate.JPG`
+  - `StargateMask.BMP`
+- `CLoadingSession.cpp` now applies the stargate mask in memory instead of via `CreateFromBitmap(hImage, hMask)`
+
+## What this proves
+
+The milestone-1 loading-screen caller can now load and compose its key images without depending on `HBITMAP`.
+
+That means the proposed seam is viable in the live codebase, at least for the first proof-of-concept caller.
+
+## What still remains
+
+The new neutral path is not yet used by:
+
+- `Mammoth/TSUI/CVisualPalette.cpp`
+- `Transcendence/Transcendence/CButtonBarData.cpp`
+- `Transcendence/Transcendence/CHelpSession.cpp`
+- `Transcendence/Transcendence/CStatsSession.cpp`
+- `Transcendence/Transcendence/CModExchangeSession.cpp`
+
+The current BMP-to-buffer implementation is also intentionally narrow:
+
+- focused on 1-bit, 8-bit, and 24-bit BMP inputs
+- designed to satisfy milestone-1 loading-screen and mask needs first
+
 ## Recommended next implementation step
 
-The best next code step is:
+The best next code step is now:
 
-1. add a neutral in-memory decoded image representation
-2. add a non-Win32 ingestion method to `CG32bitImage`
-3. migrate `CLoadingSession.cpp` first as the proof-of-concept caller
+1. migrate `Mammoth/TSUI/CVisualPalette.cpp` image atlas loading to the neutral image path
+2. migrate `Transcendence/Transcendence/CButtonBarData.cpp` to the same path for consistency
+3. only then decide whether the remaining non-critical callers need to move immediately
 
-This is the smallest step that attacks the real remaining portability blocker instead of doing more lookup cleanup.
+This keeps the work focused on milestone-1 title/menu bring-up while building on the proof-of-concept that now exists in `CLoadingSession.cpp`.
