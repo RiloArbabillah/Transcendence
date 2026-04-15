@@ -58,6 +58,9 @@ Use this file as the primary entry point for the documentation set.
 - `source-audit-handoff.md`
   - source-level handoff capturing actual boot path, runtime blockers, host contract findings, and font/resource pipeline risks discovered during code audit
 
+- `resource-loader-plan.md`
+  - implementation plan for replacing Win32 resource loading with a minimal file-based loader for milestone-1 fonts and UI assets
+
 ### Validation and Governance
 
 - `qa-test-matrix.md`
@@ -81,6 +84,7 @@ Use this file as the primary entry point for the documentation set.
 | `milestone-1-plan.md` | how to execute the first milestone without scope creep |
 | `cmake-build-plan.md` | how the macOS build graph should be introduced |
 | `source-audit-handoff.md` | what the current source tree actually does and where milestone-1 blockers are |
+| `resource-loader-plan.md` | how to replace milestone-1 Win32 resource loading with a file-based path |
 | `qa-test-matrix.md` | how milestone success is validated |
 | `decision-log.md` | why key technical decisions were made |
 | `change-log.md` | what changed in the documentation set over time |
@@ -107,6 +111,12 @@ Use this file as the primary entry point for the documentation set.
 - use `source-audit-handoff.md`
 - cross-check assumptions against `dependency-matrix.md`
 - use `milestone-1-plan.md` to keep early work focused on menu bring-up
+
+### During Resource Loader Implementation
+
+- use `source-audit-handoff.md` for the real asset and call-site inventory
+- use `resource-loader-plan.md` for the minimum loader shape and implementation order
+- keep `milestone-1-plan.md` in view to avoid expanding scope beyond loading screen and intro menu
 
 ### During Milestone Validation
 
@@ -150,6 +160,7 @@ Use this file as the primary entry point for the documentation set.
 - `milestone-1-plan.md`
 - `cmake-build-plan.md`
 - `source-audit-handoff.md`
+- `resource-loader-plan.md`
 - `qa-test-matrix.md`
 - `decision-log.md`
 - `change-log.md`

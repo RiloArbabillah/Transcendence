@@ -2,7 +2,7 @@
 
 ## Document Status
 
-- Version: v1.1
+- Version: v1.2
 - Last Updated: 2026-04-15
 - Scope: documentation-only changes for the macOS port planning set
 
@@ -133,6 +133,24 @@ Summary:
 - Document: `index.md`
 - Change Type: updated
 - Summary: added navigation and usage references for `source-audit-handoff.md` so future implementation work can cross-check planning docs against the actual source audit
+
+### 2026-04-15
+
+- Document: `source-audit-handoff.md`
+- Change Type: updated
+- Summary: added milestone-1 asset inventory, Win32 resource ID to file mappings, and minimum file subset required for loading screen and intro menu bring-up
+
+### 2026-04-15
+
+- Document: `resource-loader-plan.md`
+- Change Type: created
+- Summary: added a minimal file-based loader design for milestone-1 `.dxfn`, JPEG, and BMP-mask assets, including implementation order and first-call-site targets
+
+### 2026-04-15
+
+- Document: `index.md`
+- Change Type: updated
+- Summary: added navigation and usage guidance for `resource-loader-plan.md` so implementation can move from audit into a concrete loader plan
 
 ## Maintenance Notes
 

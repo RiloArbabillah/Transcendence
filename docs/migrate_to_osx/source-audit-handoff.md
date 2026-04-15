@@ -415,6 +415,156 @@ This avoids building a brand new font rasterizer for milestone 1.
 
 This is relevant because the font problem and UI image problem likely need the same solution shape: a file- or bundle-based resource loader.
 
+## Asset inventory for loading screen and intro menu
+
+The live asset files needed for milestone-1 menu bring-up are present on disk under:
+
+- `Transcendence/Transcendence/Resources/`
+
+### Resource ID to file mapping
+
+The following mappings come from `Transcendence/Transcendence/Transcendence.rc`.
+
+#### Loading screen and title assets
+
+- `IDR_TITLE_IMAGE` -> `Transcendence/Transcendence/Resources/Title.JPG`
+- `IDR_STARGATE_IMAGE` -> `Transcendence/Transcendence/Resources/Stargate.JPG`
+- `IDR_STARGATE_MASK` -> `Transcendence/Transcendence/Resources/StargateMask.BMP`
+
+Used by:
+
+- `Transcendence/Transcendence/CLoadingSession.cpp:29`
+- `Transcendence/Transcendence/CLoadingSession.cpp:43`
+- `Transcendence/Transcendence/CLoadingSession.cpp:51`
+
+#### Intro/title menu button bar assets
+
+- `IDR_GAME_BUTTONS_IMAGE` -> `Transcendence/Transcendence/Resources/GameButtonIcons.jpg`
+
+Used by:
+
+- `Transcendence/Transcendence/CButtonBarData.cpp:125`
+- consumed by intro button-bar display via `CButtonBarDisplay`
+
+Note:
+
+- No `IDR_GAME_BUTTONS_MASK` mapping appears in `Transcendence/Transcendence/Transcendence.rc`, even though `resource.h` defines the ID
+- This should be verified before implementing a file-based loader, but it does not currently block the title/menu audit because only the JPEG mapping is obvious in the current resource file
+
+#### Visual palette UI icon atlas assets
+
+- `JPEG_UI_ICONS` -> `Transcendence/Transcendence/Resources/UIIcons.jpg`
+- `BMP_UI_ICONS_MASK` -> `Transcendence/Transcendence/Resources/UIIconsMask.bmp`
+
+Used by `Mammoth/TSUI/CVisualPalette.cpp` for:
+
+- profile icon
+- mod exchange icon
+- music on/off icons
+- cancel/OK arrows
+- settings icon
+- play/debug icons
+- small directional icons
+- difficulty icons
+- small human genome icons
+
+These are referenced by title/menu and nearby menu flows, including:
+
+- `Transcendence/Transcendence/IntroScreen.cpp:631`
+- `Transcendence/Transcendence/IntroScreen.cpp:639`
+- `Transcendence/Transcendence/IntroScreen.cpp:646`
+- `Transcendence/Transcendence/IntroScreen.cpp:655`
+- `Transcendence/Transcendence/IntroScreen.cpp:665`
+- `Transcendence/Transcendence/CChooseAdventureSession.cpp:217`
+- `Transcendence/Transcendence/CNewGameSession.cpp:325`
+
+#### Visual palette damage icon atlas assets
+
+- `JPEG_DAMAGE_TYPE_ICONS` -> `Transcendence/Transcendence/Resources/DamageTypes.jpg`
+- `BMP_DAMAGE_TYPE_ICONS_MASK` -> `Transcendence/Transcendence/Resources/DamageTypesMask.bmp`
+
+These are not required for the very first title frame, but they are needed by help and related UI flows.
+
+Referenced by:
+
+- `Transcendence/Transcendence/CHelpSession.cpp:182`
+- `Transcendence/Transcendence/CHelpSession.cpp:217`
+
+#### Resource-backed menu/title fonts
+
+- `DXFN_HEADER` -> `Transcendence/Transcendence/Resources/Header.dxfn`
+- `DXFN_HEADER_BOLD` -> `Transcendence/Transcendence/Resources/HeaderBold.dxfn`
+- `DXFN_SUBTITLE` -> `Transcendence/Transcendence/Resources/SubTitle.dxfn`
+- `DXFN_SUBTITLE_BOLD` -> `Transcendence/Transcendence/Resources/SubTitleBold.dxfn`
+- `DXFN_SUBTITLE_HEAVY_BOLD` -> `Transcendence/Transcendence/Resources/SubTitleHeavyBold.dxfn`
+- `DXFN_TITLE` -> `Transcendence/Transcendence/Resources/Title.dxfn`
+- `DXFN_LOGO_TITLE` -> `Transcendence/Transcendence/Resources/LogoTitle.dxfn`
+
+Loaded by:
+
+- `Mammoth/TSUI/CVisualPalette.cpp:433`
+- `Transcendence/Transcendence/CTranscendenceWnd.cpp:754`
+- `Transcendence/Transcendence/CTranscendenceWnd.cpp:760`
+
+### Additional nearby assets not strictly required for first title frame
+
+These assets are in the same folder and are used by adjacent sessions that likely appear soon after intro/menu bring-up:
+
+- `Transcendence/Transcendence/Resources/Help Screen.jpg`
+- `Transcendence/Transcendence/Resources/SelectShipIcons.jpg`
+- `Transcendence/Transcendence/Resources/SelectShipIconsMask.bmp`
+- `Transcendence/Transcendence/Resources/Game Stats Screen.jpg`
+- `Transcendence/Transcendence/Resources/GenericExtensionSmall.jpg`
+- `Transcendence/Transcendence/Resources/IconDisplay.JPG`
+
+Used by:
+
+- `Transcendence/Transcendence/CHelpSession.cpp:81`
+- `Transcendence/Transcendence/CStatsSession.cpp:99`
+- `Transcendence/Transcendence/CModExchangeSession.cpp:445`
+
+### Minimum asset subset for milestone-1 menu boot
+
+Strict minimum to show loading screen and intro/title menu with current logic:
+
+- `Transcendence/Transcendence/Resources/Title.JPG`
+- `Transcendence/Transcendence/Resources/Stargate.JPG`
+- `Transcendence/Transcendence/Resources/StargateMask.BMP`
+- `Transcendence/Transcendence/Resources/GameButtonIcons.jpg`
+- `Transcendence/Transcendence/Resources/UIIcons.jpg`
+- `Transcendence/Transcendence/Resources/UIIconsMask.bmp`
+- `Transcendence/Transcendence/Resources/Header.dxfn`
+- `Transcendence/Transcendence/Resources/HeaderBold.dxfn`
+- `Transcendence/Transcendence/Resources/SubTitle.dxfn`
+- `Transcendence/Transcendence/Resources/SubTitleBold.dxfn`
+- `Transcendence/Transcendence/Resources/SubTitleHeavyBold.dxfn`
+- `Transcendence/Transcendence/Resources/Title.dxfn`
+- `Transcendence/Transcendence/Resources/LogoTitle.dxfn`
+
+Practical near-minimum if moving slightly beyond first title/menu and into surrounding UI:
+
+- all of the above
+- `Transcendence/Transcendence/Resources/DamageTypes.jpg`
+- `Transcendence/Transcendence/Resources/DamageTypesMask.bmp`
+- `Transcendence/Transcendence/Resources/Help Screen.jpg`
+- `Transcendence/Transcendence/Resources/SelectShipIcons.jpg`
+- `Transcendence/Transcendence/Resources/SelectShipIconsMask.bmp`
+
+### Recommended loader work based on the inventory
+
+The first file-based resource layer for macOS should be able to resolve at least three categories:
+
+- `.dxfn` font files
+- JPEG image files
+- BMP mask files
+
+The simplest migration path appears to be:
+
+1. add a deterministic mapping from current resource IDs/names to files under `Transcendence/Transcendence/Resources/`
+2. add stream/file-based font loading for `.dxfn`
+3. add file-based image loading to replace `JPEGLoadFromResource` and `dibLoadFromResource`
+4. make `CVisualPalette::Init` and `CLoadingSession` consume the new loader first on macOS
+
 ## Recommended strategy based on the audit
 
 ### What should happen first
