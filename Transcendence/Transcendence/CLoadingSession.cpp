@@ -12,6 +12,33 @@ const int Y_COPYRIGHT_TEXT =					392;
 
 const CG32bitPixel RGB_IMAGE_BACKGROUND =		CG32bitPixel(0, 0, 0);
 
+static void ApplyAlphaMask (CG32bitImage &Dest, const SBMPImageLoad &Mask)
+	{
+	int cxWidth = Min(Dest.GetWidth(), Mask.cxWidth);
+	int cyHeight = Min(Dest.GetHeight(), Mask.cyHeight);
+
+	for (int y = 0; y < cyHeight; y++)
+		{
+		CG32bitPixel *pDest = Dest.GetPixelPos(0, y);
+		const CG32bitPixel *pMask = (const CG32bitPixel *)(Mask.Pixels.GetPointer() + (y * Mask.iPitch));
+
+		for (int x = 0; x < cxWidth; x++)
+			{
+			BYTE byAlpha;
+			if (Mask.iType == bitmapMonochrome)
+				byAlpha = (pMask->GetGreen() ? 0xff : 0x00);
+			else
+				byAlpha = pMask->GetGreen();
+
+			pDest->SetAlpha(byAlpha);
+			pDest++;
+			pMask++;
+			}
+		}
+
+	Dest.SetAlphaType((Mask.iType == bitmapMonochrome ? CG32bitImage::alpha1 : CG32bitImage::alpha8));
+	}
+
 ALERROR CLoadingSession::OnInit (CString *retsError)
 
 //	OnInit
@@ -39,18 +66,27 @@ ALERROR CLoadingSession::OnInit (CString *retsError)
 
 	//	Load stargate image
 
-	HBITMAP hDIB;
-	if (error = LoadJPEGResourceAsDIB(CONSTLIT("IDR_STARGATE_IMAGE"), &hDIB))
+	CString sStargateFilespec;
+	if (!CResourcePathResolver::FindJPEGResource(CONSTLIT("IDR_STARGATE_IMAGE"), &sStargateFilespec))
+		return ERR_FAIL;
+
+	if (error = JPEGLoadToRGBAFromFile(sStargateFilespec, &Image))
 		return error;
 
-	HBITMAP hBitmask;
-	if (error = LoadBMPResourceAsDIB(CONSTLIT("IDR_STARGATE_MASK"), &hBitmask))
-		return error;
-
-	bSuccess = m_StargateImage.CreateFromBitmap(hDIB, hBitmask);
-	::DeleteObject(hDIB);
-	::DeleteObject(hBitmask);
+	bSuccess = m_StargateImage.CreateFromRaw(Image.Pixels.GetPointer(), Image.cxWidth, Image.cyHeight, Image.iPitch, CG32bitImage::alphaNone);
 	if (!bSuccess)
+		return ERR_FAIL;
+
+	CString sMaskFilespec;
+	if (!CResourcePathResolver::FindBitmapResource(CONSTLIT("IDR_STARGATE_MASK"), &sMaskFilespec))
+		return ERR_FAIL;
+
+	SBMPImageLoad Mask;
+	if (error = dibLoadToBufferFromFile(sMaskFilespec, &Mask))
+		return error;
+
+	ApplyAlphaMask(m_StargateImage, Mask);
+	if (m_StargateImage.IsEmpty())
 		return ERR_FAIL;
 
 	//	Figure out position of copyright text.

@@ -527,6 +527,122 @@ ALERROR dibLoadFromFile (CString sFilename, HBITMAP *rethDIB, EBitmapTypes *reti
 	return dibLoadFromBlock(DIBFile, rethDIB, retiType);
 	}
 
+ALERROR dibLoadToBuffer (IReadBlock &Data, SBMPImageLoad *retImage)
+
+	{
+	if (retImage == NULL)
+		return ERR_FAIL;
+
+	ALERROR error;
+	HANDLE hFileData = NULL;
+	int iBitsOffset;
+	BITMAPINFOHEADER bi;
+
+	retImage->cxWidth = 0;
+	retImage->cyHeight = 0;
+	retImage->iPitch = 0;
+	retImage->iType = bitmapNone;
+	retImage->Pixels.SetLength(0);
+
+	if (error = Data.Open())
+		return error;
+
+	if (error = ReadDIBInfo(&Data, &hFileData, &iBitsOffset, &bi))
+		return error;
+
+	switch (bi.biBitCount)
+		{
+		case 1:
+			retImage->iType = bitmapMonochrome;
+			break;
+
+		case 8:
+			retImage->iType = bitmapAlpha;
+			break;
+
+		default:
+			retImage->iType = bitmapRGB;
+			break;
+		}
+
+	BITMAPINFO *pFileData = (BITMAPINFO *)::GlobalLock(hFileData);
+	if (!pFileData)
+		{
+		GlobalFree(hFileData);
+		return ERR_MEMORY;
+		}
+
+	int cxWidth = bi.biWidth;
+	int cyHeight = Absolute(bi.biHeight);
+	int iPitch = cxWidth * (int)sizeof(CG32bitPixel);
+	retImage->Pixels.SetLength(iPitch * cyHeight);
+
+	const BYTE *pBits = (const BYTE *)Data.GetPointer(iBitsOffset, -1);
+	int iSrcStride = WIDTHBYTES(cxWidth * bi.biBitCount);
+
+	for (int y = 0; y < cyHeight; y++)
+		{
+		int ySrc = (bi.biHeight > 0 ? (cyHeight - 1 - y) : y);
+		const BYTE *pSrcRow = pBits + (ySrc * iSrcStride);
+		CG32bitPixel *pDest = (CG32bitPixel *)(retImage->Pixels.GetPointer() + (y * iPitch));
+
+		if (bi.biBitCount == 24)
+			{
+			for (int x = 0; x < cxWidth; x++)
+				{
+				BYTE byBlue = *pSrcRow++;
+				BYTE byGreen = *pSrcRow++;
+				BYTE byRed = *pSrcRow++;
+				*pDest++ = CG32bitPixel(byRed, byGreen, byBlue, 0xff);
+				}
+			}
+		else if (bi.biBitCount == 8)
+			{
+			RGBQUAD *pPalette = pFileData->bmiColors;
+			for (int x = 0; x < cxWidth; x++)
+				{
+				BYTE byIndex = *pSrcRow++;
+				const RGBQUAD &Entry = pPalette[byIndex];
+				*pDest++ = CG32bitPixel(Entry.rgbRed, Entry.rgbGreen, Entry.rgbBlue, 0xff);
+				}
+			}
+		else if (bi.biBitCount == 1)
+			{
+			RGBQUAD *pPalette = pFileData->bmiColors;
+			for (int x = 0; x < cxWidth; x++)
+				{
+				BYTE byValue = (pSrcRow[x / 8] >> (7 - (x % 8))) & 0x1;
+				const RGBQUAD &Entry = pPalette[byValue];
+				*pDest++ = CG32bitPixel(Entry.rgbRed, Entry.rgbGreen, Entry.rgbBlue, 0xff);
+				}
+			}
+		else
+			{
+			GlobalUnlock(hFileData);
+			GlobalFree(hFileData);
+			retImage->Pixels.SetLength(0);
+			retImage->iType = bitmapNone;
+			return ERR_FAIL;
+			}
+		}
+
+	GlobalUnlock(hFileData);
+	GlobalFree(hFileData);
+
+	retImage->cxWidth = cxWidth;
+	retImage->cyHeight = cyHeight;
+	retImage->iPitch = iPitch;
+
+	return NOERROR;
+	}
+
+ALERROR dibLoadToBufferFromFile (CString sFilename, SBMPImageLoad *retImage)
+
+	{
+	CFileReadBlock DIBFile(sFilename);
+	return dibLoadToBuffer(DIBFile, retImage);
+	}
+
 ALERROR dibLoadFromResource (HINSTANCE hInst, char *szResource, HBITMAP *rethDIB, EBitmapTypes *retiType)
 
 //	dibLoadFromResource

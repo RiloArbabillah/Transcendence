@@ -158,6 +158,15 @@ enum EAspectRatioTypes
 	aspect16x9,
 	};
 
+struct SBMPImageLoad
+	{
+	int cxWidth = 0;
+	int cyHeight = 0;
+	int iPitch = 0;
+	EBitmapTypes iType = bitmapNone;
+	CBuffer Pixels;
+	};
+
 EAspectRatioTypes dibCalcAspectRatio (int cxWidth, int cyHeight);
 ALERROR dibConvertToDDB (HBITMAP hDIB, HPALETTE hPalette, HBITMAP *rethBitmap);
 ALERROR dibCreate16bitDIB (int cxWidth, int cyHeight, HBITMAP *rethBitmap, WORD **retpPixel);
@@ -171,6 +180,8 @@ bool dibIs24bit (HBITMAP hDIB);
 ALERROR dibLoadFromBlock (IReadBlock &Data, HBITMAP *rethDIB, EBitmapTypes *retiType = NULL);
 ALERROR dibLoadFromFile (CString sFilename, HBITMAP *rethDIB, EBitmapTypes *retiType = NULL);
 ALERROR dibLoadFromResource (HINSTANCE hInst, char *szResource, HBITMAP *rethDIB, EBitmapTypes *retiType = NULL);
+ALERROR dibLoadToBuffer (IReadBlock &Data, SBMPImageLoad *retImage);
+ALERROR dibLoadToBufferFromFile (CString sFilename, SBMPImageLoad *retImage);
 DWORD dibPaletteSize (LPVOID pv);
 
 //	Raw image format functions
