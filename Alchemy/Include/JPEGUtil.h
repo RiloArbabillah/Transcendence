@@ -11,7 +11,16 @@
 #define JPEG_LFR_QUARTERSCALE			0x00000008
 #define JPEG_LFR_DIB					0x00000010
 
+struct SJPEGLoadInfo
+	{
+	int cxWidth = 0;
+	int cyHeight = 0;
+	int iPitch = 0;
+	CBuffer Pixels;
+	};
+
 ALERROR JPEGLoadFromFile (CString sFilename, DWORD dwFlags, HPALETTE hPalette, HBITMAP *rethBitmap);
 ALERROR JPEGLoadFromMemory (char *pImage, int iSize, DWORD dwFlags, HPALETTE hPalette, HBITMAP *rethBitmap);
 ALERROR JPEGLoadFromResource (HINSTANCE hInst, char *pszRes, DWORD dwFlags, HPALETTE hPalette, HBITMAP *rethBitmap);
-
+ALERROR JPEGLoadToRGBAFromFile (CString sFilename, SJPEGLoadInfo *retImage);
+ALERROR JPEGLoadToRGBAFromMemory (char *pImage, int iSize, SJPEGLoadInfo *retImage);

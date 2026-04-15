@@ -155,6 +155,7 @@ class CG32bitImage : public TImagePlane<CG32bitImage>
 		void CleanUp (void);
 		bool Create (int cxWidth, int cyHeight, EAlphaTypes AlphaType = alphaNone, CG32bitPixel InitialValue = 0);
 		bool CreateFromBitmap (HBITMAP hImage, HBITMAP hMask = NULL, EBitmapTypes iMaskType = bitmapNone, DWORD dwFlags = 0);
+		bool CreateFromRaw (const void *pBuffer, int cxWidth, int cyHeight, int iPitch, EAlphaTypes AlphaType = alphaNone);
 		bool CreateFromExternalBuffer (void *pBuffer, int cxWidth, int cyHeight, int iPitch, EAlphaTypes AlphaType = alphaNone);
 		bool CreateFromFile (const CString &sImageFilespec, const CString &sMaskFilespec = NULL_STR, DWORD dwFlags = 0);
 		bool CreateFromImageTransformed (const CG32bitImage &Source, int xSrc, int ySrc, int cxSrc, int cySrc, Metric rScaleX, Metric rScaleY, Metric rRotation = 0.0);
@@ -591,4 +592,3 @@ class CGPNG
 //	Inlines --------------------------------------------------------------------
 
 inline void CG32bitImage::DrawLine (int x1, int y1, int x2, int y2, int iWidth, CG32bitPixel rgbColor) { CGDraw::Line(*this, x1, y1, x2, y2, iWidth, rgbColor); }
-

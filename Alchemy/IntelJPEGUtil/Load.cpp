@@ -139,6 +139,93 @@ ALERROR JPEGLoadFromMemory (char *pImage, int iSize, DWORD dwFlags, HPALETTE hPa
 	return NOERROR;
 	}
 
+ALERROR JPEGLoadToRGBAFromFile (CString sFilename, SJPEGLoadInfo *retImage)
+
+	{
+	ALERROR error;
+	CFileReadBlock JPEGFile(sFilename);
+
+	if (error = JPEGFile.Open())
+		return error;
+
+	error = JPEGLoadToRGBAFromMemory(JPEGFile.GetPointer(0, JPEGFile.GetLength()), JPEGFile.GetLength(), retImage);
+	JPEGFile.Close();
+	return error;
+	}
+
+ALERROR JPEGLoadToRGBAFromMemory (char *pImage, int iSize, SJPEGLoadInfo *retImage)
+
+	{
+	if (retImage == NULL)
+		return ERR_FAIL;
+
+	ALERROR error;
+	IJLERR jerr;
+
+	JPEG_CORE_PROPERTIES jcprops;
+	jerr = ijlInit(&jcprops);
+	if (jerr != IJL_OK)
+		return ERR_FAIL;
+
+	jcprops.JPGFile = NULL;
+	jcprops.JPGBytes = (BYTE *)pImage;
+	jcprops.JPGSizeBytes = iSize;
+
+	jerr = ijlRead(&jcprops, IJL_JBUFF_READPARAMS);
+	if (jerr != IJL_OK)
+		{
+		ijlFree(&jcprops);
+		return ERR_FAIL;
+		}
+
+	int cxWidth = (int)jcprops.JPGWidth;
+	int cyHeight = (int)jcprops.JPGHeight;
+	int iPitch = cxWidth * (int)sizeof(CG32bitPixel);
+	int iDataSize = iPitch * cyHeight;
+
+	retImage->Pixels.SetLength(iDataSize);
+	retImage->cxWidth = cxWidth;
+	retImage->cyHeight = cyHeight;
+	retImage->iPitch = iPitch;
+
+	jcprops.DIBWidth = cxWidth;
+	jcprops.DIBHeight = -cyHeight;
+	jcprops.DIBChannels = 4;
+	jcprops.DIBColor = IJL_RGBA_FPX;
+	jcprops.DIBPadBytes = 0;
+	jcprops.DIBBytes = (BYTE *)retImage->Pixels.GetPointer();
+
+	switch (jcprops.JPGChannels)
+		{
+		case 1:
+			jcprops.JPGColor = IJL_G;
+			break;
+
+		case 3:
+			jcprops.JPGColor = IJL_YCBCR;
+			break;
+
+		default:
+			jcprops.DIBColor = (IJL_COLOR)IJL_OTHER;
+			jcprops.JPGColor = (IJL_COLOR)IJL_OTHER;
+			break;
+		}
+
+	jerr = ijlRead(&jcprops, IJL_JBUFF_READWHOLEIMAGE);
+	if (jerr != IJL_OK)
+		{
+		retImage->Pixels.SetLength(0);
+		retImage->cxWidth = 0;
+		retImage->cyHeight = 0;
+		retImage->iPitch = 0;
+		ijlFree(&jcprops);
+		return ERR_FAIL;
+		}
+
+	ijlFree(&jcprops);
+	return NOERROR;
+	}
+
 ALERROR JPEGLoadFromResource (HINSTANCE hInst, char *pszRes, DWORD dwFlags, HPALETTE hPalette, HBITMAP *rethBitmap)
 
 //	JPEGLoadFromResource

@@ -641,6 +641,39 @@ bool CG32bitImage::CreateFromExternalBuffer (void *pBuffer, int cxWidth, int cyH
 	return true;
 	}
 
+bool CG32bitImage::CreateFromRaw (const void *pBuffer, int cxWidth, int cyHeight, int iPitch, EAlphaTypes AlphaType)
+
+//	CreateFromRaw
+//
+//	Creates an image by copying a caller-owned raw buffer.
+
+	{
+	CleanUp();
+	if (pBuffer == NULL || cxWidth <= 0 || cyHeight <= 0 || iPitch < (cxWidth * (int)sizeof(CG32bitPixel)))
+		return false;
+
+	m_iPitch = cxWidth * sizeof(CG32bitPixel);
+	int iSize = CalcBufferSize(m_iPitch / sizeof(DWORD), cyHeight);
+	if (!AllocRGBA(iSize))
+		return false;
+
+	const BYTE *pSrcRow = (const BYTE *)pBuffer;
+	BYTE *pDestRow = (BYTE *)m_pRGBA;
+	for (int y = 0; y < cyHeight; y++)
+		{
+		utlMemCopy(pSrcRow, pDestRow, m_iPitch);
+		pSrcRow += iPitch;
+		pDestRow += m_iPitch;
+		}
+
+	m_cxWidth = cxWidth;
+	m_cyHeight = cyHeight;
+	m_AlphaType = AlphaType;
+	ResetClipRect();
+
+	return true;
+	}
+
 bool CG32bitImage::CreateFromFile (const CString &sImageFilespec, const CString &sMaskFilespec, DWORD dwFlags)
 
 //	CreateFromFile

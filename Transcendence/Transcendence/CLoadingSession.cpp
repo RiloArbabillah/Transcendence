@@ -25,17 +25,21 @@ ALERROR CLoadingSession::OnInit (CString *retsError)
 
 	//	Load a JPEG of the background image
 
-	HBITMAP hDIB;
-	if (error = LoadJPEGResourceAsDIB(CONSTLIT("IDR_TITLE_IMAGE"), &hDIB))
+	SJPEGLoadInfo Image;
+	CString sTitleFilespec;
+	if (!CResourcePathResolver::FindJPEGResource(CONSTLIT("IDR_TITLE_IMAGE"), &sTitleFilespec))
+		return ERR_FAIL;
+
+	if (error = JPEGLoadToRGBAFromFile(sTitleFilespec, &Image))
 		return error;
 
-	bool bSuccess = m_TitleImage.CreateFromBitmap(hDIB);
-	::DeleteObject(hDIB);
+	bool bSuccess = m_TitleImage.CreateFromRaw(Image.Pixels.GetPointer(), Image.cxWidth, Image.cyHeight, Image.iPitch, CG32bitImage::alphaNone);
 	if (!bSuccess)
 		return ERR_FAIL;
 
 	//	Load stargate image
 
+	HBITMAP hDIB;
 	if (error = LoadJPEGResourceAsDIB(CONSTLIT("IDR_STARGATE_IMAGE"), &hDIB))
 		return error;
 
