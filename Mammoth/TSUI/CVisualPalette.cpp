@@ -8,11 +8,40 @@
 class CResourcePathResolver
 	{
 	public:
+		static bool FindBitmapResource (const CString &sName, CString *retsFilespec = NULL);
 		static bool FindFontResource (const CString &sName, CString *retsFilespec = NULL);
+		static bool FindJPEGResource (const CString &sName, CString *retsFilespec = NULL);
 	};
 
 ALERROR LoadBMPResourceAsDIB (const CString &sName, HBITMAP *rethBitmap, EBitmapTypes *retiType = NULL);
 ALERROR LoadJPEGResourceAsDIB (const CString &sName, HBITMAP *rethBitmap);
+
+static void ApplyAlphaMask (CG32bitImage &Dest, const SBMPImageLoad &Mask)
+	{
+	int cxWidth = Min(Dest.GetWidth(), Mask.cxWidth);
+	int cyHeight = Min(Dest.GetHeight(), Mask.cyHeight);
+
+	for (int y = 0; y < cyHeight; y++)
+		{
+		CG32bitPixel *pDest = Dest.GetPixelPos(0, y);
+		const CG32bitPixel *pMask = (const CG32bitPixel *)(Mask.Pixels.GetPointer() + (y * Mask.iPitch));
+
+		for (int x = 0; x < cxWidth; x++)
+			{
+			BYTE byAlpha;
+			if (Mask.iType == bitmapMonochrome)
+				byAlpha = (pMask->GetGreen() ? 0xff : 0x00);
+			else
+				byAlpha = pMask->GetGreen();
+
+			pDest->SetAlpha(byAlpha);
+			pDest++;
+			pMask++;
+			}
+		}
+
+	Dest.SetAlphaType((Mask.iType == bitmapMonochrome ? CG32bitImage::alpha1 : CG32bitImage::alpha8));
+	}
 
 const int DAMAGE_TYPE_ICON_WIDTH =			16;
 const int DAMAGE_TYPE_ICON_HEIGHT =			16;
@@ -521,30 +550,35 @@ CG32bitImage *CResourceImageCache::GetImage (const CString &sImage, const CStrin
 	if (pImage)
 		return pImage;
 
-	HBITMAP hImage;
-	if (LoadJPEGResourceAsDIB(sImage, &hImage) != NOERROR)
+	CString sImageFilespec;
+	if (!CResourcePathResolver::FindJPEGResource(sImage, &sImageFilespec))
 		return NULL;
-	
-	HBITMAP hMask = NULL;
-	EBitmapTypes iMaskType = bitmapNone;
+
+	SJPEGLoadInfo Image;
+	if (JPEGLoadToRGBAFromFile(sImageFilespec, &Image) != NOERROR)
+		return NULL;
+
 	if (!sMask.IsBlank())
 		{
-		if (LoadBMPResourceAsDIB(sMask,
-				&hMask,
-				&iMaskType) != NOERROR)
-			{
-			::DeleteObject(hImage);
+		CString sMaskFilespec;
+		if (!CResourcePathResolver::FindBitmapResource(sMask, &sMaskFilespec))
 			return NULL;
-			}
+
+		SBMPImageLoad Mask;
+		if (dibLoadToBufferFromFile(sMaskFilespec, &Mask) != NOERROR)
+			return NULL;
+
+		pImage = m_Cache.Insert(sImage);
+		if (!pImage->CreateFromRaw(Image.Pixels.GetPointer(), Image.cxWidth, Image.cyHeight, Image.iPitch, CG32bitImage::alphaNone))
+			return NULL;
+
+		ApplyAlphaMask(*pImage, Mask);
+		return pImage;
 		}
 
 	pImage = m_Cache.Insert(sImage);
-	if (!pImage->CreateFromBitmap(hImage, hMask, iMaskType))
+	if (!pImage->CreateFromRaw(Image.Pixels.GetPointer(), Image.cxWidth, Image.cyHeight, Image.iPitch, CG32bitImage::alphaNone))
 		return NULL;
-
-	if (hMask)
-		::DeleteObject(hMask);
-	::DeleteObject(hImage);
 
 	return pImage;
 	}
