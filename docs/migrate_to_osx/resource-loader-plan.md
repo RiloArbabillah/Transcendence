@@ -324,6 +324,8 @@ The following steps from this plan are now implemented in the source tree:
 - `Mammoth/TSUI/CVisualPalette.cpp` now uses the image wrappers for UI atlas and mask lookup
 - `Transcendence/Transcendence/CButtonBarData.cpp` now uses the image wrappers for title/menu button art lookup
 - `Transcendence/Transcendence/CLoadingSession.cpp` now also has a proof-of-concept neutral image path for `Title.JPG`, `Stargate.JPG`, and `StargateMask.BMP`, bypassing `HBITMAP` for those loading-screen assets
+- `Mammoth/TSUI/CVisualPalette.cpp` now uses the neutral image path for its title/menu-critical UI atlases and masks
+- `Transcendence/Transcendence/CButtonBarData.cpp` now uses the neutral image path for title/menu button art
 
 ## Remaining work after the current implementation slice
 
@@ -342,6 +344,7 @@ Still not fully portable enough for macOS compilation/runtime:
 But note:
 
 - `CLoadingSession.cpp` is no longer blocked by those legacy image paths for its main loading-screen assets, because it now uses the new neutral JPEG/BMP decode path and `CG32bitImage::CreateFromRaw(...)`
+- `Mammoth/TSUI/CVisualPalette.cpp` and `Transcendence/Transcendence/CButtonBarData.cpp` are also no longer blocked by the legacy `HBITMAP` path for their main milestone-1 image assets
 
 ### Practical interpretation
 
@@ -355,8 +358,8 @@ That means the project is now in a better state to attack the next real blocker:
 
 The best next code step is now:
 
-1. migrate `Mammoth/TSUI/CVisualPalette.cpp` to the neutral image path used by `CLoadingSession.cpp`
-2. migrate `Transcendence/Transcendence/CButtonBarData.cpp` to the same path
-3. defer the remaining low-priority callers until milestone-1 title/menu needs are satisfied
+1. treat the remaining image callers as deferred unless validation shows they are needed for milestone 1
+2. shift implementation focus to shell replacement, presenter integration, and source-subset build work
+3. preserve the current neutral image path as the pattern to reuse if another menu-adjacent caller becomes necessary
 
-This keeps progress aligned with milestone 1 while extending the proven no-`HBITMAP` path to the rest of the title/menu-critical callers.
+This keeps progress aligned with milestone 1 now that the title/menu-critical asset callers have largely been covered.

@@ -1,0 +1,57 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 27,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "macos-base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_OSX_ARCHITECTURES": "arm64",
+        "TRANSCENDENCE_M1_MENU_ONLY": "ON",
+        "TRANSCENDENCE_ENABLE_PLATFORM_MACOS": "OFF",
+        "TRANSCENDENCE_ENABLE_AUDIO_BACKEND": "OFF"
+      }
+    },
+    {
+      "name": "macos-debug",
+      "inherits": "macos-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "macos-relwithdebinfo",
+      "inherits": "macos-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+      }
+    },
+    {
+      "name": "macos-release",
+      "inherits": "macos-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "macos-debug",
+      "configurePreset": "macos-debug"
+    },
+    {
+      "name": "macos-relwithdebinfo",
+      "configurePreset": "macos-relwithdebinfo"
+    },
+    {
+      "name": "macos-release",
+      "configurePreset": "macos-release"
+    }
+  ]
+}

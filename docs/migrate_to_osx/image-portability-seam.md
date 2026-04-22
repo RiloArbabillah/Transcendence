@@ -2,7 +2,7 @@
 
 ## Document Status
 
-- Version: v1.1
+- Version: v1.2
 - Last Updated: 2026-04-15
 - Project: Native macOS Apple Silicon port of `kronosaur/TranscendenceDev`
 - Purpose: define the next seam after file-based resource lookup, focused on isolating or removing `HBITMAP` from the milestone-1 image path
@@ -283,6 +283,8 @@ The following parts of this seam are now implemented:
   - `Stargate.JPG`
   - `StargateMask.BMP`
 - `CLoadingSession.cpp` now applies the stargate mask in memory instead of via `CreateFromBitmap(hImage, hMask)`
+- `Mammoth/TSUI/CVisualPalette.cpp` now uses the neutral image path for its cached UI atlases and masks
+- `Transcendence/Transcendence/CButtonBarData.cpp` now uses the neutral image path for menu button art
 
 ## What this proves
 
@@ -294,8 +296,6 @@ That means the proposed seam is viable in the live codebase, at least for the fi
 
 The new neutral path is not yet used by:
 
-- `Mammoth/TSUI/CVisualPalette.cpp`
-- `Transcendence/Transcendence/CButtonBarData.cpp`
 - `Transcendence/Transcendence/CHelpSession.cpp`
 - `Transcendence/Transcendence/CStatsSession.cpp`
 - `Transcendence/Transcendence/CModExchangeSession.cpp`
@@ -309,8 +309,8 @@ The current BMP-to-buffer implementation is also intentionally narrow:
 
 The best next code step is now:
 
-1. migrate `Mammoth/TSUI/CVisualPalette.cpp` image atlas loading to the neutral image path
-2. migrate `Transcendence/Transcendence/CButtonBarData.cpp` to the same path for consistency
-3. only then decide whether the remaining non-critical callers need to move immediately
+1. keep the remaining non-critical image callers deferred unless they block validation
+2. move the implementation focus to shell, presenter, and source-subset work for milestone 1
+3. only return to the deferred callers if a menu-adjacent flow proves they are needed sooner
 
-This keeps the work focused on milestone-1 title/menu bring-up while building on the proof-of-concept that now exists in `CLoadingSession.cpp`.
+This keeps the work focused on milestone-1 title/menu bring-up now that the asset path for the critical callers is largely covered.

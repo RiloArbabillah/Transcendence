@@ -64,6 +64,12 @@ Use this file as the primary entry point for the documentation set.
 - `image-portability-seam.md`
   - next-phase design for removing `HBITMAP` from the milestone-1 image path after resource lookup has been made file-based
 
+- `next-implementation-focus.md`
+  - recommended next focus after milestone-1 asset work, covering source subset definition plus shell and presentation seam mapping
+
+- `milestone-1-source-subset.md`
+  - target-oriented source subset for the first bounded macOS `CMake` scaffold and menu-boot implementation slice
+
 ### Validation and Governance
 
 - `qa-test-matrix.md`
@@ -89,6 +95,8 @@ Use this file as the primary entry point for the documentation set.
 | `source-audit-handoff.md` | what the current source tree actually does and where milestone-1 blockers are |
 | `resource-loader-plan.md` | how to replace milestone-1 Win32 resource loading with a file-based path |
 | `image-portability-seam.md` | how to remove the remaining `HBITMAP` dependency from milestone-1 image ingestion |
+| `next-implementation-focus.md` | what to do next once title/menu-critical asset callers are largely covered |
+| `milestone-1-source-subset.md` | which targets and source groups should be included in the first bounded macOS build slice |
 | `qa-test-matrix.md` | how milestone success is validated |
 | `decision-log.md` | why key technical decisions were made |
 | `change-log.md` | what changed in the documentation set over time |
@@ -127,6 +135,13 @@ Use this file as the primary entry point for the documentation set.
 - use `resource-loader-plan.md` for the current lookup-layer status
 - use `image-portability-seam.md` for the next seam after file-based lookup
 - keep `source-audit-handoff.md` nearby to confirm that the target callers are still aligned with milestone-1 priorities
+
+### After Asset Path Stabilization
+
+- use `next-implementation-focus.md`
+- use `milestone-1-source-subset.md` before broadening into `CMake`
+- return to `milestone-1-plan.md` workstreams 2, 4, and 5
+- keep `source-audit-handoff.md` open so shell/presenter work stays anchored to the real boot path
 
 ### During Milestone Validation
 
@@ -172,6 +187,8 @@ Use this file as the primary entry point for the documentation set.
 - `source-audit-handoff.md`
 - `resource-loader-plan.md`
 - `image-portability-seam.md`
+- `next-implementation-focus.md`
+- `milestone-1-source-subset.md`
 - `qa-test-matrix.md`
 - `decision-log.md`
 - `change-log.md`

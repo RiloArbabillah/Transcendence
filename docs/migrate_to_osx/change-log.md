@@ -194,6 +194,78 @@ Summary:
 - Change Type: updated
 - Summary: added the current milestone-1 status showing that `CLoadingSession.cpp` now bypasses `HBITMAP` for its loading-screen assets while the remaining title/menu callers still need that neutral path propagated
 
+### 2026-04-15
+
+- Document: `image-portability-seam.md`
+- Change Type: updated
+- Summary: recorded that `CVisualPalette.cpp` and `CButtonBarData.cpp` now also use the neutral image path and shifted the recommended next step away from asset callers and toward shell/presenter work
+
+### 2026-04-15
+
+- Document: `resource-loader-plan.md`
+- Change Type: updated
+- Summary: noted that the title/menu-critical callers are now largely covered by the neutral image path and that remaining low-priority image callers can be deferred while milestone-1 focus moves to shell and presentation seams
+
+### 2026-04-15
+
+- Document: `source-audit-handoff.md`
+- Change Type: updated
+- Summary: updated the milestone-1 status to reflect that the title/menu-critical callers now have a neutral image path and added the next focus on source subset, shell, and presentation integration
+
+### 2026-04-15
+
+- Document: `next-implementation-focus.md`
+- Change Type: created
+- Summary: added a post-asset implementation guide recommending source-subset definition plus shell and presentation seam mapping before broader `CMake` work
+
+### 2026-04-15
+
+- Document: `index.md`
+- Change Type: updated
+- Summary: added navigation and usage guidance for `next-implementation-focus.md` so the next agent can move cleanly from asset work to shell/presenter work
+
+### 2026-04-15
+
+- Document: `next-implementation-focus.md`
+- Change Type: updated
+- Summary: added a concrete milestone-1 source subset, shell seam map, and presentation seam map so the next implementation phase can move directly into bounded shell/presenter work
+
+### 2026-04-15
+
+- Document: `milestone-1-source-subset.md`
+- Change Type: created
+- Summary: added a target-oriented source subset for the first bounded macOS `CMake` scaffold, including required menu-path groups, deferred files, and a practical target order
+
+### 2026-04-15
+
+- Document: `index.md`
+- Change Type: updated
+- Summary: added navigation and usage guidance for `milestone-1-source-subset.md` so the next build-system step can start from a bounded source subset
+
+### 2026-04-15
+
+- Document: `cmake-build-plan.md`
+- Change Type: updated
+- Summary: recorded that the initial root `CMakeLists.txt` and `CMakePresets.json` scaffold now exist, that three core targets are concrete static libraries, and that validation is currently blocked by missing `cmake` in the environment
+
+### 2026-04-15
+
+- Document: `milestone-1-source-subset.md`
+- Change Type: updated
+- Summary: recorded that `alchemy_kernel`, `alchemy_codechain`, and `alchemy_xmlutil` are now concrete scaffold targets and clarified that the next subset extension should proceed after `cmake` becomes available
+
+### 2026-04-15
+
+- Document: `cmake-build-plan.md`
+- Change Type: updated
+- Summary: recorded that `alchemy_jpeg` and bounded `alchemy_graphics` are now also concrete static targets in the bounded scaffold
+
+### 2026-04-15
+
+- Document: `milestone-1-source-subset.md`
+- Change Type: updated
+- Summary: recorded that the bounded scaffold now includes five concrete foundation targets and shifted the next target-expansion recommendation toward bounded `mammoth_tse`
+
 ## Maintenance Notes
 
 - Add a new entry when a document is created, significantly restructured, or materially changes scope or execution direction.

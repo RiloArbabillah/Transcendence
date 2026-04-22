@@ -581,6 +581,7 @@ The following implementation progress has already landed relative to the origina
   - `Mammoth/TSUI/CVisualPalette.cpp`
   - `Transcendence/Transcendence/CButtonBarData.cpp`
 - `Transcendence/Transcendence/CLoadingSession.cpp` has now moved one step further and uses a neutral in-memory image path for `Title.JPG`, `Stargate.JPG`, and `StargateMask.BMP`, bypassing `HBITMAP` for the loading-screen proof of concept
+- `Mammoth/TSUI/CVisualPalette.cpp` and `Transcendence/Transcendence/CButtonBarData.cpp` now also use the neutral in-memory image path for the title/menu-critical atlas and button assets
 
 ### What this means
 
@@ -589,8 +590,8 @@ The project has moved past the original state where title/menu bring-up depended
 The remaining problem is now narrower:
 
 - resource lookup for key milestone-1 callers is mostly file-based
-- `CLoadingSession.cpp` has a working proof-of-concept path that no longer flows through `HBITMAP`
-- the remaining title/menu callers still need that same neutral image path propagated outward
+- the title/menu-critical callers now have a working neutral image path that no longer flows through `HBITMAP`
+- the remaining important blockers have shifted away from asset lookup and toward shell, presenter, and source-subset integration
 
 ### Remaining nearby callers still using old image resource loading
 
@@ -599,6 +600,16 @@ The remaining problem is now narrower:
 - `Transcendence/Transcendence/CModExchangeSession.cpp`
 
 These are not as critical as the loading screen, visual palette, and intro button bar for the first native title/menu milestone.
+
+### Next milestone-1 focus
+
+With the critical asset callers mostly covered, the next useful implementation focus is:
+
+1. source-subset definition for milestone-1 build targets
+2. shell replacement for `Main.cpp` and `Mammoth/TSUI/Run.cpp`
+3. presenter integration for the first real frame path
+
+This matches the remaining workstreams in `milestone-1-plan.md` more closely than continuing to chase non-critical image callers.
 
 ### What should happen first
 

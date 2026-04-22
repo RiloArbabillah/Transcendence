@@ -121,12 +121,15 @@ ALERROR CButtonBarData::Init (void)
 
 	//	Load images
 
-	HBITMAP hDIB;
-	if (error = LoadJPEGResourceAsDIB(CONSTLIT("IDR_GAME_BUTTONS_IMAGE"), &hDIB))
+	SJPEGLoadInfo Image;
+	CString sFilespec;
+	if (!CResourcePathResolver::FindJPEGResource(CONSTLIT("IDR_GAME_BUTTONS_IMAGE"), &sFilespec))
+		return ERR_FAIL;
+
+	if (error = JPEGLoadToRGBAFromFile(sFilespec, &Image))
 		return error;
 
-	bool bSuccess = m_Images.CreateFromBitmap(hDIB);
-	::DeleteObject(hDIB);
+	bool bSuccess = m_Images.CreateFromRaw(Image.Pixels.GetPointer(), Image.cxWidth, Image.cyHeight, Image.iPitch, CG32bitImage::alphaNone);
 	if (!bSuccess)
 		return ERR_FAIL;
 

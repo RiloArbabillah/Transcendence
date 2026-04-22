@@ -411,6 +411,40 @@ Exit criteria:
 
 - `cmake` configure succeeds or fails with clear missing-target issues only
 
+### Current implementation status
+
+The repository now contains an initial bounded scaffold:
+
+- root `CMakeLists.txt`
+- `CMakePresets.json`
+
+The current scaffold already models the milestone-1 target graph shape and includes concrete `STATIC` targets for:
+
+- `alchemy_kernel`
+- `alchemy_codechain`
+- `alchemy_xmlutil`
+- `alchemy_jpeg`
+- bounded `alchemy_graphics`
+
+The remaining milestone-1 targets are still placeholders so the target graph can stay bounded while source lists are narrowed further.
+
+### Current validation blocker
+
+`cmake` itself is not available in the current environment.
+
+Observed checks:
+
+- `which -a cmake` -> not found
+- `xcrun --find cmake` -> not found
+- `/Applications/CMake.app/Contents/bin` -> not present
+- `/opt/homebrew/bin` -> present, but no `cmake` binary available there
+
+Practical implication:
+
+- the next agent should not assume configure failure means a build-graph error yet
+- the first required step is to provide `cmake` in `PATH` or through an installed app/toolchain
+- once `cmake` is available, the first meaningful validation command remains `cmake --preset macos-debug`
+
 ### Stage 2 - Bring Up Foundation Libraries
 
 - build `alchemy_kernel`
