@@ -9,7 +9,7 @@
 #include <cstddef>
 #include <functional>
 
-#ifdef _WIN32
+#ifndef _WINDOWS_
 
 //	Support Windows 7 and above
 
@@ -20,113 +20,10 @@
 
 #define NOMINMAX
 #include <windows.h>
+
+#endif
+
 #include <mmsystem.h>
-
-#else
-
-#include <cstdint>
-#include <cstdlib>
-#include <mutex>
-
-typedef unsigned char BYTE;
-typedef int BOOL;
-typedef std::uint32_t DWORD;
-typedef std::uint64_t DWORDLONG;
-typedef void *HANDLE;
-typedef void *HINSTANCE;
-typedef void *HMODULE;
-typedef std::uint64_t KAFFINITY;
-typedef long long INT64;
-typedef long long LONGLONG;
-typedef long LONG;
-typedef short SHORT;
-typedef std::uint64_t ULONG64;
-typedef std::uint16_t WORD;
-typedef const char *LPCSTR;
-typedef void *LPVOID;
-typedef char *LPSTR;
-typedef void *LPTHREAD_START_ROUTINE;
-typedef unsigned int UINT;
-typedef std::uintptr_t WPARAM;
-
-struct RECT
-	{
-	LONG left;
-	LONG top;
-	LONG right;
-	LONG bottom;
-	};
-
-struct SYSTEMTIME
-	{
-	WORD wYear;
-	WORD wMonth;
-	WORD wDayOfWeek;
-	WORD wDay;
-	WORD wHour;
-	WORD wMinute;
-	WORD wSecond;
-	WORD wMilliseconds;
-	};
-
-struct CRITICAL_SECTION
-	{
-	std::mutex Mutex;
-	};
-
-#ifndef TRUE
-#define TRUE 1
-#endif
-
-#ifndef FALSE
-#define FALSE 0
-#endif
-
-#ifndef INFINITE
-#define INFINITE 0xffffffff
-#endif
-
-#ifndef WAIT_TIMEOUT
-#define WAIT_TIMEOUT 258
-#endif
-
-#ifndef WAIT_OBJECT_0
-#define WAIT_OBJECT_0 0
-#endif
-
-#define INVALID_HANDLE_VALUE ((HANDLE)(std::intptr_t)-1)
-#define CP_ACP 0
-#define CP_UTF8 65001
-#define RT_RCDATA ((const char *)10)
-
-#define VK_CONTROL 0x11
-#define VK_NUMLOCK 0x90
-#define VK_SHIFT 0x10
-#define WINAPI
-#define MAPVK_VK_TO_CHAR 2
-
-inline void DebugBreak (void) { }
-inline int GetAsyncKeyState (int) { return 0; }
-inline DWORD GetCurrentThreadId (void) { return 0; }
-inline SHORT GetKeyState (int) { return 0; }
-inline BOOL IsCharAlpha (char chChar) { return (((chChar >= 'a' && chChar <= 'z') || (chChar >= 'A' && chChar <= 'Z')) ? TRUE : FALSE); }
-inline BOOL IsCharAlphaNumeric (char chChar) { return (((chChar >= 'a' && chChar <= 'z') || (chChar >= 'A' && chChar <= 'Z') || (chChar >= '0' && chChar <= '9')) ? TRUE : FALSE); }
-inline UINT MapVirtualKey (UINT, UINT) { return 0; }
-inline void CloseHandle (HANDLE) { }
-inline HANDLE GetProcessHeap (void) { return nullptr; }
-inline LPVOID HeapAlloc (HANDLE, DWORD, size_t iSize) { return std::malloc(iSize); }
-inline BOOL HeapFree (HANDLE, DWORD, LPVOID pMem) { std::free(pMem); return TRUE; }
-inline void InitializeCriticalSection (CRITICAL_SECTION *) { }
-inline void DeleteCriticalSection (CRITICAL_SECTION *) { }
-inline void EnterCriticalSection (CRITICAL_SECTION *pCS) { pCS->Mutex.lock(); }
-inline void LeaveCriticalSection (CRITICAL_SECTION *pCS) { pCS->Mutex.unlock(); }
-inline DWORD WaitForSingleObject (HANDLE, DWORD) { return WAIT_OBJECT_0; }
-inline BOOL ResetEvent (HANDLE) { return TRUE; }
-inline BOOL SetEvent (HANDLE) { return TRUE; }
-inline int PointerToInt (const void *pValue) { return (int)(std::intptr_t)pValue; }
-inline void *IntToPointer (int iValue) { return (void *)(std::intptr_t)iValue; }
-
-#endif
 
 //	For some reason, <kernelspecs.h> defines HIGH_LEVEL, which ends up 
 //	conflicting with a lot of other definitions.
@@ -558,8 +455,6 @@ class CObjectClass : public IObjectClass
 
 //	Synchronization -----------------------------------------------------------
 
-#ifdef _WIN32
-
 class CCriticalSection
 	{
 	public:
@@ -607,53 +502,6 @@ class CManualEvent : public COSObject
 		void Reset (void) { ::ResetEvent(m_hHandle); }
 		void Set (void) { ::SetEvent(m_hHandle); }
 	};
-
-#else
-
-class CCriticalSection
-	{
-	public:
-		void Lock (void) { m_cs.lock(); }
-		void Unlock (void) { m_cs.unlock(); }
-
-	private:
-		std::mutex m_cs;
-	};
-
-class CSmartLock
-	{
-	public:
-		CSmartLock(CCriticalSection &cs) : m_cs(cs) { m_cs.Lock(); }
-		~CSmartLock (void) { m_cs.Unlock(); }
-
-	private:
-		CCriticalSection &m_cs;
-	};
-
-class COSObject
-	{
-	public:
-		void Close (void) { }
-		HANDLE GetWaitObject (void) const { return INVALID_HANDLE_VALUE; }
-		void TakeHandoff (COSObject &Obj) { }
-		bool Wait (DWORD dwTimeout = INFINITE) const { return false; }
-	};
-
-class CManualEvent : public COSObject
-	{
-	public:
-		void Create (void) { }
-		void Create (const CString &sName, bool *retbExists = NULL)
-			{
-			if (retbExists)
-				*retbExists = false;
-			}
-		bool IsSet (void) { return false; }
-		void Reset (void) { }
-		void Set (void) { }
-	};
-
-#endif
 
 //	CINTDynamicArray. Implementation of a dynamic array.
 //	(NOTE: To save space, this class does not have a virtual
@@ -788,7 +636,7 @@ class CIDTable : public CDictionary
 		CIDTable (BOOL bOwned, BOOL bNoReference);
 		virtual ~CIDTable (void);
 
-		ALERROR AddEntry (int iKey, CObject *pValue) { return CDictionary::AddEntry(iKey, PointerToInt(pValue)); }
+		ALERROR AddEntry (int iKey, CObject *pValue) { return CDictionary::AddEntry(iKey, (int)pValue); }
 		int GetKey (int iEntry) const;
 		CObject *GetValue (int iEntry) const;
 		ALERROR Lookup (int iKey, CObject **retpValue) const;
@@ -1374,7 +1222,6 @@ class CTextFileLog : public ILog
 
 //	Registry classes
 
-#ifdef _WIN32
 class CRegKey
 	{
 	public:
@@ -1395,24 +1242,6 @@ class CRegKey
 
 		HKEY m_hKey;
 	};
-
-#else
-
-class CRegKey
-	{
-	public:
-		static ALERROR OpenUserAppKey (const CString &sCompany,
-								   const CString &sAppName,
-								   CRegKey *retKey)
-			{
-			return ERR_FAIL;
-			}
-
-		bool FindStringValue (const CString &sValue, CString *retsData) { return false; }
-		void SetStringValue (const CString &sValue, const CString &sData) { }
-	};
-
-#endif
 
 //	Thread pool
 
@@ -1635,9 +1464,7 @@ struct SProcessorInfo
 #define RELIABLE_AFFINITY_MASK true
 #endif
 
-#ifdef _WIN32
 DWORD sysGetProcessorsInMask(KAFFINITY& AffinityMask);
-#endif
 SProcessorInfo sysGetProcessorInfo(void);
 int sysGetProcessorCountLegacy(void);
 int sysGetProcessorCount(void);
@@ -1653,26 +1480,17 @@ inline void MemFree (LPVOID pMem) { HeapFree(GetProcessHeap(), 0, pMem); }
 
 //	UI functions
 
-#ifdef _WIN32
 ALERROR uiCopyTextToClipboard (HWND hWnd, const CString &sText);
-#endif
 void uiGetCenteredWindowRect (int cxWidth, 
-						  int cyHeight, 
-						  RECT *retrcRect,
-						  bool bClip = true);
+							  int cyHeight, 
+							  RECT *retrcRect,
+							  bool bClip = true);
 inline bool uiIsControlDown (void) { return (::GetAsyncKeyState(VK_CONTROL) & 0x8000) ? true : false; }
 inline bool uiIsKeyDown (int iVirtKey) { return ((::GetAsyncKeyState(iVirtKey) & 0x8000) ? true : false); }
 inline bool uiIsKeyRepeat (DWORD dwKeyData) { return ((dwKeyData & 0x40000000) ? true : false); }
-
-#ifdef _WIN32
 inline bool uiIsNumLockOn (void) { return (::GetKeyState(VK_NUMLOCK) & 0x0001) ? true : false; }
 inline bool uiIsShiftDown (void) { return (::GetAsyncKeyState(VK_SHIFT) & 0x8000) ? true : false; }
 inline char uiGetCharFromKeyCode (int iVirtKey) { DWORD dwChar = ::MapVirtualKey((UINT)iVirtKey, MAPVK_VK_TO_CHAR); return (dwChar < 256 ? (char)(BYTE)dwChar : 0); }
-#else
-inline bool uiIsNumLockOn (void) { return false; }
-inline bool uiIsShiftDown (void) { return (::GetAsyncKeyState(VK_SHIFT) & 0x8000) ? true : false; }
-inline char uiGetCharFromKeyCode (int iVirtKey) { return 0; }
-#endif
 
 //	Note: This cannot be an inline because it will fail if the inline is
 //	ever compiled as a function call

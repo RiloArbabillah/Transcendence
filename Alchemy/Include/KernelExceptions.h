@@ -15,7 +15,6 @@ class CException
 				m_sMsg(sMsg)
 			{ }
 
-	#ifdef _WIN32
 		CException (ALERROR error, DWORD SEHCode, EXCEPTION_POINTERS* info) :
 				m_error(error)
 			{
@@ -301,10 +300,9 @@ class CException
 					break;
 					}
 				default:
-				m_sMsg = strPatternSubst(CONSTLIT("Win32 Error: Unidentified SEH error code: %x"), SEHCode);
+					m_sMsg = strPatternSubst(CONSTLIT("Win32 Error: Unidentified SEH error code: %x"), SEHCode);
 				}
 			}
-	#endif
 
 		ALERROR GetErrorCode (void) const { return m_error; }
 		CString GetErrorMessage (void) const;
@@ -313,3 +311,4 @@ class CException
 		ALERROR m_error;
 		CString m_sMsg;
 	};
+
