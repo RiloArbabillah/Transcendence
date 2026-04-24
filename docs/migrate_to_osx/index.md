@@ -73,6 +73,15 @@ Use this file as the primary entry point for the documentation set.
 - `mammoth-tse-bounded-candidate-set.md`
   - safer first-pass candidate set for turning `mammoth_tse` into a concrete milestone-1 target without pulling in the whole engine
 
+- `alchemy-kernel-portability-fallout.md`
+  - clusters the first real `alchemy_kernel` compile blockers into focused portability groups so the next fixes stay bounded
+
+- `alchemy-kernel-split-strategy.md`
+  - recommends how to separate portable kernel utilities from the broader Win32 service surface now leaking through `Kernel.h`
+
+- `alchemy-kernel-service-surface-next-slice.md`
+  - chooses the safest next boundary slice inside the `alchemy_kernel` Win32 service surface based on active compile-path dependencies
+
 ### Validation and Governance
 
 - `qa-test-matrix.md`
@@ -101,6 +110,9 @@ Use this file as the primary entry point for the documentation set.
 | `next-implementation-focus.md` | what to do next once title/menu-critical asset callers are largely covered |
 | `milestone-1-source-subset.md` | which targets and source groups should be included in the first bounded macOS build slice |
 | `mammoth-tse-bounded-candidate-set.md` | how to expand `mammoth_tse` carefully from placeholder to bounded concrete target |
+| `alchemy-kernel-portability-fallout.md` | how to approach the first `alchemy_kernel` compile blockers without patch-sprawl |
+| `alchemy-kernel-split-strategy.md` | how to turn the latest `alchemy_kernel` fallout into a boundary split instead of more ad hoc shims |
+| `alchemy-kernel-service-surface-next-slice.md` | which Win32 service-surface slice is safest to tackle next based on active dependencies |
 | `qa-test-matrix.md` | how milestone success is validated |
 | `decision-log.md` | why key technical decisions were made |
 | `change-log.md` | what changed in the documentation set over time |
@@ -145,6 +157,9 @@ Use this file as the primary entry point for the documentation set.
 - use `next-implementation-focus.md`
 - use `milestone-1-source-subset.md` before broadening into `CMake`
 - use `mammoth-tse-bounded-candidate-set.md` before making `mammoth_tse` concrete
+- use `alchemy-kernel-portability-fallout.md` once the first real `alchemy_kernel` compile fallout appears
+- use `alchemy-kernel-split-strategy.md` before adding more Win32 compatibility shims to `Kernel.h`
+- use `alchemy-kernel-service-surface-next-slice.md` before choosing the next Win32 file/registry service boundary refactor
 - return to `milestone-1-plan.md` workstreams 2, 4, and 5
 - keep `source-audit-handoff.md` open so shell/presenter work stays anchored to the real boot path
 
@@ -195,6 +210,9 @@ Use this file as the primary entry point for the documentation set.
 - `next-implementation-focus.md`
 - `milestone-1-source-subset.md`
 - `mammoth-tse-bounded-candidate-set.md`
+- `alchemy-kernel-portability-fallout.md`
+- `alchemy-kernel-split-strategy.md`
+- `alchemy-kernel-service-surface-next-slice.md`
 - `qa-test-matrix.md`
 - `decision-log.md`
 - `change-log.md`

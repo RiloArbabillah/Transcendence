@@ -302,6 +302,78 @@ Summary:
 - Change Type: updated
 - Summary: added a note that the scaffold has reached first-tier `mammoth_tse` and that further target expansion should wait for `cmake`-driven validation
 
+### 2026-04-15
+
+- Document: `alchemy-kernel-portability-fallout.md`
+- Change Type: created
+- Summary: added a cluster-based analysis of the first real `alchemy_kernel` compile blockers, including a bounded fix order for heap, synchronization, time, and non-Windows C++ issues
+
+### 2026-04-15
+
+- Document: `index.md`
+- Change Type: updated
+- Summary: added navigation and usage guidance for `alchemy-kernel-portability-fallout.md` so the next portability fixes stay focused after the first macOS build attempt
+
+### 2026-04-15
+
+- Document: `alchemy-kernel-portability-fallout.md`
+- Change Type: updated
+- Summary: expanded the fallout analysis to include Win32 OS-service leakage, internet stack leakage, and 64-bit correctness issues, and shifted the recommendation from more shims toward a boundary split for `alchemy_kernel`
+
+### 2026-04-15
+
+- Document: `milestone-1-source-subset.md`
+- Change Type: updated
+- Summary: added an explicit caution that `alchemy_kernel` now appears to mix portable utilities with a broader Win32 service surface and may require a portable subset or boundary split
+
+### 2026-04-15
+
+- Document: `alchemy-kernel-split-strategy.md`
+- Change Type: created
+- Summary: added a strategy document recommending that `alchemy_kernel` be treated as portable core plus Win32 service surface, so the port can shift from incremental shims toward a clearer boundary split
+
+### 2026-04-15
+
+- Document: `index.md`
+- Change Type: updated
+- Summary: added navigation and usage guidance for `alchemy-kernel-split-strategy.md` so the next step after kernel fallout is a boundary decision instead of more ad hoc Win32 shims
+
+### 2026-04-15
+
+- Document: `alchemy-kernel-split-strategy.md`
+- Change Type: updated
+- Summary: added a recommended first split slice inside `Kernel.h`, prioritizing synchronization/event wrappers, file and registry service surface, and bottom-of-header Win32 helper declarations for the first boundary refactor
+
+### 2026-04-15
+
+- Document: `alchemy-kernel-service-surface-next-slice.md`
+- Change Type: created
+- Summary: added a focused recommendation for the next Win32 service-surface boundary slice, explaining why `CDataFile.cpp` is the stronger implementation boundary while `CFileDirectory` and `CResourceReadBlock` should remain in place for now
+
+### 2026-04-15
+
+- Document: `index.md`
+- Change Type: updated
+- Summary: added navigation and usage guidance for `alchemy-kernel-service-surface-next-slice.md` so the next service-surface refactor can be chosen from active dependencies instead of guesswork
+
+### 2026-04-15
+
+- Document: `alchemy-kernel-portability-fallout.md`
+- Change Type: updated
+- Summary: clarified that the remaining 64-bit issues are not just local casts but reflect deeper 32-bit pointer-storage assumptions in archive/reference-related kernel code
+
+### 2026-04-15
+
+- Document: `milestone-1-source-subset.md`
+- Change Type: updated
+- Summary: added a caution that archive/reference-heavy `alchemy_kernel` paths may require deferral or redesign before the arm64 build can be considered clean
+
+### 2026-04-15
+
+- Document: `cmake-build-plan.md`
+- Change Type: updated
+- Summary: noted that `alchemy_kernel` now appears to contain both a Win32 service surface and 32-bit pointer-storage assumptions, which may require a narrower effective portable subset for early build success
+
 ## Maintenance Notes
 
 - Add a new entry when a document is created, significantly restructured, or materially changes scope or execution direction.

@@ -198,7 +198,7 @@ ALERROR CArchiver::Reference2ID (void *pReference, int *retiID)
 
 	//	Look for the pointer in our table
 
-	if (error = m_ReferenceList.FindOrAdd((int)pReference, m_iNextID, &bFound, &iID))
+	if (error = m_ReferenceList.FindOrAdd(PointerToInt(pReference), m_iNextID, &bFound, &iID))
 		return error;
 
 	//	If we found it, then return the value. Otherwise, m_iNextID
@@ -536,7 +536,7 @@ ALERROR CUnarchiver::LoadObject (CObject **retpObject)
 			m_ReferenceList.ReplaceElement(i, -1);
 		}
 
-	m_ReferenceList.ReplaceElement((int)dwReferenceID, (int)pObject);
+	m_ReferenceList.ReplaceElement((int)dwReferenceID, PointerToInt(pObject));
 
 	//	Done
 
@@ -591,7 +591,7 @@ ALERROR CUnarchiver::LoadObject (CString **retpString)
 			m_ReferenceList.ReplaceElement(i, -1);
 		}
 
-	m_ReferenceList.ReplaceElement((int)dwReferenceID, (int)pString);
+	m_ReferenceList.ReplaceElement((int)dwReferenceID, PointerToInt(pString));
 
 	//	Done
 
@@ -642,14 +642,14 @@ ALERROR CUnarchiver::ResolveReference (int iID, void **pReferenceDest)
 		iRef = m_ReferenceList.GetElement(iID);
 		if (iRef != -1)
 			{
-			*pReferenceDest = (void *)iRef;
+			*pReferenceDest = IntToPointer(iRef);
 			return NOERROR;
 			}
 		}
 
 	//	If we could not find it, add it to our fixup table
 
-	if (error = m_FixupTable.AppendElement((int)pReferenceDest, NULL))
+	if (error = m_FixupTable.AppendElement(PointerToInt(pReferenceDest), NULL))
 		return error;
 
 	if (error = m_FixupTable.AppendElement(iID, NULL))
@@ -676,12 +676,11 @@ ALERROR CUnarchiver::ResolveExternalReference (CString sTag, void *pReference)
 
 	//	Add the reference
 
-	iID = (int)pValue;
+	iID = PointerToInt(pValue);
 	if (iID < 0 || iID >= m_ReferenceList.GetCount())
 		return ERR_FAIL;
 
-	m_ReferenceList.ReplaceElement(iID, (int)pReference);
+	m_ReferenceList.ReplaceElement(iID, PointerToInt(pReference));
 
 	return NOERROR;
 	}
-

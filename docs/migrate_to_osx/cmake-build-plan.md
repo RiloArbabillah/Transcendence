@@ -426,6 +426,11 @@ The current scaffold already models the milestone-1 target graph shape and inclu
 - `alchemy_jpeg`
 - bounded `alchemy_graphics`
 
+Current caution:
+
+- `alchemy_kernel` is now known to include both a Win32 service surface and archive/reference paths with 32-bit pointer storage assumptions
+- early build success may require narrowing the effective portable subset further instead of assuming the current concrete target can be made arm64-clean purely through local shim work
+
 The remaining milestone-1 targets are still placeholders so the target graph can stay bounded while source lists are narrowed further.
 
 ### Current validation blocker

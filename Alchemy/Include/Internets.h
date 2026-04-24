@@ -5,7 +5,9 @@
 
 #pragma once
 
+#ifdef _WIN32
 #include <winhttp.h>
+#endif
 
 #ifdef DEBUG
 //#define DEBUG_DOWNLOAD
