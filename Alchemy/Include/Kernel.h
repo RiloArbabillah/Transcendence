@@ -9,7 +9,7 @@
 #include <cstddef>
 #include <functional>
 
-#ifndef _WINDOWS_
+#ifdef _WIN32
 
 //	Support Windows 7 and above
 
@@ -21,9 +21,54 @@
 #define NOMINMAX
 #include <windows.h>
 
+#include <mmsystem.h>
+
+#else
+
+#include <cstdint>
+
+typedef unsigned char BYTE;
+typedef int BOOL;
+typedef std::uint32_t DWORD;
+typedef long long INT64;
+typedef long LONG;
+typedef const char *LPCSTR;
+typedef void *LPVOID;
+typedef char *LPSTR;
+typedef void *HANDLE;
+typedef void *HINSTANCE;
+typedef void *HMODULE;
+typedef unsigned int UINT;
+typedef std::uint16_t WORD;
+
+struct RECT
+	{
+	LONG left;
+	LONG top;
+	LONG right;
+	LONG bottom;
+	};
+
+#ifndef TRUE
+#define TRUE 1
 #endif
 
-#include <mmsystem.h>
+#ifndef FALSE
+#define FALSE 0
+#endif
+
+#define CP_ACP 0
+#define CP_UTF8 65001
+
+#define VK_CONTROL 0x11
+#define VK_SHIFT 0x10
+
+inline void DebugBreak (void) { }
+inline int GetAsyncKeyState (int) { return 0; }
+inline BOOL IsCharAlpha (char chChar) { return (((chChar >= 'a' && chChar <= 'z') || (chChar >= 'A' && chChar <= 'Z')) ? TRUE : FALSE); }
+inline BOOL IsCharAlphaNumeric (char chChar) { return (((chChar >= 'a' && chChar <= 'z') || (chChar >= 'A' && chChar <= 'Z') || (chChar >= '0' && chChar <= '9')) ? TRUE : FALSE); }
+
+#endif
 
 //	For some reason, <kernelspecs.h> defines HIGH_LEVEL, which ends up 
 //	conflicting with a lot of other definitions.

@@ -2,7 +2,7 @@
 
 ## Document Status
 
-- Version: v1.0
+- Version: v1.1
 - Last Updated: 2026-04-15
 - Derived From: `alchemy-kernel-split-strategy.md`, `alchemy-kernel-portability-fallout.md`, current `cmake --build --preset macos-debug` output
 - Purpose: identify the safest next Win32-service boundary slice inside `alchemy_kernel` after the initial synchronization/event and header-helper reductions
@@ -99,6 +99,63 @@ Recommended next choice:
    - the 64-bit correctness cleanup track
 
 Given the current build output, the more bounded and lower-risk next coding track is likely the 64-bit correctness cleanup.
+
+## Follow-up conclusion after deeper 64-bit inspection
+
+After inspecting the remaining pointer-as-`int` fallout more closely, the 64-bit track is no longer a purely local cast-fix problem.
+
+The problem reaches into the storage model used by:
+
+- `CDictionary`
+- `CIntArray`
+- `CIDTable`
+- `CArchiver` / `CUnarchiver`
+
+This means the remaining 64-bit failures should now be treated as a design-level archive/reference-storage issue, not as a short sequence of safe local edits.
+
+## Updated recommendation
+
+Because the 64-bit issue is deeper than first expected, the safest next step is now:
+
+1. avoid further local cast cleanup in archive/reference code for the moment
+2. treat archive/reference-heavy kernel paths as candidates for deferral from the earliest portable-core success criteria
+3. if continued coding is needed immediately, prefer a bounded `CDataFile.cpp` service-boundary slice over deeper pointer-storage redesign
+
+## Bounded `CDataFile` slice for build bring-up
+
+The safest first implementation slice for `CDataFile.cpp` is not a full portable rewrite.
+
+It is a bounded non-Windows behavior split:
+
+1. keep `OpenFromResource(...)` and the `m_pFile` / `IReadBlock` read path intact as much as possible
+2. treat direct Win32 file-handle operations as unsupported on non-Windows for now
+3. make the non-Windows path fail explicitly with `ERR_FAIL` instead of forcing broad Win32 shims
+
+### Smallest candidate methods for this slice
+
+- `CDataFile::Create(...)`
+- `CDataFile::Open(...)`
+- `CDataFile::WriteBlockChain(...)`
+- the file-handle branch inside `CDataFile::ReadBuffer(...)`
+
+### Why this slice is useful
+
+- it isolates the implementation hotspot with the clearest Win32 coupling
+- it avoids touching `CFileDirectory` and `CResourceReadBlock`, which are active dependencies elsewhere
+- it can reduce compile fallout from file-service constants and Win32 write/seek APIs without forcing a full file-I/O port immediately
+
+## Minimum header-boundary work needed before `CDataFile` becomes verifiable again
+
+Before this `CDataFile` slice can be verified cleanly by the current build, the include surface still needs one more bounded reduction in `Kernel.h`:
+
+- avoid forcing `WIN32_FIND_DATA` into the portable path while `CFileDirectory` remains present
+- keep `CRegKey` and other clearly non-core service declarations out of the portable surface where possible
+
+This means the practical order is:
+
+1. one more bounded header-boundary reduction
+2. then apply the `CDataFile.cpp` non-Windows service split
+3. then rerun the build
 
 ## Success criteria
 

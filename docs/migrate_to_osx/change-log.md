@@ -374,6 +374,18 @@ Summary:
 - Change Type: updated
 - Summary: noted that `alchemy_kernel` now appears to contain both a Win32 service surface and 32-bit pointer-storage assumptions, which may require a narrower effective portable subset for early build success
 
+### 2026-04-15
+
+- Document: `alchemy-kernel-service-surface-next-slice.md`
+- Change Type: updated
+- Summary: clarified that the remaining 64-bit issue is a deeper archive/reference storage design problem and updated the recommendation toward deferring that path while prioritizing a bounded `CDataFile.cpp` service-boundary slice if coding continues
+
+### 2026-04-15
+
+- Document: `alchemy-kernel-service-surface-next-slice.md`
+- Change Type: updated
+- Summary: added a concrete bounded `CDataFile.cpp` slice for non-Windows build bring-up and noted that one more header-boundary reduction is needed before that slice becomes cleanly verifiable
+
 ## Maintenance Notes
 
 - Add a new entry when a document is created, significantly restructured, or materially changes scope or execution direction.
