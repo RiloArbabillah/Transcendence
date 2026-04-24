@@ -611,6 +611,12 @@ With the critical asset callers mostly covered, the next useful implementation f
 
 This matches the remaining workstreams in `milestone-1-plan.md` more closely than continuing to chase non-critical image callers.
 
+Current note:
+
+- the bounded build scaffold has now advanced through a first-tier `mammoth_tse` target
+- the next meaningful step is validation of the existing bounded scaffold once `cmake` is available
+- broadening `mammoth_tsui_core` or other higher targets before that validation would be premature
+
 ### What should happen first
 
 1. Replace resource loading assumptions for fonts and UI images with file/bundle-based lookup

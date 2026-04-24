@@ -2,7 +2,7 @@
 
 ## Document Status
 
-- Version: v1.1
+- Version: v1.2
 - Last Updated: 2026-04-15
 - Purpose: define the recommended next implementation focus after milestone-1 asset and image-path work has reached the critical title/menu callers
 
@@ -13,6 +13,24 @@ The recent implementation slices have substantially reduced asset-path risk for 
 At this point, continuing to chase every remaining image caller is lower leverage than moving to the next milestone-1 blockers.
 
 This document identifies the next best focus area so the next agent can move directly into the highest-value work.
+
+## Current build-scaffold status
+
+The repository now contains:
+
+- root `CMakeLists.txt`
+- `CMakePresets.json`
+- six bounded concrete library targets in the scaffold:
+  - `alchemy_kernel`
+  - `alchemy_codechain`
+  - `alchemy_xmlutil`
+  - `alchemy_jpeg`
+  - bounded `alchemy_graphics`
+  - bounded `mammoth_tse`
+
+The current blocker is no longer planning ambiguity.
+
+The current blocker is that `cmake` itself is not available in the environment, so configure and compile fallout cannot yet be validated.
 
 ## What is considered done enough
 
@@ -36,6 +54,16 @@ These are not the best next targets because they do not directly block the first
 
 ## Recommended next implementation focus
 
+## Immediate recommendation
+
+Do not broaden the graph further until `cmake` is available and the current bounded scaffold can be validated.
+
+In particular:
+
+- do not make `mammoth_tsui_core` concrete yet
+- do not pull in broader `Mammoth/TSE/*` files by guesswork
+- treat the next meaningful step as configure/compile validation of the six concrete bounded targets
+
 ## 1. Define the milestone-1 source subset
 
 ### Objective
@@ -51,6 +79,8 @@ Turn the audit work into a concrete list of source files and targets required fo
 - `docs/migrate_to_osx/milestone-1-plan.md` requires a reduced build graph
 - `docs/migrate_to_osx/source-audit-handoff.md` already identified the real menu-boot path
 - the asset side is now stable enough to support this scoping work
+
+This step is now largely complete for the first bounded scaffold.
 
 ### Output
 

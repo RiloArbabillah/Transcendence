@@ -290,6 +290,18 @@ Summary:
 - Change Type: updated
 - Summary: recorded that the first-tier `mammoth_tse` candidate set has now been applied to the scaffold and that future expansion should follow compile fallout rather than broader guesswork
 
+### 2026-04-15
+
+- Document: `next-implementation-focus.md`
+- Change Type: updated
+- Summary: clarified that the bounded scaffold now includes six concrete targets and that the immediate next step should be validation once `cmake` is available, not further graph expansion
+
+### 2026-04-15
+
+- Document: `source-audit-handoff.md`
+- Change Type: updated
+- Summary: added a note that the scaffold has reached first-tier `mammoth_tse` and that further target expansion should wait for `cmake`-driven validation
+
 ## Maintenance Notes
 
 - Add a new entry when a document is created, significantly restructured, or materially changes scope or execution direction.
