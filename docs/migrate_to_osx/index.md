@@ -70,6 +70,9 @@ Use this file as the primary entry point for the documentation set.
 - `milestone-1-source-subset.md`
   - target-oriented source subset for the first bounded macOS `CMake` scaffold and menu-boot implementation slice
 
+- `mammoth-tse-bounded-candidate-set.md`
+  - safer first-pass candidate set for turning `mammoth_tse` into a concrete milestone-1 target without pulling in the whole engine
+
 ### Validation and Governance
 
 - `qa-test-matrix.md`
@@ -97,6 +100,7 @@ Use this file as the primary entry point for the documentation set.
 | `image-portability-seam.md` | how to remove the remaining `HBITMAP` dependency from milestone-1 image ingestion |
 | `next-implementation-focus.md` | what to do next once title/menu-critical asset callers are largely covered |
 | `milestone-1-source-subset.md` | which targets and source groups should be included in the first bounded macOS build slice |
+| `mammoth-tse-bounded-candidate-set.md` | how to expand `mammoth_tse` carefully from placeholder to bounded concrete target |
 | `qa-test-matrix.md` | how milestone success is validated |
 | `decision-log.md` | why key technical decisions were made |
 | `change-log.md` | what changed in the documentation set over time |
@@ -140,6 +144,7 @@ Use this file as the primary entry point for the documentation set.
 
 - use `next-implementation-focus.md`
 - use `milestone-1-source-subset.md` before broadening into `CMake`
+- use `mammoth-tse-bounded-candidate-set.md` before making `mammoth_tse` concrete
 - return to `milestone-1-plan.md` workstreams 2, 4, and 5
 - keep `source-audit-handoff.md` open so shell/presenter work stays anchored to the real boot path
 
@@ -189,6 +194,7 @@ Use this file as the primary entry point for the documentation set.
 - `image-portability-seam.md`
 - `next-implementation-focus.md`
 - `milestone-1-source-subset.md`
+- `mammoth-tse-bounded-candidate-set.md`
 - `qa-test-matrix.md`
 - `decision-log.md`
 - `change-log.md`

@@ -266,6 +266,30 @@ Summary:
 - Change Type: updated
 - Summary: recorded that the bounded scaffold now includes five concrete foundation targets and shifted the next target-expansion recommendation toward bounded `mammoth_tse`
 
+### 2026-04-15
+
+- Document: `mammoth-tse-bounded-candidate-set.md`
+- Change Type: created
+- Summary: added a bounded candidate-set plan for `mammoth_tse`, including first-tier menu-boot engine files, second-tier expansion areas, and explicit cautions about `DirectXUtil.h` header coupling
+
+### 2026-04-15
+
+- Document: `index.md`
+- Change Type: updated
+- Summary: added navigation and usage guidance for `mammoth-tse-bounded-candidate-set.md` so engine-target expansion can proceed more safely than a blind full-source import
+
+### 2026-04-15
+
+- Document: `milestone-1-source-subset.md`
+- Change Type: updated
+- Summary: recorded that `mammoth_tse` is now a bounded concrete static target in the scaffold and clarified that the next step is to validate six concrete targets before broadening further
+
+### 2026-04-15
+
+- Document: `mammoth-tse-bounded-candidate-set.md`
+- Change Type: updated
+- Summary: recorded that the first-tier `mammoth_tse` candidate set has now been applied to the scaffold and that future expansion should follow compile fallout rather than broader guesswork
+
 ## Maintenance Notes
 
 - Add a new entry when a document is created, significantly restructured, or materially changes scope or execution direction.

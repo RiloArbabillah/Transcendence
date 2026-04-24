@@ -134,6 +134,13 @@ set(ALCHEMY_GRAPHICS_SOURCES
     "Alchemy/Graphics/Raw.cpp"
 )
 
+set(MAMMOTH_TSE_SOURCES
+    "Mammoth/TSE/CDesignCollection.cpp"
+    "Mammoth/TSE/CSystem.cpp"
+    "Mammoth/TSE/CUniverse.cpp"
+    "Mammoth/TSE/CreateSystem.cpp"
+)
+
 add_library(alchemy_kernel STATIC ${ALCHEMY_KERNEL_SOURCES})
 target_include_directories(alchemy_kernel PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/Alchemy/Include"
@@ -169,8 +176,12 @@ target_link_libraries(alchemy_graphics PUBLIC
     alchemy_kernel
 )
 
-add_library(mammoth_tse INTERFACE)
-target_link_libraries(mammoth_tse INTERFACE
+add_library(mammoth_tse STATIC ${MAMMOTH_TSE_SOURCES})
+target_include_directories(mammoth_tse PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/Alchemy/Include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Mammoth/Include"
+)
+target_link_libraries(mammoth_tse PUBLIC
     alchemy_kernel
     alchemy_codechain
     alchemy_xmlutil

@@ -2,7 +2,7 @@
 
 ## Document Status
 
-- Version: v1.2
+- Version: v1.3
 - Last Updated: 2026-04-15
 - Derived From: `source-audit-handoff.md`, `milestone-1-plan.md`, `cmake-build-plan.md`, `next-implementation-focus.md`
 - Purpose: define a concrete, target-oriented source subset for the first macOS `CMake` scaffold and menu-boot implementation slice
@@ -214,15 +214,20 @@ The current root `CMakeLists.txt` already reflects this plan partially:
 - `alchemy_xmlutil` is now a concrete `STATIC` target with an initial source list
 - `alchemy_jpeg` is now a concrete `STATIC` target with a bounded milestone-1 source list
 - `alchemy_graphics` is now a concrete `STATIC` target with a bounded milestone-1 source list centered on `DIB.cpp`, `Misc.cpp`, and `Raw.cpp`
-- the remaining milestone-1 groups still exist as placeholders so the graph stays bounded
+- `mammoth_tse` is now a concrete `STATIC` target with a first-tier bounded source list:
+  - `Mammoth/TSE/CUniverse.cpp`
+  - `Mammoth/TSE/CDesignCollection.cpp`
+  - `Mammoth/TSE/CreateSystem.cpp`
+  - `Mammoth/TSE/CSystem.cpp`
+- `mammoth_tsui_core` and higher groups still exist as placeholders so the graph stays bounded
 
 This means the next source-subset step is no longer “start from nothing.”
 
 It is now:
 
 - validate those three concrete targets once `cmake` is available
-- validate the five concrete foundation targets once `cmake` is available
-- then extend the same approach to bounded `mammoth_tse`
+- validate the six concrete bounded targets once `cmake` is available
+- then decide `mammoth_tse` second-tier expansion based on actual compile fallout, not guesswork
 
 This order intentionally separates:
 
