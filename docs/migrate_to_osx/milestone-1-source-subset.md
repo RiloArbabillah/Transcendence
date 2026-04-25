@@ -2,8 +2,8 @@
 
 ## Document Status
 
-- Version: v1.3
-- Last Updated: 2026-04-15
+- Version: v1.4
+- Last Updated: 2026-04-25
 - Derived From: `source-audit-handoff.md`, `milestone-1-plan.md`, `cmake-build-plan.md`, `next-implementation-focus.md`
 - Purpose: define a concrete, target-oriented source subset for the first macOS `CMake` scaffold and menu-boot implementation slice
 
@@ -232,9 +232,30 @@ This means the next source-subset step is no longer “start from nothing.”
 
 It is now:
 
-- validate those three concrete targets once `cmake` is available
-- validate the six concrete bounded targets once `cmake` is available
+- keep this source subset frozen while the first concrete target is brought up
+- fix `alchemy_kernel` first using `cmake --build --preset macos-debug --target alchemy_kernel`
+- validate the remaining concrete bounded targets only after `alchemy_kernel` builds
 - then decide `mammoth_tse` second-tier expansion based on actual compile fallout, not guesswork
+
+### 2026-04-25 validation snapshot
+
+Local validation shows that the build system itself is usable:
+
+- `cmake --preset macos-debug` configures successfully
+- `cmake --build --preset macos-debug --target alchemy_kernel` starts compiling and fails inside `alchemy_kernel`
+
+The current fastest build path is therefore not more target discovery. It is fixing the first concrete target.
+
+Observed first blockers:
+
+- `Alchemy/Include/Kernel.h:743` stores a `CObject *` through an `int` path, which is invalid on arm64 and blocks many compile units at parse time
+- `Alchemy/Kernel/CFileReadBlock.cpp` and `Alchemy/Kernel/CFileReadStream.cpp` still depend on Win32 memory-mapped file APIs and constants
+
+Fast path rule:
+
+- do not add app, SDL, Metal, or broader Mammoth files until `alchemy_kernel` builds
+- prefer one blocker cluster per change, followed by the same target build command
+- if a kernel file is not required by the milestone-1 portable core, prefer deferring it from the target over porting a full Win32 service implementation prematurely
 
 This order intentionally separates:
 

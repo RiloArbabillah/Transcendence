@@ -2,8 +2,8 @@
 
 ## Document Status
 
-- Version: v1.0
-- Last Updated: 2026-04-14
+- Version: v1.1
+- Last Updated: 2026-04-25
 - Derived From: `PRD.md`
 - Companion Document: `roadmap.md`
 
@@ -83,27 +83,29 @@ This backlog converts the roadmap into actionable engineering work. Tasks are gr
 ### B-001 Add root `CMakeLists.txt`
 
 - Priority: `P0`
-- Status: `todo`
+- Status: `done`
 - Goal: create a parallel build system for macOS without replacing Visual Studio projects
 - Depends on:
   - A-002
 - Acceptance criteria:
   - project configures on macOS with `cmake`
+- Current validation: `cmake --preset macos-debug` succeeds locally
 
 ### B-002 Add `CMakePresets.json`
 
 - Priority: `P1`
-- Status: `todo`
+- Status: `done`
 - Goal: provide repeatable debug/release/sanitizer presets for macOS arm64
 - Depends on:
   - B-001
 - Acceptance criteria:
-  - at least debug, release, and sanitizer presets exist
+  - at least debug and release-oriented presets exist
+- Current validation: `macos-debug`, `macos-relwithdebinfo`, and `macos-release` presets exist
 
 ### B-003 Define core library targets
 
 - Priority: `P0`
-- Status: `todo`
+- Status: `in_progress`
 - Goal: mirror the existing logical project graph in CMake
 - Initial targets:
   - `Alchemy/Kernel`
@@ -116,16 +118,18 @@ This backlog converts the roadmap into actionable engineering work. Tasks are gr
   - B-001
 - Acceptance criteria:
   - CMake target graph builds in dependency order
+- Current status: bounded target graph configures, but first concrete target `alchemy_kernel` does not compile yet
 
 ### B-004 Fix Apple Clang compatibility issues
 
 - Priority: `P0`
-- Status: `todo`
+- Status: `in_progress`
 - Goal: resolve compile blockers due to compiler differences, case-sensitive includes, and old platform assumptions
 - Depends on:
   - B-003
 - Acceptance criteria:
   - core targets compile under Apple Clang on arm64
+- Immediate blocker: `Alchemy/Include/Kernel.h:743` pointer-to-`int` cast blocks `alchemy_kernel` on arm64
 
 ### B-005 Audit x86-only and asm-sensitive paths
 
@@ -142,9 +146,15 @@ This backlog converts the roadmap into actionable engineering work. Tasks are gr
 ### C-001 Build `Alchemy/Kernel`
 
 - Priority: `P0`
-- Status: `todo`
+- Status: `in_progress`
 - Depends on:
   - B-003
+
+Fastest next tasks:
+
+- fix the global `Kernel.h:743` arm64 pointer storage blocker first
+- then handle or defer the Win32 memory-mapped file implementations in `CFileReadBlock.cpp` and `CFileReadStream.cpp`
+- verify with `cmake --build --preset macos-debug --target alchemy_kernel`
 
 ### C-002 Build `Alchemy/CodeChain`
 

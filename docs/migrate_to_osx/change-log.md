@@ -410,6 +410,12 @@ Summary:
 - Change Type: updated
 - Summary: updated the build caution for `alchemy_kernel` to note that internet-heavy paths, in addition to Win32 service surface and 32-bit pointer storage assumptions, should not be assumed part of the earliest portable-core success path
 
+### 2026-04-25
+
+- Document: `cmake-build-plan.md`, `next-implementation-focus.md`, `milestone-1-source-subset.md`, `task-backlog.md`, `index.md`
+- Change Type: updated
+- Summary: validated that CMake and Ninja are available, confirmed `cmake --preset macos-debug` configures successfully, recorded the current `alchemy_kernel` compile blockers, and shifted the plan to the fastest target-by-target build loop starting with `alchemy_kernel`
+
 ## Maintenance Notes
 
 - Add a new entry when a document is created, significantly restructured, or materially changes scope or execution direction.

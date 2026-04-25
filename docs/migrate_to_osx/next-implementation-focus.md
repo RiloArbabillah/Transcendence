@@ -2,9 +2,9 @@
 
 ## Document Status
 
-- Version: v1.2
-- Last Updated: 2026-04-15
-- Purpose: define the recommended next implementation focus after milestone-1 asset and image-path work has reached the critical title/menu callers
+- Version: v1.3
+- Last Updated: 2026-04-25
+- Purpose: define the fastest next implementation focus for turning the existing macOS CMake scaffold into a compiling target sequence
 
 ## Why this document exists
 
@@ -28,9 +28,21 @@ The repository now contains:
   - bounded `alchemy_graphics`
   - bounded `mammoth_tse`
 
-The current blocker is no longer planning ambiguity.
+The current blocker is no longer planning ambiguity or missing tools.
 
-The current blocker is that `cmake` itself is not available in the environment, so configure and compile fallout cannot yet be validated.
+As of 2026-04-25, local validation shows:
+
+- `cmake --version` succeeds with CMake 4.3.2
+- `ninja --version` succeeds with Ninja 1.13.2
+- `cmake --preset macos-debug` configures successfully
+- `cmake --build --preset macos-debug --target alchemy_kernel` reaches compilation and fails in `alchemy_kernel`
+
+This means the fastest path is compile-driven kernel bring-up, not more source-audit work.
+
+First observed blockers:
+
+- `Alchemy/Include/Kernel.h:743` casts `CObject *` to `int`, which fails on arm64 before most translation units can compile
+- `Alchemy/Kernel/CFileReadBlock.cpp` and `Alchemy/Kernel/CFileReadStream.cpp` still call Win32 file mapping APIs such as `UnmapViewOfFile`, `GENERIC_READ`, `CreateFile`-style constants, `PAGE_READONLY`, `FILE_MAP_READ`, and `GetFileSize`
 
 ## What is considered done enough
 
@@ -56,13 +68,31 @@ These are not the best next targets because they do not directly block the first
 
 ## Immediate recommendation
 
-Do not broaden the graph further until `cmake` is available and the current bounded scaffold can be validated.
+Do not broaden the graph further. The current scaffold configures, so the next fastest path is to make the existing concrete targets compile in order.
 
 In particular:
 
 - do not make `mammoth_tsui_core` concrete yet
 - do not pull in broader `Mammoth/TSE/*` files by guesswork
-- treat the next meaningful step as configure/compile validation of the six concrete bounded targets
+- do not start SDL or Metal implementation until `alchemy_kernel` compiles
+- treat `alchemy_kernel` as the active critical path target
+
+Fastest command loop:
+
+```sh
+cmake --preset macos-debug
+cmake --build --preset macos-debug --target alchemy_kernel
+```
+
+Only after `alchemy_kernel` builds should the loop move to:
+
+```sh
+cmake --build --preset macos-debug --target alchemy_codechain
+cmake --build --preset macos-debug --target alchemy_xmlutil
+cmake --build --preset macos-debug --target alchemy_graphics
+cmake --build --preset macos-debug --target alchemy_jpeg
+cmake --build --preset macos-debug --target mammoth_tse
+```
 
 ## 1. Define the milestone-1 source subset
 
@@ -80,7 +110,7 @@ Turn the audit work into a concrete list of source files and targets required fo
 - `docs/migrate_to_osx/source-audit-handoff.md` already identified the real menu-boot path
 - the asset side is now stable enough to support this scoping work
 
-This step is now largely complete for the first bounded scaffold.
+This step is complete enough for the first bounded scaffold. Do not spend more time re-auditing before fixing the current `alchemy_kernel` blockers.
 
 ### Output
 
@@ -244,18 +274,17 @@ Practical interpretation:
 
 ## Recommended order
 
-1. source-subset definition -> verify: we know exactly what should go into the first macOS build graph
-2. shell seam mapping -> verify: startup, loop, input, and timer responsibilities are enumerated
-3. presentation seam mapping -> verify: we know where the first real frame can be intercepted and shown
-4. only then start the first `CMake` milestone-1 build scaffold
+1. keep the current source subset frozen -> verify: `cmake --preset macos-debug` still configures
+2. fix the header-level arm64 blocker in `Alchemy/Include/Kernel.h` -> verify: the pointer-to-`int` error no longer stops every `alchemy_kernel` compile unit
+3. add the smallest non-Windows path for `CFileReadBlock.cpp` and `CFileReadStream.cpp` or remove those files from the first portable target if they are not needed yet -> verify: `alchemy_kernel` reaches the next distinct blocker
+4. continue compile-driven fixes only inside `alchemy_kernel` -> verify: `alchemy_kernel` builds before touching higher targets
+5. then build the remaining concrete targets one at a time in dependency order
 
-## Why not jump directly to `CMake` right now
+## Why not broaden the graph right now
 
-That is possible, but less efficient.
+The graph already configures and the first target already exposes actionable compile fallout. Broadening now would mix kernel portability, engine dependencies, shell replacement, and presenter work into one noisy failure set.
 
-Without a tighter source subset and shell/presenter seam definition, the build graph will expand into too many unrelated compile blockers at once.
-
-The docs consistently recommend narrowing the active path before broadening build work.
+The fastest path is to keep one active target, clear its global blockers, and only advance when the target builds.
 
 ## Success criteria for this focus
 
@@ -264,4 +293,4 @@ This focus is successful when:
 - the next agent can name the exact milestone-1 source subset
 - the shell replacement responsibilities are concrete enough to implement
 - the presentation seam is concrete enough to support a first framebuffer path
-- `CMake` work can begin on a bounded target set instead of the whole app
+- the existing bounded `CMake` target set advances from configure-success to `alchemy_kernel` compile-success

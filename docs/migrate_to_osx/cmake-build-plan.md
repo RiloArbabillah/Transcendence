@@ -2,8 +2,8 @@
 
 ## Document Status
 
-- Version: v1.0
-- Last Updated: 2026-04-14
+- Version: v1.1
+- Last Updated: 2026-04-25
 - Derived From: `PRD.md`
 - Companion Docs: `roadmap.md`, `task-backlog.md`, `dependency-matrix.md`, `architecture.md`, `milestone-1-plan.md`
 - Project: Native macOS Apple Silicon port of `kronosaur/TranscendenceDev`
@@ -29,6 +29,27 @@ The goal is to create a practical, low-risk path to a working macOS build withou
 - Build portable core libraries first
 - Add macOS-specific platform and rendering targets only where needed
 - Keep unsupported integrations optional or disabled in early milestones
+
+## Current Fastest Build Path
+
+The repository now has a top-level `CMakeLists.txt` and `CMakePresets.json`. Local validation on 2026-04-25 shows that the build system configures successfully with:
+
+```sh
+cmake --preset macos-debug
+```
+
+The fastest path to a useful build is therefore target-by-target compile bring-up, starting with the first concrete dependency:
+
+```sh
+cmake --build --preset macos-debug --target alchemy_kernel
+```
+
+Current first blockers are inside `alchemy_kernel`:
+
+- `Alchemy/Include/Kernel.h:743` casts `CObject *` to `int`, which fails on arm64
+- `Alchemy/Kernel/CFileReadBlock.cpp` and `Alchemy/Kernel/CFileReadStream.cpp` still depend on Win32 memory-mapped file APIs
+
+Until `alchemy_kernel` builds, do not broaden the graph into SDL, Metal, app shell, or additional Mammoth sources. Each fix should be followed by the same `alchemy_kernel` build command so blockers stay attributable to one target.
 
 ## Build Goals
 
