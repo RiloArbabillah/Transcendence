@@ -45,12 +45,18 @@ typedef void *HKEY;
 typedef void *LPVOID;
 typedef char *LPSTR;
 typedef void *HANDLE;
+typedef void *HBITMAP;
+typedef void *HDC;
+typedef void *HFONT;
 typedef void *HINSTANCE;
 typedef void *HMODULE;
+typedef void *HPALETTE;
+typedef void *HRGN;
 typedef void *HWND;
 typedef DWORD (*LPTHREAD_START_ROUTINE)(LPVOID);
 typedef unsigned int UINT;
 typedef std::uint16_t WORD;
+typedef DWORD COLORREF;
 
 struct RECT
 	{
@@ -71,6 +77,8 @@ struct SYSTEMTIME
 	WORD wSecond;
 	WORD wMilliseconds;
 	};
+
+struct BITMAPINFOHEADER;
 
 struct CRITICAL_SECTION
 	{

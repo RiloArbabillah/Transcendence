@@ -67,9 +67,7 @@ set(ALCHEMY_JPEG_SOURCES
 )
 
 set(ALCHEMY_GRAPHICS_SOURCES
-    "Alchemy/Graphics/DIB.cpp"
     "Alchemy/Graphics/Misc.cpp"
-    "Alchemy/Graphics/Raw.cpp"
 )
 
 set(MAMMOTH_TSE_SOURCES

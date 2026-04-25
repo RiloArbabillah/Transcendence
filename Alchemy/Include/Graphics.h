@@ -7,6 +7,8 @@
 
 class IGMediaDb;
 
+using CBuffer = CString;
+
 //	Raw image format structure definitions
 
 typedef DWORD RAWPIXEL;
