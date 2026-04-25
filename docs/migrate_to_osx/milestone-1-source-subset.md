@@ -41,6 +41,7 @@ Current caution:
 - the first real build attempt shows that `alchemy_kernel` currently mixes portable utilities with a broader Win32 service surface in `Alchemy/Include/Kernel.h`
 - treat `alchemy_kernel` as a target that may need a portable subset or boundary split, not as a guaranteed clean early-win target
 - archive/reference-heavy paths inside `alchemy_kernel` also still rely on 32-bit pointer storage assumptions, so they may need deferral or redesign before arm64 is clean
+- internet-heavy paths inside `alchemy_kernel` also still leak platform-specific networking surface and should be considered deferrable from the earliest portable-core success criteria
 
 ### `alchemy_codechain`
 

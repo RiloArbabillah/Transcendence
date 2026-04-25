@@ -255,10 +255,14 @@ The best next step is now:
 
 1. stop broadening the shim surface in `Kernel.h` unless a symbol is clearly part of a tiny portable primitive cluster
 2. define a split strategy for `alchemy_kernel`:
-   - portable kernel utilities
-   - Win32 OS services (registry, file enumeration, event handles, input helpers, internet stack)
+ - portable kernel utilities
+ - Win32 OS services (registry, file enumeration, event handles, input helpers, internet stack)
 3. update the bounded build strategy so “portable core success” does not depend on the Win32 service surface compiling unchanged
 4. treat pointer-size issues like those in `CArchiver.cpp` as a separate Apple Clang correctness track after the layer split is decided
+
+Updated planning conclusion:
+
+- for the earliest portable-core attempt, both the archive/reference-heavy path and the internet-heavy path should be treated as deferrable unless a later milestone slice proves they are required sooner
 
 ## Why this shift is recommended
 

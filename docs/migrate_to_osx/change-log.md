@@ -392,6 +392,24 @@ Summary:
 - Change Type: updated
 - Summary: applied one more bounded header-boundary reduction around `CFileDirectory`, added a bounded non-Windows `CDataFile.cpp` fail-fast slice for direct file-handle operations, and confirmed via build that the discovery path now reaches `CDataFile.cpp` while remaining blocked by `Kernel.h` declaration leaks and archive/reference 64-bit assumptions
 
+### 2026-04-15
+
+- Document: `alchemy-kernel-portability-fallout.md`
+- Change Type: updated
+- Summary: clarified that both archive/reference-heavy and internet-heavy kernel paths should now be treated as deferrable from the earliest portable-core attempt unless later milestone work proves otherwise
+
+### 2026-04-15
+
+- Document: `milestone-1-source-subset.md`
+- Change Type: updated
+- Summary: added an explicit caution that internet-heavy `alchemy_kernel` paths should also be considered deferrable from the earliest portable-core success criteria
+
+### 2026-04-15
+
+- Document: `cmake-build-plan.md`
+- Change Type: updated
+- Summary: updated the build caution for `alchemy_kernel` to note that internet-heavy paths, in addition to Win32 service surface and 32-bit pointer storage assumptions, should not be assumed part of the earliest portable-core success path
+
 ## Maintenance Notes
 
 - Add a new entry when a document is created, significantly restructured, or materially changes scope or execution direction.
