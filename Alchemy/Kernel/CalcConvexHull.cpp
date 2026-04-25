@@ -6,7 +6,7 @@
 #include "PreComp.h"
 #include "Euclid.h"
 
-#include "quickhull\QuickHull.hpp"
+#include "quickhull/QuickHull.hpp"
 
 using namespace quickhull;
 

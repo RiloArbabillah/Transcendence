@@ -40,11 +40,14 @@ typedef long LONG;
 typedef short SHORT;
 typedef std::uint64_t ULONG64;
 typedef const char *LPCSTR;
+typedef void *HKEY;
 typedef void *LPVOID;
 typedef char *LPSTR;
 typedef void *HANDLE;
 typedef void *HINSTANCE;
 typedef void *HMODULE;
+typedef void *HWND;
+typedef DWORD (*LPTHREAD_START_ROUTINE)(LPVOID);
 typedef unsigned int UINT;
 typedef std::uint16_t WORD;
 
@@ -97,7 +100,9 @@ struct CRITICAL_SECTION
 
 #define CP_ACP 0
 #define CP_UTF8 65001
+#define RT_RCDATA ((const char *)10)
 
+#define WINAPI
 #define VK_CONTROL 0x11
 #define VK_NUMLOCK 0x90
 #define VK_SHIFT 0x10
