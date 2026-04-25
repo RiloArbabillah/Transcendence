@@ -5,6 +5,8 @@
 
 #pragma once
 
-#include "Alchemy.h"
-#include "Internets.h"
+#include "Kernel.h"
+
+using namespace Kernel;
+
 #include "XMLUtil.h"

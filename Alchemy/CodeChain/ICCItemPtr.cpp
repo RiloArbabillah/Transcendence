@@ -172,7 +172,7 @@ ICCItemPtr ICCItemPtr::Error (const CString &sError, const ICCItem *pData)
 	if (pData)
 		{
 		sArg = pData->Print();
-		sErrorLine = strPatternSubst(CONSTLIT("%s [%s]"), sError, sArg);
+		sErrorLine = strPatternSubst(CONSTLIT("%s [%s]"), sError.GetASCIIZPointer(), sArg.GetASCIIZPointer());
 		}
 	else
 		sErrorLine = sError;
@@ -215,4 +215,3 @@ bool ICCItemPtr::Load (const CString &sCode, CString *retsError)
 	*this = pCode;
 	return true;
 	}
-

@@ -38,6 +38,7 @@ typedef long long INT64;
 typedef long long LONGLONG;
 typedef long LONG;
 typedef short SHORT;
+typedef std::uintptr_t SIZE_T;
 typedef std::uint64_t ULONG64;
 typedef const char *LPCSTR;
 typedef void *HKEY;
@@ -183,10 +184,10 @@ namespace Kernel {
 //	Call stack logging
 
 #define DEBUG_TRY					try {
-#define DEBUG_CATCH					} catch (...) { kernelDebugLogPattern("Crash in %s", CString(__FUNCTION__)); throw; }
-#define DEBUG_CATCH_MT				} catch (...) { m_cs.Lock(); kernelDebugLogPattern("Crash in %s", CString(__FUNCTION__)); m_cs.Unlock(); throw; }
-#define DEBUG_CATCH_CONTINUE		} catch (...) { kernelDebugLogPattern("Crash in %s", CString(__FUNCTION__)); }
-#define DEBUG_CATCH_CONTINUE_MT		} catch (...) { m_cs.Lock(); kernelDebugLogPattern("Crash in %s", CString(__FUNCTION__)); m_cs.Unlock(); }
+#define DEBUG_CATCH					} catch (...) { kernelDebugLogPattern("Crash in %s", __FUNCTION__); throw; }
+#define DEBUG_CATCH_MT				} catch (...) { m_cs.Lock(); kernelDebugLogPattern("Crash in %s", __FUNCTION__); m_cs.Unlock(); throw; }
+#define DEBUG_CATCH_CONTINUE		} catch (...) { kernelDebugLogPattern("Crash in %s", __FUNCTION__); }
+#define DEBUG_CATCH_CONTINUE_MT		} catch (...) { m_cs.Lock(); kernelDebugLogPattern("Crash in %s", __FUNCTION__); m_cs.Unlock(); }
 #define DEBUG_CATCH_MSG(msg)		} catch (...) { kernelDebugLogPattern((msg)); throw; }
 #define DEBUG_CATCH_MSG_MT(msg)		} catch (...) { m_cs.Lock(); kernelDebugLogPattern((msg)); m_cs.Unlock(); throw; }
 #define DEBUG_CATCH_MSG1(msg,p1)	} catch (...) { kernelDebugLogPattern((msg),(p1)); throw; }
@@ -740,7 +741,7 @@ class CIDTable : public CDictionary
 		CIDTable (BOOL bOwned, BOOL bNoReference);
 		virtual ~CIDTable (void);
 
-		ALERROR AddEntry (int iKey, CObject *pValue) { return CDictionary::AddEntry(iKey, (int)pValue); }
+		ALERROR AddEntry (int iKey, CObject *pValue);
 		int GetKey (int iEntry) const;
 		CObject *GetValue (int iEntry) const;
 		ALERROR Lookup (int iKey, CObject **retpValue) const;

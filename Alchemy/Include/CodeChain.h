@@ -217,8 +217,8 @@ class ICCItem : public CObject
 
 		//	Pool access
 
-		ICCItem *GetNextFree() { return (ICCItem *)m_dwRefCount; }
-		void SetNextFree (ICCItem *pNext) { m_dwRefCount = (DWORD)pNext; }
+		ICCItem *GetNextFree() { return m_pNextFree; }
+		void SetNextFree (ICCItem *pNext) { m_pNextFree = pNext; }
 
 		static int Compare (ICCItem *pFirst, ICCItem *pSecond);
 
@@ -230,6 +230,7 @@ class ICCItem : public CObject
 		ICCItem *NotASymbolTable (void);
 
 		mutable DWORD m_dwRefCount;				//	Number of references to this item
+		ICCItem *m_pNextFree = NULL;
 
 		DWORD m_bQuoted:1;						//	TRUE if quoted
 		DWORD m_bError:1;						//	TRUE if it represents a runtime error
@@ -1011,4 +1012,3 @@ ALERROR pageLibraryInit (CCodeChain &CC);
 int HelperCompareItems (ICCItem *pFirst, ICCItem *pSecond, DWORD dwCoerceFlags = HELPER_COMPARE_COERCE_COMPATIBLE);
 int HelperCompareItemsLists (ICCItem *pFirst, ICCItem *pSecond, int iKeyIndex, bool bCoerce = true);
 int HelperCompareItemsStructs (ICCItem *pFirst, ICCItem *pSecond, const CString &sSortKey, bool bCoerce = true);
-
