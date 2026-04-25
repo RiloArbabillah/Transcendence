@@ -8,11 +8,17 @@
 CFileDirectory::CFileDirectory (const CString &sFilespec) :
 		m_sFilespec(sFilespec),
 		m_hSearch(INVALID_HANDLE_VALUE)
+	#ifdef _WIN32
+	#else
+		,m_pFindData(NULL)
+	#endif
 
 //	CFileDirectory constructor
 
 	{
+	#ifdef _WIN32
 	m_hSearch = ::FindFirstFile(sFilespec.GetASCIIZPointer(), &m_FindData);
+	#endif
 	}
 
 CFileDirectory::~CFileDirectory (void)
@@ -20,8 +26,10 @@ CFileDirectory::~CFileDirectory (void)
 //	CFileDirectory destructor
 
 	{
+	#ifdef _WIN32
 	if (m_hSearch != INVALID_HANDLE_VALUE)
 		::FindClose(m_hSearch);
+	#endif
 	}
 
 bool CFileDirectory::HasMore (void)
@@ -31,7 +39,11 @@ bool CFileDirectory::HasMore (void)
 //	Returns TRUE if there are more files in the directory
 
 	{
+	#ifdef _WIN32
 	return (m_hSearch != INVALID_HANDLE_VALUE);
+	#else
+	return false;
+	#endif
 	}
 
 CString CFileDirectory::GetNext (bool *retbIsFolder)
@@ -43,6 +55,7 @@ CString CFileDirectory::GetNext (bool *retbIsFolder)
 	{
 	CString sFilename;
 
+	#ifdef _WIN32
 	ASSERT(m_hSearch != INVALID_HANDLE_VALUE);
 
 	sFilename = CString(m_FindData.cFileName);
@@ -60,6 +73,12 @@ CString CFileDirectory::GetNext (bool *retbIsFolder)
 	//	Done
 
 	return sFilename;
+	#else
+	if (retbIsFolder)
+		*retbIsFolder = false;
+
+	return sFilename;
+	#endif
 	}
 
 void CFileDirectory::GetNextDesc (SFileDesc *retDesc)
@@ -69,6 +88,7 @@ void CFileDirectory::GetNextDesc (SFileDesc *retDesc)
 //	Returns the next file descriptor
 
 	{
+	#ifdef _WIN32
 	ASSERT(m_hSearch != INVALID_HANDLE_VALUE);
 
 	retDesc->sFilename = CString(m_FindData.cFileName);
@@ -84,5 +104,11 @@ void CFileDirectory::GetNextDesc (SFileDesc *retDesc)
 		::FindClose(m_hSearch);
 		m_hSearch = INVALID_HANDLE_VALUE;
 		}
+	#else
+	retDesc->sFilename = NULL_STR;
+	retDesc->bFolder = false;
+	retDesc->bSystemFile = false;
+	retDesc->bHiddenFile = false;
+	retDesc->bReadOnly = false;
+	#endif
 	}
-

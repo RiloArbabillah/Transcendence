@@ -26,12 +26,19 @@
 #else
 
 #include <cstdint>
+#include <cstdlib>
+#include <mutex>
 
 typedef unsigned char BYTE;
 typedef int BOOL;
 typedef std::uint32_t DWORD;
+typedef std::uint64_t DWORDLONG;
+typedef std::uint64_t KAFFINITY;
 typedef long long INT64;
+typedef long long LONGLONG;
 typedef long LONG;
+typedef short SHORT;
+typedef std::uint64_t ULONG64;
 typedef const char *LPCSTR;
 typedef void *LPVOID;
 typedef char *LPSTR;
@@ -49,6 +56,23 @@ struct RECT
 	LONG bottom;
 	};
 
+struct SYSTEMTIME
+	{
+	WORD wYear;
+	WORD wMonth;
+	WORD wDayOfWeek;
+	WORD wDay;
+	WORD wHour;
+	WORD wMinute;
+	WORD wSecond;
+	WORD wMilliseconds;
+	};
+
+struct CRITICAL_SECTION
+	{
+	std::mutex Mutex;
+	};
+
 #ifndef TRUE
 #define TRUE 1
 #endif
@@ -57,16 +81,46 @@ struct RECT
 #define FALSE 0
 #endif
 
+#ifndef INFINITE
+#define INFINITE 0xffffffff
+#endif
+
+#ifndef WAIT_TIMEOUT
+#define WAIT_TIMEOUT 258
+#endif
+
+#ifndef WAIT_OBJECT_0
+#define WAIT_OBJECT_0 0
+#endif
+
+#define INVALID_HANDLE_VALUE ((HANDLE)(std::intptr_t)-1)
+
 #define CP_ACP 0
 #define CP_UTF8 65001
 
 #define VK_CONTROL 0x11
+#define VK_NUMLOCK 0x90
 #define VK_SHIFT 0x10
+#define MAPVK_VK_TO_CHAR 2
 
 inline void DebugBreak (void) { }
 inline int GetAsyncKeyState (int) { return 0; }
+inline DWORD GetCurrentThreadId (void) { return 0; }
+inline SHORT GetKeyState (int) { return 0; }
 inline BOOL IsCharAlpha (char chChar) { return (((chChar >= 'a' && chChar <= 'z') || (chChar >= 'A' && chChar <= 'Z')) ? TRUE : FALSE); }
 inline BOOL IsCharAlphaNumeric (char chChar) { return (((chChar >= 'a' && chChar <= 'z') || (chChar >= 'A' && chChar <= 'Z') || (chChar >= '0' && chChar <= '9')) ? TRUE : FALSE); }
+inline UINT MapVirtualKey (UINT, UINT) { return 0; }
+inline void CloseHandle (HANDLE) { }
+inline HANDLE GetProcessHeap (void) { return nullptr; }
+inline LPVOID HeapAlloc (HANDLE, DWORD, size_t iSize) { return std::malloc(iSize); }
+inline BOOL HeapFree (HANDLE, DWORD, LPVOID pMem) { std::free(pMem); return TRUE; }
+inline void InitializeCriticalSection (CRITICAL_SECTION *) { }
+inline void DeleteCriticalSection (CRITICAL_SECTION *) { }
+inline void EnterCriticalSection (CRITICAL_SECTION *pCS) { pCS->Mutex.lock(); }
+inline void LeaveCriticalSection (CRITICAL_SECTION *pCS) { pCS->Mutex.unlock(); }
+inline DWORD WaitForSingleObject (HANDLE, DWORD) { return WAIT_OBJECT_0; }
+inline BOOL ResetEvent (HANDLE) { return TRUE; }
+inline BOOL SetEvent (HANDLE) { return TRUE; }
 
 #endif
 
@@ -1222,7 +1276,11 @@ class CFileDirectory
 	private:
 		CString m_sFilespec;
 		HANDLE m_hSearch;
+	#ifdef _WIN32
 		WIN32_FIND_DATA m_FindData;
+	#else
+		void *m_pFindData;
+	#endif
 	};
 
 //	Logging classes

@@ -386,6 +386,12 @@ Summary:
 - Change Type: updated
 - Summary: added a concrete bounded `CDataFile.cpp` slice for non-Windows build bring-up and noted that one more header-boundary reduction is needed before that slice becomes cleanly verifiable
 
+### 2026-04-15
+
+- Document: codebase / build state
+- Change Type: updated
+- Summary: applied one more bounded header-boundary reduction around `CFileDirectory`, added a bounded non-Windows `CDataFile.cpp` fail-fast slice for direct file-handle operations, and confirmed via build that the discovery path now reaches `CDataFile.cpp` while remaining blocked by `Kernel.h` declaration leaks and archive/reference 64-bit assumptions
+
 ## Maintenance Notes
 
 - Add a new entry when a document is created, significantly restructured, or materially changes scope or execution direction.
