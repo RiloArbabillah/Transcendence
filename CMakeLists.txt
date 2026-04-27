@@ -13,6 +13,7 @@ include_directories(${SDL2_INCLUDE_DIRS})
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+add_compile_options(-Wno-non-pod-varargs)
 
 option(TRANSCENDENCE_M1_MENU_ONLY "Limit the build graph to the milestone-1 menu path." ON)
 option(TRANSCENDENCE_ENABLE_PLATFORM_MACOS "Enable macOS-specific platform target placeholder." OFF)

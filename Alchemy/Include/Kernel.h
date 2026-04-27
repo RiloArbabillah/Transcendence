@@ -167,6 +167,10 @@ inline DWORD GetTickCount (void)
     return (DWORD)((tv.tv_sec * 1000) + (tv.tv_usec / 1000));
 }
 
+#ifndef MAKELONG
+#define MAKELONG(a, b) ((DWORD)(((WORD)(a)) | ((DWORD)((WORD)(b))) << 16))
+#endif
+
 inline BOOL UnionRect (RECT *prcDest, const RECT *prcSrc1, const RECT *prcSrc2)
 {
     prcDest->left = std::min(prcSrc1->left, prcSrc2->left);
@@ -1527,6 +1531,12 @@ class CThreadPool
 void kernelCleanUp (void);
 void kernelClearDebugLog (void);
 void kernelDebugLogPattern (const char *pszLine, ...);
+inline void kernelDebugLogPattern (const char *pszLine, const CString &s1) { kernelDebugLogPattern(pszLine, s1.GetASCIIZPointer()); }
+inline void kernelDebugLogPattern (const char *pszLine, const CString &s1, const CString &s2) { kernelDebugLogPattern(pszLine, s1.GetASCIIZPointer(), s2.GetASCIIZPointer()); }
+inline void kernelDebugLogPattern (const char *pszLine, const CString &s1, int i2) { kernelDebugLogPattern(pszLine, s1.GetASCIIZPointer(), i2); }
+inline void kernelDebugLogPattern (const char *pszLine, const CString &s1, int i2, const CString &s3) { kernelDebugLogPattern(pszLine, s1.GetASCIIZPointer(), i2, s3.GetASCIIZPointer()); }
+inline void kernelDebugLogPattern (const char *pszLine, const CString &s1, int i2, const CString &s3, int i4) { kernelDebugLogPattern(pszLine, s1.GetASCIIZPointer(), i2, s3.GetASCIIZPointer(), i4); }
+inline void kernelDebugLogPattern (const char *pszLine, const CString &s1, int i2, const CString &s3, int i4, const CString &s5) { kernelDebugLogPattern(pszLine, s1.GetASCIIZPointer(), i2, s3.GetASCIIZPointer(), i4, s5.GetASCIIZPointer()); }
 void kernelDebugLogString (const CString &sLine);
 CString kernelGetSessionDebugLog (void);
 

@@ -256,6 +256,14 @@ int strParseIntOfBase (const char *pStart, int iBase, int iNullResult, const cha
 void strParseWhitespace (const char *pPos, const char **retpPos);
 Kernel::CString strPattern (const Kernel::CString &sPattern, LPVOID *pArgs);
 Kernel::CString strPatternSubst (Kernel::CString sLine, ...);
+inline Kernel::CString strPatternSubst (Kernel::CString sLine, int arg1, const Kernel::CString &arg2) { void *pArgs[2] = { (void *)&arg1, (void *)&arg2 }; return strPattern(sLine, pArgs); }
+inline Kernel::CString strPatternSubst (Kernel::CString sLine, DWORD arg1, const Kernel::CString &arg2) { void *pArgs[2] = { (void *)&arg1, (void *)&arg2 }; return strPattern(sLine, pArgs); }
+inline Kernel::CString strPatternSubst (Kernel::CString sLine, const Kernel::CString &arg1) { void *pArgs[1] = { (void *)&arg1 }; return strPattern(sLine, pArgs); }
+inline Kernel::CString strPatternSubst (Kernel::CString sLine, const Kernel::CString &arg1, DWORD arg2) { void *pArgs[2] = { (void *)&arg1, (void *)&arg2 }; return strPattern(sLine, pArgs); }
+inline Kernel::CString strPatternSubst (Kernel::CString sLine, const Kernel::CString &arg1, const Kernel::CString &arg2) { void *pArgs[2] = { (void *)&arg1, (void *)&arg2 }; return strPattern(sLine, pArgs); }
+inline Kernel::CString strPatternSubst (Kernel::CString sLine, const Kernel::CString &arg1, const Kernel::CString &arg2, const Kernel::CString &arg3) { void *pArgs[3] = { (void *)&arg1, (void *)&arg2, (void *)&arg3 }; return strPattern(sLine, pArgs); }
+inline Kernel::CString strPatternSubst (Kernel::CString sLine, const Kernel::CString &arg1, const Kernel::CString &arg2, const Kernel::CString &arg3, const Kernel::CString &arg4) { void *pArgs[4] = { (void *)&arg1, (void *)&arg2, (void *)&arg3, (void *)&arg4 }; return strPattern(sLine, pArgs); }
+inline Kernel::CString strPatternSubst (Kernel::CString sLine, const Kernel::CString &arg1, const Kernel::CString &arg2, const Kernel::CString &arg3, const Kernel::CString &arg4, const Kernel::CString &arg5) { void *pArgs[5] = { (void *)&arg1, (void *)&arg2, (void *)&arg3, (void *)&arg4, (void *)&arg5 }; return strPattern(sLine, pArgs); }
 
 constexpr DWORD STRPROC_NO_DOUBLE_QUOTES =			0x00000001;
 constexpr DWORD STRPROC_ESCAPE_DOUBLE_QUOTES =		0x00000002;

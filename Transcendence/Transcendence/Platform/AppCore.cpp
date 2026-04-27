@@ -8,9 +8,17 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <queue>
 
 constexpr int DEFAULT_WIDTH = 1024;
 constexpr int DEFAULT_HEIGHT = 768;
+
+// Internal message type
+struct SPlatformMessage {
+    int msg;
+    int wParam;
+    void* lParam;
+};
 
 struct SAppState
 {
@@ -25,6 +33,7 @@ struct SAppState
     int fps = 0;
     int cxWidth = DEFAULT_WIDTH;
     int cyHeight = DEFAULT_HEIGHT;
+    std::queue<SPlatformMessage> msgQueue;
 };
 
 static SAppState g_AppState;
@@ -70,7 +79,6 @@ int App_Init(void)
         return 0;
     }
 
-    // Create framebuffer texture for game rendering
     g_AppState.pTexture = SDL_CreateTexture(
         g_AppState.pRenderer,
         SDL_PIXELFORMAT_RGBA32,
@@ -88,7 +96,6 @@ int App_Init(void)
         return 0;
     }
 
-    // Allocate software framebuffer for game to render into
     g_AppState.pFrameBuffer = new uint32_t[g_AppState.cxWidth * g_AppState.cyHeight];
     memset(g_AppState.pFrameBuffer, 0, g_AppState.cxWidth * g_AppState.cyHeight * sizeof(uint32_t));
 
@@ -104,6 +111,9 @@ int App_Init(void)
 
 void App_Shutdown(void)
 {
+    while (!g_AppState.msgQueue.empty())
+        g_AppState.msgQueue.pop();
+
     if (g_AppState.pFrameBuffer)
     {
         delete[] g_AppState.pFrameBuffer;
@@ -183,7 +193,6 @@ void App_PresentFrameBuffer(void)
     if (!g_AppState.pRenderer || !g_AppState.pTexture || !g_AppState.pFrameBuffer)
         return;
 
-    // Update texture with framebuffer pixels
     SDL_UpdateTexture(
         g_AppState.pTexture,
         nullptr,
@@ -191,12 +200,10 @@ void App_PresentFrameBuffer(void)
         g_AppState.cxWidth * sizeof(uint32_t)
     );
 
-    // Clear and render
     SDL_RenderClear(g_AppState.pRenderer);
     SDL_RenderCopy(g_AppState.pRenderer, g_AppState.pTexture, nullptr, nullptr);
     SDL_RenderPresent(g_AppState.pRenderer);
 
-    // FPS counter
     g_AppState.frameCount++;
     Uint32 currentTick = SDL_GetTicks();
     if (currentTick - g_AppState.fpsTick >= 1000)
@@ -208,7 +215,6 @@ void App_PresentFrameBuffer(void)
     }
 }
 
-// Platform screen abstraction for DirectXUtilCompat.h
 SPlatformScreenInfo PlatformGetScreenInfo(void)
 {
     SPlatformScreenInfo info;
@@ -246,8 +252,41 @@ void App_GetWindowSize(int* pcxWidth, int* pcyHeight)
     if (pcyHeight) *pcyHeight = g_AppState.cyHeight;
 }
 
-// Main entry point - basic loop for milestone-2
-// TODO: Integrate with CHumanInterface for full game
+int PlatformAddTimer(int dwMilliseconds, TimerCallback callback, void* userData)
+{
+    return 0;
+}
+
+void PlatformRemoveTimer(int timerID)
+{
+}
+
+void PlatformPostMessage(int msg, int wParam, void* lParam)
+{
+    SPlatformMessage platformMsg;
+    platformMsg.msg = msg;
+    platformMsg.wParam = wParam;
+    platformMsg.lParam = lParam;
+    g_AppState.msgQueue.push(platformMsg);
+}
+
+int PlatformPeekMessage(int* pMsg, int* pWParam, void** ppLParam)
+{
+    if (g_AppState.msgQueue.empty())
+        return 0;
+
+    SPlatformMessage msg = g_AppState.msgQueue.front();
+    g_AppState.msgQueue.pop();
+
+    if (pMsg) *pMsg = msg.msg;
+    if (pWParam) *pWParam = msg.wParam;
+    if (ppLParam) *ppLParam = msg.lParam;
+
+    return 1;
+}
+
+// For now, use gradient test pattern
+// Full integration requires extensive CHumanInterface modifications
 int App_Run(void)
 {
     if (!App_Init())
@@ -263,8 +302,7 @@ int App_Run(void)
         if (!App_PumpEvents())
             break;
 
-        // For milestone-2: just render a gradient test pattern
-        // Later: this will call into the game engine
+        // Render test pattern
         for (int y = 0; y < g_AppState.cyHeight; y++)
         {
             for (int x = 0; x < g_AppState.cxWidth; x++)
@@ -278,7 +316,6 @@ int App_Run(void)
         }
 
         App_PresentFrameBuffer();
-
         SDL_Delay(16);
     }
 

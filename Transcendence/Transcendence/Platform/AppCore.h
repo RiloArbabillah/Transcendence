@@ -66,6 +66,27 @@ void App_GetWindowSize(int* pcxWidth, int* pcyHeight);
 // Event pump - returns true if should continue
 int App_PumpEvents(void);
 
+// Timer callback type
+typedef void (*TimerCallback)(int timerID, void* userData);
+
+// Add a timer - returns timer ID (0 on failure)
+int PlatformAddTimer(int dwMilliseconds, TimerCallback callback, void* userData);
+
+// Remove a timer
+void PlatformRemoveTimer(int timerID);
+
+// Platform message types (simulating Windows messages)
+#define PLATFORM_MSG_TIMER         1
+#define PLATFORM_MSG_COMMAND       2
+#define PLATFORM_MSG_TASK_COMPLETE 3
+
+// Post a platform message (for internal event handling)
+void PlatformPostMessage(int msg, int wParam, void* lParam);
+
+// Get next platform message - returns true if message available
+// Fill in msg/wParam/lParam with message data
+int PlatformPeekMessage(int* pMsg, int* pWParam, void** ppLParam);
+
 #ifdef __cplusplus
 }
 #endif
