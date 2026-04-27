@@ -112,7 +112,8 @@ class CCartoucheBlock
 
 		struct SPaintOptions
 			{
-			bool bDisabled = false;
+			SPaintOptions() : bDisabled(false) {}
+			bool bDisabled;
 			};
 
 		void Add (const TArray<SCartoucheDesc> &List);
@@ -170,7 +171,8 @@ class CIconLabelBlock
 
 		struct SPaintOptions
 			{
-			bool bDisabled = false;
+			SPaintOptions() : bDisabled(false) {}
+			bool bDisabled;
 			};
 
 		void Add (const SLabelDesc &Label);

@@ -27,7 +27,9 @@
 
 #include <cstdint>
 #include <cstdlib>
+#include <cstring>
 #include <mutex>
+#include <sys/time.h>
 
 typedef unsigned char BYTE;
 typedef int BOOL;
@@ -53,10 +55,20 @@ typedef void *HMODULE;
 typedef void *HPALETTE;
 typedef void *HRGN;
 typedef void *HWND;
+typedef void *HANDLE;
+typedef unsigned int SOCKET;
+struct OVERLAPPED { void *Internal; void *InternalHigh; void *Offset; HANDLE hEvent; };
 typedef DWORD (*LPTHREAD_START_ROUTINE)(LPVOID);
 typedef unsigned int UINT;
 typedef std::uint16_t WORD;
+typedef std::int8_t INT8;
+typedef std::uint8_t UINT8;
 typedef DWORD COLORREF;
+
+#define LOBYTE(w) ((BYTE)((w) & 0xFF))
+#define HIBYTE(w) ((BYTE)(((w) >> 8) & 0xFF))
+#define LOWORD(dw) ((WORD)((dw) & 0xFFFF))
+#define HIWORD(dw) ((WORD)(((dw) >> 16) & 0xFFFF))
 
 struct RECT
 	{
@@ -64,6 +76,18 @@ struct RECT
 	LONG top;
 	LONG right;
 	LONG bottom;
+	};
+
+struct POINT
+	{
+	LONG x;
+	LONG y;
+	};
+
+struct SIZE
+	{
+	LONG cx;
+	LONG cy;
 	};
 
 struct SYSTEMTIME
@@ -135,6 +159,85 @@ inline void LeaveCriticalSection (CRITICAL_SECTION *pCS) { pCS->Mutex.unlock(); 
 inline DWORD WaitForSingleObject (HANDLE, DWORD) { return WAIT_OBJECT_0; }
 inline BOOL ResetEvent (HANDLE) { return TRUE; }
 inline BOOL SetEvent (HANDLE) { return TRUE; }
+
+inline DWORD GetTickCount (void)
+{
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return (DWORD)((tv.tv_sec * 1000) + (tv.tv_usec / 1000));
+}
+
+inline BOOL UnionRect (RECT *prcDest, const RECT *prcSrc1, const RECT *prcSrc2)
+{
+    prcDest->left = std::min(prcSrc1->left, prcSrc2->left);
+    prcDest->top = std::min(prcSrc1->top, prcSrc2->top);
+    prcDest->right = std::max(prcSrc1->right, prcSrc2->right);
+    prcDest->bottom = std::max(prcSrc1->bottom, prcSrc2->bottom);
+    return TRUE;
+}
+
+inline BOOL OffsetRect (RECT *prc, int dx, int dy)
+{
+    prc->left += dx;
+    prc->top += dy;
+    prc->right += dx;
+    prc->bottom += dy;
+    return TRUE;
+}
+
+inline BOOL InflateRect (RECT *prc, int dx, int dy)
+{
+    prc->left -= dx;
+    prc->top -= dy;
+    prc->right += dx;
+    prc->bottom += dy;
+    return TRUE;
+}
+
+inline BOOL IsRectEmpty (const RECT *prc)
+{
+    return (prc->right <= prc->left || prc->bottom <= prc->top) ? TRUE : FALSE;
+}
+
+inline BOOL SetRect (RECT *prc, int left, int top, int right, int bottom)
+{
+    prc->left = left;
+    prc->top = top;
+    prc->right = right;
+    prc->bottom = bottom;
+    return TRUE;
+}
+
+inline BOOL SetRectEmpty (RECT *prc)
+{
+    prc->left = prc->top = prc->right = prc->bottom = 0;
+    return TRUE;
+}
+
+inline BOOL CopyRect (RECT *prcDest, const RECT *prcSrc)
+{
+    prcDest->left = prcSrc->left;
+    prcDest->top = prcSrc->top;
+    prcDest->right = prcSrc->right;
+    prcDest->bottom = prcSrc->bottom;
+    return TRUE;
+}
+
+inline BOOL IntersectRect (RECT *prcDest, const RECT *prcSrc1, const RECT *prcSrc2)
+{
+    prcDest->left = std::max(prcSrc1->left, prcSrc2->left);
+    prcDest->top = std::max(prcSrc1->top, prcSrc2->top);
+    prcDest->right = std::min(prcSrc1->right, prcSrc2->right);
+    prcDest->bottom = std::min(prcSrc1->bottom, prcSrc2->bottom);
+    return (prcDest->right >= prcDest->left && prcDest->bottom >= prcDest->top) ? TRUE : FALSE;
+}
+
+inline int MulDiv (int nMultiplicand, int nMultiplier, int nDivisor)
+{
+    if (nDivisor == 0) return -1;
+    int64_t result = (int64_t)nMultiplicand * nMultiplier / nDivisor;
+    return (int)result;
+}
 
 #endif
 

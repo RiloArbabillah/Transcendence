@@ -116,12 +116,14 @@ target_link_libraries(alchemy_graphics PUBLIC
     alchemy_kernel
 )
 
-# mammoth_tse requires extensive Windows-specific code including DirectX utilities
-# Full port is deferred - the codebase includes heavy DirectX dependencies
-# (d3d9.h, ddraw.h, dsound.h, vfw.h) that require significant stub work.
-# For milestone-1, we focus on the shell/platform layer instead.
+# mammoth_tse - Transcendence Space Engine
+# Heavy DirectX dependencies require significant porting work
+# Building with minimal source subset for initial porting
 add_library(mammoth_tse STATIC
-    "${CMAKE_CURRENT_SOURCE_DIR}/Mammoth/TSE/TSEDummy.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Mammoth/TSE/CDesignCollection.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Mammoth/TSE/CSystem.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Mammoth/TSE/CUniverse.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Mammoth/TSE/CreateSystem.cpp"
 )
 target_include_directories(mammoth_tse PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/Alchemy/Include"

@@ -132,9 +132,9 @@ class CRTFText
 	public:
 		struct SAutoRTFOptions
 			{
-			CG32bitPixel rgbQuoteText = CG32bitPixel(255, 255, 255);
-
-			bool bNoQuoteHighlight = false;
+			SAutoRTFOptions() : bNoQuoteHighlight(false), rgbQuoteText(255, 255, 255) {}
+			CG32bitPixel rgbQuoteText;
+			bool bNoQuoteHighlight;
 			};
 
 		CRTFText (const CString &sText = NULL_STR, const IFontTable *pFontTable = NULL);

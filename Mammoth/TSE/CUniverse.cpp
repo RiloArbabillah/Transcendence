@@ -5,6 +5,11 @@
 
 #include "PreComp.h"
 
+#if defined(__APPLE__) && defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wnon-pod-varargs"
+#endif
+
 //#define DEBUG_FILE_CORRUPTION
 
 #define CONTROLLER_AUTON					CONSTLIT("auton")
@@ -2429,7 +2434,7 @@ void CUniverse::PutPlayerInSystem (CShip *pPlayerShip, const CVector &vPos, CSys
 
 	//	Set globals
 
-	m_CC.DefineGlobalInteger(STR_G_PLAYER_SHIP, (int)pPlayerShip);
+	m_CC.DefineGlobalInteger(STR_G_PLAYER_SHIP, (intptr_t)pPlayerShip);
 
 	//	POV
 
@@ -3006,7 +3011,7 @@ void CUniverse::SetPlayerShip (CSpaceObject *pPlayer)
 	CCodeChain &CC = GetCC();
 
 	m_pPlayerShip = pPlayer;
-	CC.DefineGlobal(STR_G_PLAYER_SHIP, (m_pPlayerShip ? CC.CreateInteger((int)m_pPlayerShip) : CC.CreateNil()));
+	CC.DefineGlobal(STR_G_PLAYER_SHIP, (m_pPlayerShip ? CC.CreateInteger((intptr_t)m_pPlayerShip) : CC.CreateNil()));
 	}
 
 bool CUniverse::SetPOV (CSpaceObject *pPOV)
@@ -3059,7 +3064,7 @@ void CUniverse::StartGame (bool bNewGame)
 	//	At this point we can define the player variables
 
 	CC.DefineGlobal(STR_G_PLAYER, (m_pPlayer ? m_pPlayer->CreateGlobalRef(CC) : CC.CreateNil()));
-	CC.DefineGlobal(STR_G_PLAYER_SHIP, (m_pPlayerShip ? CC.CreateInteger((int)m_pPlayerShip) : CC.CreateNil()));
+	CC.DefineGlobal(STR_G_PLAYER_SHIP, (m_pPlayerShip ? CC.CreateInteger((intptr_t)m_pPlayerShip) : CC.CreateNil()));
 
 	//	Load images necessary for the system
 
@@ -3422,3 +3427,7 @@ CString CUniverse::ValidatePlayerName (const CString &sName)
 
 	return sNewName;
 	}
+
+#if defined(__APPLE__) && defined(__clang__)
+#pragma clang diagnostic pop
+#endif

@@ -5,6 +5,9 @@
 
 #pragma once
 
+#include "Kernel.h"
+#include "DirectXUtilCompat.h"
+
 class CG16bitPixel
 	{
 	public:
@@ -194,7 +197,7 @@ class CG16bitImage : public TImagePlane<CG16bitImage>
 		static WORD GreenValue (WORD wColor) { return GetGreenValue(wColor) << 2; }
 		static WORD RedValue (WORD wColor) { return GetRedValue(wColor) << 3; }
 		static DWORD PixelFromRGB (COLORREF rgb) { return (GetBValue(rgb) >> 3) | ((GetGValue(rgb) >> 2) << 5) | ((GetRValue(rgb) >> 3) << 11); }
-		static COLORREF RGBFromPixel (WORD wColor) { return RGB(RedValue(wColor), GreenValue(wColor), BlueValue(wColor)); }
+		static COLORREF RGBFromPixel (WORD wColor) { WORD r = RedValue(wColor); WORD g = GreenValue(wColor); WORD b = BlueValue(wColor); return (COLORREF)((r << 19) | (g << 10) | (b << 3)); }
 
 	private:
 		struct RealPixel

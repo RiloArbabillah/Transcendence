@@ -246,8 +246,8 @@ class CObjectImageArray
 		bool HasAlpha (void) const { return (m_pImage ? m_pImage->HasAlpha() : false); }
 		bool ImagesIntersect (int iTick, int iRotation, int x, int y, const CObjectImageArray &Image2, int iTick2, int iRotation2) const;
 		bool IsAnimated (void) const { return (m_iTicksPerFrame > 0 && m_iFrameCount > 1); }
-		bool IsEmpty (void) const { return ((m_pImage == NULL) && (m_dwBitmapUNID == 0)); }
-		bool IsLoaded (void) const { return (m_pImage != NULL); }
+		bool IsEmpty (void) const { return ((m_pImage == nullptr) && (m_dwBitmapUNID == 0)); }
+		bool IsLoaded (void) const { return (m_pImage != nullptr); }
         bool IsMarked (void) const { return (m_pImage && m_pImage->IsMarked()); }
 		void MarkImage (void) const;
 		void PaintImage (CG32bitImage &Dest, int x, int y, int iTick, int iRotation, bool bComposite = false, SViewportPaintCtx *Ctx = NULL, int iOffsetY = -1, int iOffsetCY = -1) const;

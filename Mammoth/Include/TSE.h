@@ -829,7 +829,7 @@ class CSpaceObject
 		ALERROR CreateRandomItems (IItemGenerator *pItems, CSystem *pSystem);
 		EDamageResults Damage (SDamageCtx &Ctx);
 		static CString DebugDescribe (CSpaceObject *pObj);
-		bool DebugIsValid (void) { return (DWORD)m_pSystem != 0xdddddddd; }
+		bool DebugIsValid (void) { return (uintptr_t)m_pSystem != 0xdddddddd; }
 		static CString DebugLoadError (SLoadCtx &Ctx);
 		void EnterGate (CTopologyNode *pDestNode, const CString &sDestEntryPoint, CSpaceObject *pStargate, bool bAscend = false);
 		bool FireCanDockAsPlayer (CSpaceObject *pDockTarget, CString *retsError);

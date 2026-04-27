@@ -601,7 +601,7 @@ class CDamageSource
 			};
 
 		DWORD GetObjID (void) const;
-		DWORD GetRawObjID (void) const { return (DWORD)m_pSource; }
+		DWORD GetRawObjID (void) const { return (uintptr_t)m_pSource; }
 		bool IsObjPointer (void) const { return (m_pSource && !IsObjID()); }
 		bool IsObjID (void) const { return ((m_dwFlags & FLAG_OBJ_ID) == FLAG_OBJ_ID); }
 
@@ -1070,7 +1070,7 @@ class CTile
 		DWORD *GetTilePointer (void) { return &m_dwData; }
 		CTileMapSection *GetTileMapSection (void) { return (CTileMapSection *)m_dwData; }
 		void SetTile (DWORD dwTile) { m_dwData = dwTile; }
-		void SetTileMapSection (CTileMapSection *pMap) { m_dwData = (DWORD)pMap; }
+		void SetTileMapSection (CTileMapSection *pMap) { m_dwData = (uintptr_t)pMap; }
 
 	private:
 		DWORD m_dwData;

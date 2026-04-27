@@ -6,6 +6,11 @@
 #include "PreComp.h"
 #include "math.h"
 
+#if defined(__APPLE__) && defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wnon-pod-varargs"
+#endif
+
 #define ALWAYS_SEPARATE_ENEMIES
 
 #ifdef DEBUG
@@ -1548,9 +1553,9 @@ ALERROR CreateOrbitals (SSystemCreateCtx *pCtx,
 
 	if (iCount > 0)
 		{
-		Metric *rDistance = (Metric *)_malloca(iCount * sizeof(Metric));
-		Metric *rAngle = (Metric *)_malloca(iCount * sizeof(Metric));
-		Metric *rEccentricity = (Metric *)_malloca(iCount * sizeof(Metric));
+		Metric *rDistance = (Metric *)alloca(iCount * sizeof(Metric));
+		Metric *rAngle = (Metric *)alloca(iCount * sizeof(Metric));
+		Metric *rEccentricity = (Metric *)alloca(iCount * sizeof(Metric));
 
 		//	Calculate the distance for each object. If the distance is specified
 		//	then use that.
@@ -4957,7 +4962,7 @@ ALERROR CreateStationFromElement (SSystemCreateCtx *pCtx, const CXMLElement *pDe
 
 CString GetXMLObjID (const CXMLElement &Obj)
 	{
-	return strPatternSubst(CONSTLIT("xml_%x"), (DWORD)&Obj);
+	return strPatternSubst(CONSTLIT("xml_%x"), (uintptr_t)&Obj);
 	}
 
 //	SSystemCreateCtx -----------------------------------------------------------
@@ -4982,3 +4987,7 @@ SSystemCreateCtx::SSystemCreateCtx (CSystem &SystemArg) :
 			LocalTables.Insert(pTables);
 		}
 	}
+
+#if defined(__APPLE__) && defined(__clang__)
+#pragma clang diagnostic pop
+#endif

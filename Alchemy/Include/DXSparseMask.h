@@ -102,13 +102,13 @@ class CG8bitSparseImage : public TImagePlane<CG8bitSparseImage>
 		void CleanUp (void);
 		void Copy (const CG8bitSparseImage &Src);
 		const CNode &GetTile (int x, int y) const;
-		static void *EncodeByte (BYTE Value) { DWORD dwEncoded = ((DWORD)Value << 24) | typeByte; return (void *)dwEncoded; }
-		static void *EncodeByteArray (BYTE *pValue) { DWORD dwEncoded = ((DWORD)pValue) | typeByteArray; return (void *)dwEncoded; }
-		static void *EncodeNodeArray (CNode *pValue) { DWORD dwEncoded = ((DWORD)pValue) | typeNodeArray; return (void *)dwEncoded; }
-		static BYTE DecodeByte (void *pCode) { return (BYTE)((DWORD)pCode >> 24); }
-		static BYTE *DecodeByteArray (void *pCode) { return (BYTE *)((DWORD)pCode & ~TYPE_MASK); }
-		static CNode *DecodeNodeArray (void *pCode) { return (CNode *)((DWORD)pCode & ~TYPE_MASK); }
-		static ETypes DecodeType (void *pCode) { return (ETypes)((DWORD)pCode & TYPE_MASK); }
+	static void *EncodeByte (BYTE Value) { uintptr_t dwEncoded = ((uintptr_t)Value << 24) | typeByte; return (void *)dwEncoded; }
+	static void *EncodeByteArray (BYTE *pValue) { uintptr_t dwEncoded = ((uintptr_t)pValue) | typeByteArray; return (void *)dwEncoded; }
+	static void *EncodeNodeArray (CNode *pValue) { uintptr_t dwEncoded = ((uintptr_t)pValue) | typeNodeArray; return (void *)dwEncoded; }
+	static BYTE DecodeByte (void *pCode) { return (BYTE)((uintptr_t)pCode >> 24); }
+	static BYTE *DecodeByteArray (void *pCode) { return (BYTE *)((uintptr_t)pCode & ~TYPE_MASK); }
+	static CNode *DecodeNodeArray (void *pCode) { return (CNode *)((uintptr_t)pCode & ~TYPE_MASK); }
+	static ETypes DecodeType (void *pCode) { return (ETypes)((uintptr_t)pCode & TYPE_MASK); }
 		CNode &SetTileAt (int x, int y);
 		CNode *SetTileRowsAt (int x, int y);
 

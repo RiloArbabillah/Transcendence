@@ -61,7 +61,7 @@ class CItemCriteria
 		int GetMaxLevelMatched (CUniverse &Universe) const;
 		CString GetName (void) const;
 		const CItemCriteria &GetORExpression (void) const { return (m_pOr ? *m_pOr : m_Null); }
-		bool HasORExpression (void) const { return m_pOr != NULL; }
+		bool HasORExpression (void) const { return (bool)m_pOr; }
 		void Init (DWORD dwSpecial = NONE) { *this = CItemCriteria(dwSpecial); }
 		void Init (const CString &sCriteria, DWORD dwSpecial = NONE) { *this = CItemCriteria(sCriteria, dwSpecial); }
 		bool Intersects (CUniverse &Universe, const CItemCriteria &Src) const;
@@ -173,13 +173,13 @@ struct SDisplayAttribute
 				case attribPositive:
 					iType = attribEnhancement;
 					if (*sText.GetASCIIZPointer() != '+')
-						sText = strPatternSubst(CONSTLIT("+%s"), sText);
+						sText = strCat(CString("+"), sText);
 					break;
 
 				case attribNegative:
 					iType = attribWeakness;
 					if (*sText.GetASCIIZPointer() != '-')
-						sText = strPatternSubst(CONSTLIT("-%s"), sText);
+						sText = strCat(CString("-"), sText);
 					break;
 				}
 			}
@@ -193,11 +193,11 @@ struct SDisplayAttribute
 		rgbTextColor(rgbTextColor, rgbTextColor.GetAlpha() ? 0xFF : 0x00)
 		{ }
 
-	SDisplayAttribute (EDisplayAttributeTypes iTypeCons, const CString &sTextCons, const CG32bitPixel &rgbColor, const CG32bitPixel &rgbTextColor, bool bDueToEnhancement = false) :
-		iType(iTypeCons),
-		sText(sTextCons),
-		rgbColor(rgbColor, rgbColor.GetAlpha() ? 0xFF : 0x00),
-		rgbTextColor(rgbTextColor, rgbTextColor.GetAlpha() ? 0xFF : 0x00)
+SDisplayAttribute (EDisplayAttributeTypes iTypeCons, const CString &sTextCons, const CG32bitPixel &rgbColor, const CG32bitPixel &rgbTextColor, bool bDueToEnhancement = false) :
+			iType(iTypeCons),
+			sText(sTextCons),
+			rgbColor(rgbColor, rgbColor.GetAlpha() ? 0xFF : 0x00),
+			rgbTextColor(rgbTextColor, rgbTextColor.GetAlpha() ? 0xFF : 0x00)
 		{
 		if (bDueToEnhancement)
 			{
@@ -206,13 +206,13 @@ struct SDisplayAttribute
 				case attribPositive:
 					iType = attribEnhancement;
 					if (*sText.GetASCIIZPointer() != '+')
-						sText = strPatternSubst(CONSTLIT("+%s"), sText);
+						sText = strCat(CString("+"), sText);
 					break;
 
 				case attribNegative:
 					iType = attribWeakness;
 					if (*sText.GetASCIIZPointer() != '-')
-						sText = strPatternSubst(CONSTLIT("-%s"), sText);
+						sText = strCat(CString("-"), sText);
 					break;
 				}
 			}
@@ -229,17 +229,17 @@ struct SDisplayAttribute
 	static SDisplayAttribute FromResistHPBonus (int iHPBonus, const CString &sLabel)
 		{
 		if (iHPBonus < 0)
-			return SDisplayAttribute(attribNegative, strPatternSubst("-%d%% %s", -iHPBonus, sLabel));
+			return SDisplayAttribute(attribNegative, strCat(strPatternSubst("-%d%% ", -iHPBonus), sLabel));
 		else
-			return SDisplayAttribute(attribPositive, strPatternSubst("+%d%% %s", iHPBonus, sLabel));
+			return SDisplayAttribute(attribPositive, strCat(strPatternSubst("+%d%% ", iHPBonus), sLabel));
 		}
 
 	static SDisplayAttribute FromResistHPBonus (DamageTypes iDamageType, int iHPBonus)
 		{
 		if (iHPBonus < 0)
-			return SDisplayAttribute(attribNegative, strPatternSubst("-%d%% vs %s", -iHPBonus, GetDamageShortName(iDamageType)));
+			return SDisplayAttribute(attribNegative, strCat(strPatternSubst("-%d%% vs ", -iHPBonus), GetDamageShortName(iDamageType)));
 		else
-			return SDisplayAttribute(attribPositive, strPatternSubst("+%d%% vs %s", iHPBonus, GetDamageShortName(iDamageType)));
+			return SDisplayAttribute(attribPositive, strCat(strPatternSubst("+%d%% vs ", iHPBonus), GetDamageShortName(iDamageType)));
 		}
 
 	static bool HasEnhancement (const TArray<SDisplayAttribute> &List)

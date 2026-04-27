@@ -7,6 +7,11 @@
 #include "math.h"
 #include "SystemPaintImpl.h"
 
+#if defined(__APPLE__) && defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wnon-pod-varargs"
+#endif
+
 constexpr int ENHANCED_SRS_BLOCK_SIZE =			6;
 
 constexpr Metric MAX_ENCOUNTER_DIST	=			30.0 * LIGHT_MINUTE;
@@ -5582,3 +5587,7 @@ void CSystem::WriteSovereignRefToStream (CSovereign *pSovereign, IWriteStream *p
 
 	pStream->Write((char *)&dwSave, sizeof(DWORD));
 	}
+
+#if defined(__APPLE__) && defined(__clang__)
+#pragma clang diagnostic pop
+#endif

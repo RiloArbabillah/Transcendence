@@ -5,7 +5,13 @@
 
 #pragma once
 
-class CLinePainter;
+enum ELinePainterSlopeTypes
+	{
+	lineNull,						//	No line
+	linePoint,						//	Single point
+	lineXDominant,
+	lineYDominant,
+	};
 
 class ILinePainter
 	{
@@ -17,6 +23,195 @@ class ILinePainter
 		virtual void SetParam (const CString &sParam, const TArray<CG32bitPixel> &ColorTable) { }
 	};
 
+class CLinePainter
+	{
+	public:
+		void DrawSolid (CG32bitImage &Image, int x1, int y1, int x2, int y2, int iWidth, CG32bitPixel rgbColor);
+
+    	public:
+		enum ESlopeTypes
+			{
+			lineNull,						//	No line
+			linePoint,						//	Single point
+			lineXDominant,
+			lineYDominant,
+			};
+
+		ESlopeTypes CalcIntermediates (const CG32bitImage &Image, int x1, int y1, int x2, int y2, int iWidth);
+        void CalcLoopX (int *retx, int *rety, int *retiEnd, int *retiInc);
+        void CalcLoopY (int *retx, int *rety, int *retiEnd, int *retiInc);
+		void CalcPixelMapping (int x1, int y1, int x2, int y2, double *retrV, double *retrW);
+
+        void CalcPixelMappingX (int x1, int y1, int x2, int y2, double *retrV, double *retrW)
+            {
+			CalcPixelMapping(x1, y1, x2, y2, retrV, retrW);
+
+			*retrV += (-m_iAxisHalfWidth - 1) * m_rVPerY;
+			*retrW += (-m_iAxisHalfWidth - 1) * m_rWPerY;
+            }
+
+        void CalcPixelMappingY (int x1, int y1, int x2, int y2, double *retrV, double *retrW)
+            {
+			CalcPixelMapping(x1, y1, x2, y2, retrV, retrW);
+
+			*retrV += (-m_iAxisHalfWidth - 1) * m_rVPerX;
+			*retrW += (-m_iAxisHalfWidth - 1) * m_rWPerX;
+            }
+
+        int GetAxisWidth (void) const { return m_iAxisWidth; }
+
+        bool GetEdgeDown (int w, Metric &rWDown) const
+            {
+            if (m_rWDown > 0.0 && w >= m_wMin && w < m_wMax)
+                {
+                rWDown = m_rWDown;
+                return true;
+                }
+            else
+                return false;
+            }
+
+        bool GetEdgeUp (int w, Metric &rWUp) const
+            {
+            if (m_rWUp > 0.0 && w >= m_wMin && w < m_wMax)
+                {
+                rWUp = m_rWUp;
+                return true;
+                }
+            else
+                return false;
+            }
+
+        int GetPosRowInc (void) const { return m_iPosRowInc; }
+
+        bool InSolid (int w) const { return (w >= m_wMin && w < m_wMax); }
+
+        void NextVWX (Metric &rV, Metric &rW) const
+            {
+            rV += m_rVPerY;
+            rW += m_rWPerY;
+            }
+
+        void NextVWY (Metric &rV, Metric &rW) const
+            {
+            rV += m_rVPerX;
+            rW += m_rWPerX;
+            }
+
+		void NextX (int &x, int &y)
+			{
+			if (m_d >= 0)
+				{
+				y = y + m_sy;
+				m_d = m_d - m_ax;
+				m_rWUp += m_rWUpInc;
+				m_rWDown -= m_rWDownDec;
+				}
+
+			m_d = m_d + m_ay;
+			m_rWUp -= m_rWUpDec;
+			m_rWDown += m_rWDownInc;
+			}
+
+		void NextY (int &x, int &y)
+			{
+			if (m_d >= 0)
+				{
+				x = x + m_sx;
+				m_d = m_d - m_ay;
+				m_rWUp += m_rWUpInc;
+				m_rWDown -= m_rWDownDec;
+				}
+
+			m_d = m_d + m_ax;
+			m_rWUp -= m_rWUpDec;
+			m_rWDown += m_rWDownInc;
+			}
+
+		void NextX (int &x, int &y, double &rV, double &rW)
+			{
+			if (m_d >= 0)
+				{
+				y = y + m_sy;
+				m_d = m_d - m_ax;
+				m_rWUp += m_rWUpInc;
+				m_rWDown -= m_rWDownDec;
+
+				rV += m_rVIncY;
+				rW += m_rWIncY;
+				}
+
+			m_d = m_d + m_ay;
+			m_rWUp -= m_rWUpDec;
+			m_rWDown += m_rWDownInc;
+
+			rV += m_rVIncX;
+			rW += m_rWIncX;
+			}
+
+		void NextY (int &x, int &y, double &rV, double &rW)
+			{
+			if (m_d >= 0)
+				{
+				x = x + m_sx;
+				m_d = m_d - m_ay;
+				m_rWUp += m_rWUpInc;
+				m_rWDown -= m_rWDownDec;
+
+				rV += m_rVIncX;
+				rW += m_rWIncX;
+				}
+
+			m_d = m_d + m_ax;
+			m_rWUp -= m_rWUpDec;
+			m_rWDown += m_rWDownInc;
+
+			rV += m_rVIncY;
+			rW += m_rWIncY;
+			}
+
+	private:
+		int m_dx;
+		int m_sx;
+		int m_ax;
+		double m_rL;
+		int m_xStart;
+		int m_xEnd;
+
+		int m_dy;
+		int m_sy;
+		int m_ay;
+		int m_yStart;
+		int m_yEnd;
+
+		int m_d;
+
+		double m_rHalfWidth;
+		int m_iAxisHalfWidth;
+		int m_iAxisWidth;
+
+		double m_rWDown;
+		double m_rWDownDec;
+		double m_rWDownInc;
+		double m_rWUp;
+		double m_rWUpDec;
+		double m_rWUpInc;
+		int m_wMin;
+		int m_wMax;
+
+		int m_iPosRowInc;
+
+		double m_rVPerX;
+		double m_rVPerY;
+		double m_rWPerX;
+		double m_rWPerY;
+
+		double m_rVIncX;
+		double m_rVIncY;
+		double m_rWIncX;
+		double m_rWIncY;
+	};
+
 template <class PAINTER, class BLENDER> class TLinePainter32 : public ILinePainter
     {
     public:
@@ -26,17 +221,17 @@ template <class PAINTER, class BLENDER> class TLinePainter32 : public ILinePaint
 
 	        //	Calculate the line type and paint accordingly
 
-            CLinePainter Rasterizer;
+             CLinePainter Rasterizer;
 	        switch (Rasterizer.CalcIntermediates(Dest, x1, y1, x2, y2, iWidth))
 		        {
-                case CLinePainter::lineNull:
+                 case CLinePainter::lineNull:
 			        break;
 
-                case CLinePainter::linePoint:
-                    DRAW_PIXEL(Dest.GetPixelPos(x1, y1), GET_PIXEL(0.0, 0.0));
+                 case CLinePainter::linePoint:
+                     DRAW_PIXEL(Dest.GetPixelPos(x1, y1), GET_PIXEL(0.0, 0.0));
 			        break;
 
-                case CLinePainter::lineXDominant:
+                 case CLinePainter::lineXDominant:
                     {
 			        Metric rV, rW;
 			        Rasterizer.CalcPixelMappingX(x1, y1, x2, y2, &rV, &rW);
@@ -180,198 +375,5 @@ template <class BLENDER> class TLinePainterSolid : public TLinePainter32<TLinePa
         CG32bitPixel GetPixel (Metric rV, Metric rW) const { return m_rgbColor; }
 
         CG32bitPixel m_rgbColor;
-
-    friend TLinePainter32;
     };
-
-class CLinePainter
-	{
-	public:
-		void DrawSolid (CG32bitImage &Image, int x1, int y1, int x2, int y2, int iWidth, CG32bitPixel rgbColor);
-
-    public:
-        //  This functions are used by TLinePainter32
-
-		enum ESlopeTypes
-			{
-			lineNull,						//	No line
-			linePoint,						//	Single point
-			lineXDominant,
-			lineYDominant,
-			};
-
-		ESlopeTypes CalcIntermediates (const CG32bitImage &Image, int x1, int y1, int x2, int y2, int iWidth);
-        void CalcLoopX (int *retx, int *rety, int *retiEnd, int *retiInc);
-        void CalcLoopY (int *retx, int *rety, int *retiEnd, int *retiInc);
-		void CalcPixelMapping (int x1, int y1, int x2, int y2, double *retrV, double *retrW);
-
-        void CalcPixelMappingX (int x1, int y1, int x2, int y2, double *retrV, double *retrW)
-            {
-			CalcPixelMapping(x1, y1, x2, y2, retrV, retrW);
-
-			*retrV += (-m_iAxisHalfWidth - 1) * m_rVPerY;
-			*retrW += (-m_iAxisHalfWidth - 1) * m_rWPerY;
-            }
-
-        void CalcPixelMappingY (int x1, int y1, int x2, int y2, double *retrV, double *retrW)
-            {
-			CalcPixelMapping(x1, y1, x2, y2, retrV, retrW);
-
-			*retrV += (-m_iAxisHalfWidth - 1) * m_rVPerX;
-			*retrW += (-m_iAxisHalfWidth - 1) * m_rWPerX;
-            }
-
-        int GetAxisWidth (void) const { return m_iAxisWidth; }
-
-        bool GetEdgeDown (int w, Metric &rWDown) const
-            {
-            if (m_rWDown > 0.0 && w >= m_wMin && w < m_wMax)
-                {
-                rWDown = m_rWDown;
-                return true;
-                }
-            else
-                return false;
-            }
-
-        bool GetEdgeUp (int w, Metric &rWUp) const
-            {
-            if (m_rWUp > 0.0 && w >= m_wMin && w < m_wMax)
-                {
-                rWUp = m_rWUp;
-                return true;
-                }
-            else
-                return false;
-            }
-
-        int GetPosRowInc (void) const { return m_iPosRowInc; }
-
-        bool InSolid (int w) const { return (w >= m_wMin && w < m_wMax); }
-
-        void NextVWX (Metric &rV, Metric &rW) const
-            {
-            rV += m_rVPerY;
-            rW += m_rWPerY;
-            }
-
-        void NextVWY (Metric &rV, Metric &rW) const
-            {
-            rV += m_rVPerX;
-            rW += m_rWPerX;
-            }
-
-		void NextX (int &x, int &y)
-			{
-			if (m_d >= 0)
-				{
-				y = y + m_sy;
-				m_d = m_d - m_ax;
-				m_rWUp += m_rWUpInc;
-				m_rWDown -= m_rWDownDec;
-				}
-
-			m_d = m_d + m_ay;
-			m_rWUp -= m_rWUpDec;
-			m_rWDown += m_rWDownInc;
-			}
-
-		void NextY (int &x, int &y)
-			{
-			if (m_d >= 0)
-				{
-				x = x + m_sx;
-				m_d = m_d - m_ay;
-				m_rWUp += m_rWUpInc;
-				m_rWDown -= m_rWDownDec;
-				}
-
-			m_d = m_d + m_ax;
-			m_rWUp -= m_rWUpDec;
-			m_rWDown += m_rWDownInc;
-			}
-
-		void NextX (int &x, int &y, double &rV, double &rW)
-			{
-			if (m_d >= 0)
-				{
-				y = y + m_sy;
-				m_d = m_d - m_ax;
-				m_rWUp += m_rWUpInc;
-				m_rWDown -= m_rWDownDec;
-
-				rV += m_rVIncY;
-				rW += m_rWIncY;
-				}
-
-			m_d = m_d + m_ay;
-			m_rWUp -= m_rWUpDec;
-			m_rWDown += m_rWDownInc;
-
-			rV += m_rVIncX;
-			rW += m_rWIncX;
-			}
-
-		void NextY (int &x, int &y, double &rV, double &rW)
-			{
-			if (m_d >= 0)
-				{
-				x = x + m_sx;
-				m_d = m_d - m_ay;
-				m_rWUp += m_rWUpInc;
-				m_rWDown -= m_rWDownDec;
-
-				rV += m_rVIncX;
-				rW += m_rWIncX;
-				}
-
-			m_d = m_d + m_ax;
-			m_rWUp -= m_rWUpDec;
-			m_rWDown += m_rWDownInc;
-
-			rV += m_rVIncY;
-			rW += m_rWIncY;
-			}
-
-	private:
-		int m_dx;							//	Distance from x1 to x2
-		int m_sx;							//	Direction (from x1 to x2)
-		int m_ax;							//	absolute distance x (times 2)
-		double m_rL;						//	Length of line
-		int m_xStart;
-		int m_xEnd;
-
-		int m_dy;							//	Distance from y1 to y2
-		int m_sy;							//	Direction (from y1 to y2)
-		int m_ay;							//	absolute distance y (times 2)
-		int m_yStart;
-		int m_yEnd;
-
-		int m_d;							//	Discriminator
-
-		double m_rHalfWidth;				//	Half of width;
-		int m_iAxisHalfWidth;				//	Half line width aligned on dominant axis
-		int m_iAxisWidth;					//	Full width of line aligned on dominant axis
-
-		double m_rWDown;					//	Intermediates for line width
-		double m_rWDownDec;
-		double m_rWDownInc;
-		double m_rWUp;
-		double m_rWUpDec;
-		double m_rWUpInc;
-		int m_wMin;
-		int m_wMax;
-
-		int m_iPosRowInc;					//	Image row offset
-
-		double m_rVPerX;					//	Movement along V (line axis) for every X movement
-		double m_rVPerY;					//	Movement along V for every Y movement
-		double m_rWPerX;					//	Movement along W (perp axis) for every X movement
-		double m_rWPerY;					//	Movement along W for every Y movement
-
-		double m_rVIncX;
-		double m_rVIncY;
-		double m_rWIncX;
-		double m_rWIncY;
-	};
 

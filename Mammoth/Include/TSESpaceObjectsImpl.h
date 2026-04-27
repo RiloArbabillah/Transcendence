@@ -320,9 +320,10 @@ class CEffect : public TSpaceObjectImpl<OBJID_CEFFECT>
 	public:
 		struct SCreateOptions
 			{
-			CSpaceObject *pAnchor = NULL;
-			int iRotation = 0;
-			bool bLoop = false;
+			SCreateOptions() : pAnchor(NULL), iRotation(0), bLoop(false) {}
+			CSpaceObject *pAnchor;
+			int iRotation;
+			bool bLoop;
 			};
 
 		CEffect (CUniverse &Universe);

@@ -323,7 +323,7 @@ class CHexarcSession
 		CString GetClientVersion (void) const;
 		inline const CString &GetRootURL (void) const { return m_sRootURL; }
 		inline void SetClientID (const CString &sClientID) { m_sClientID = sClientID; }
-		inline CString GetHostspec (void) const { return (m_sPort.IsBlank() ? m_sHost : strPatternSubst("%s:%s", m_sHost, m_sPort)); }
+		inline CString GetHostspec (void) const { return (m_sPort.IsBlank() ? m_sHost : strCat(strCat(m_sHost, ":"), m_sPort)); }
 		void Housekeeping (void);
 		ALERROR ServerCommand (const CString &sMethod, const CString &sFunc, CJSONValue &Payload, CJSONValue *retResult);
 		inline void SetUsername (const CString &sUsername) { m_sUsername = sUsername; }

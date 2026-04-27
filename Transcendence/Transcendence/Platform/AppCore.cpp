@@ -68,6 +68,18 @@ bool AppInit()
     g_AppState.pFrameBuffer = new Uint32[FRAMEBUFFER_WIDTH * FRAMEBUFFER_HEIGHT];
     memset(g_AppState.pFrameBuffer, 0, FRAMEBUFFER_WIDTH * FRAMEBUFFER_HEIGHT * sizeof(Uint32));
 
+    for (int y = 0; y < FRAMEBUFFER_HEIGHT; y++)
+    {
+        for (int x = 0; x < FRAMEBUFFER_WIDTH; x++)
+        {
+            int idx = y * FRAMEBUFFER_WIDTH + x;
+            Uint8 r = (x * 255) / FRAMEBUFFER_WIDTH;
+            Uint8 g = (y * 255) / FRAMEBUFFER_HEIGHT;
+            Uint8 b = 128;
+            g_AppState.pFrameBuffer[idx] = (r << 16) | (g << 8) | b;
+        }
+    }
+
     g_AppState.lastTick = SDL_GetTicks();
     g_AppState.fpsTick = SDL_GetTicks();
     g_AppState.frameCount = 0;

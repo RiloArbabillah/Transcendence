@@ -210,7 +210,7 @@ class IPlayerController
 
 		//	IPlayerController interface
 
-		virtual ICCItem *CreateGlobalRef (CCodeChain &CC) { return CC.CreateInteger((int)this); }
+		virtual ICCItem *CreateGlobalRef (CCodeChain &CC) { return CC.CreateInteger((intptr_t)this); }
         virtual CPlayerGameStats *GetGameStats (void) const { return NULL; }
 		virtual GenomeTypes GetGenome (void) const { return genomeUnknown; }
 		virtual DWORD GetLastWarningTick () const { return 0; }

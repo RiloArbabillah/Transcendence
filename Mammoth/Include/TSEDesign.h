@@ -40,6 +40,8 @@ struct SDestroyCtx;
 struct SSystemCreateCtx;
 struct STradeServiceCtx;
 
+ALERROR LoadUNID (SDesignLoadCtx &Ctx, const CString &sString, DWORD *retdwUNID, DWORD dwDefaultUNID);
+
 struct SDesignLoadCtx
 	{
 	SDesignLoadCtx (CUniverse &UniverseArg = *g_pUniverse) :
@@ -601,34 +603,34 @@ template <class CLASS> class CDesignTypeRef
 				m_dwUNID = dwUNID;
 				m_pType = NULL;
 				}
-			}
+}
 
-		static ALERROR BindType (SDesignLoadCtx &Ctx, DWORD dwUNID, CLASS *&pType)
+	static ALERROR BindType (SDesignLoadCtx &Ctx, DWORD dwUNID, CLASS *&pType)
+		{
+		CDesignType *pBaseType = Ctx.GetUniverse().FindDesignTypeUnbound(dwUNID);
+		if (pBaseType)
 			{
-			CDesignType *pBaseType = Ctx.GetUniverse().FindDesignTypeUnbound(dwUNID);
-			if (pBaseType)
+			if (!pBaseType->IsBound())
 				{
-				if (!pBaseType->IsBound())
-					{
-					if (ALERROR error = pBaseType->BindDesign(Ctx))
-						return error;
-					}
+				if (ALERROR error = pBaseType->BindDesign(Ctx))
+					return error;
 				}
-			else
-				{
-				Ctx.sError = strPatternSubst(CONSTLIT("Unknown design type: %x"), dwUNID);
-				return ERR_FAIL;
-				}
-
-			pType = CLASS::AsType(pBaseType);
-			if (pType == NULL)
-				{
-				Ctx.sError = strPatternSubst(CONSTLIT("Specified type is invalid: %x"), dwUNID);
-				return ERR_FAIL;
-				}
-
-			return NOERROR;
 			}
+		else
+			{
+			Ctx.sError = strPatternSubst(CONSTLIT("Unknown design type: %x"), dwUNID);
+			return ERR_FAIL;
+			}
+
+		pType = CLASS::AsType(pBaseType);
+		if (pType == NULL)
+			{
+			Ctx.sError = strPatternSubst(CONSTLIT("Specified type is invalid: %x"), dwUNID);
+			return ERR_FAIL;
+			}
+
+		return NOERROR;
+		}
 
 	protected:
 		CLASS *m_pType;

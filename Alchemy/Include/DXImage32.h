@@ -5,6 +5,9 @@
 
 #pragma once
 
+#include "Kernel.h"
+#include "DirectXUtilCompat.h"
+
 class CG8bitImage;
 class CG16bitFont;
 class CG16bitImage;
@@ -32,7 +35,7 @@ class CG32bitPixel
 		CG32bitPixel (WORD wPixel);
 		CG32bitPixel (const CGRealRGB &rgbColor);
 
-		operator const COLORREF () { return RGB(GetRed(), GetGreen(), GetBlue()); }
+		operator const COLORREF () { return (COLORREF)((DWORD)((GetRed()) | ((GetGreen()) << 8) | ((GetBlue()) << 16))); }
 
 		bool operator == (const CG32bitPixel &vA) const { return (m_dwPixel == vA.m_dwPixel); }
 		bool operator != (const CG32bitPixel &vA) const { return (m_dwPixel != vA.m_dwPixel); }

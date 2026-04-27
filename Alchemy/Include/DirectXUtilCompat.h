@@ -9,10 +9,46 @@
 
 #ifndef _MSC_VER
 #define __forceinline inline
+#define __stdcall
+#endif
+
+#ifndef CALLBACK
+#define CALLBACK
 #endif
 
 #ifndef D3D9_FOUND
 #define D3D9_FOUND 1
+
+#include <cstdint>
+#include <algorithm>
+
+#ifndef min
+#define min(a,b) ((a) < (b) ? (a) : (b))
+#endif
+
+#ifndef max
+#define max(a,b) ((a) > (b) ? (a) : (b))
+#endif
+
+#ifndef RGB
+#define RGB(r, g, b) ((DWORD)(((BYTE)(r) | ((WORD)((BYTE)(g)) << 8) | (((DWORD)(BYTE)(b)) << 16)))
+#endif
+
+#ifndef GetRValue
+#define GetRValue(rgb) ((BYTE)(rgb))
+#endif
+
+#ifndef GetGValue
+#define GetGValue(rgb) ((BYTE)(((WORD)(rgb)) >> 8))
+#endif
+
+#ifndef GetBValue
+#define GetBValue(rgb) ((BYTE)((rgb) >> 16))
+#endif
+
+#ifndef COLORREF
+#define COLORREF DWORD
+#endif
 
 typedef DWORD D3DCOLOR;
 typedef DWORD D3DFORMAT;
@@ -366,7 +402,27 @@ struct D3DVIEWPORT9
     float MaxZ;
 };
 
+#ifndef HRESULT
+typedef int HRESULT;
+#define S_OK 0
+#define E_FAIL -1
+#endif
+
+#ifndef D3DVIEWPORT_DEFAULT
 #define D3DVIEWPORT_DEFAULT -1
+#endif
+
+struct IDirect3D9 { virtual ~IDirect3D9() { } };
+struct IDirect3DDevice9 { virtual ~IDirect3DDevice9() { } int Release() { return 0; } };
+struct IDirect3DVertexBuffer9 { virtual ~IDirect3DVertexBuffer9() { } int Release() { return 0; } };
+struct IDirect3DIndexBuffer9 { virtual ~IDirect3DIndexBuffer9() { } int Release() { return 0; } };
+struct IDirect3DSurface9 { virtual ~IDirect3DSurface9() { } int Release() { return 0; } };
+struct IDirect3DTexture9 { virtual ~IDirect3DTexture9() { } int Release() { return 0; } };
+struct IDirect3DQuery9 { virtual ~IDirect3DQuery9() { } };
+struct IDirect3DStateBlock9 { virtual ~IDirect3DStateBlock9() { } };
+struct IDirect3DCubeTexture9 { virtual ~IDirect3DCubeTexture9() { } };
+struct D3DCAPS9 { int Caps2 = 0; };
+#define D3DCAPS2_DYNAMICTEXTURES 0x00000002L
 
 struct D3DLINE
 {
@@ -479,6 +535,58 @@ typedef struct _DDSCAPS2
     DWORD dwVolumeDepth;
 } DDSCAPS2;
 typedef DDSCAPS2* LPDDSCAPS2;
+
+struct BITMAPINFOHEADER {
+    DWORD biSize;
+    LONG  biWidth;
+    LONG  biHeight;
+    WORD  biPlanes;
+    WORD  biBitCount;
+    DWORD biCompression;
+    DWORD biSizeImage;
+    LONG  biXPelsPerMeter;
+    LONG  biYPelsPerMeter;
+    DWORD biClrUsed;
+    DWORD biClrImportant;
+};
+
+struct BITMAPINFO {
+    BITMAPINFOHEADER bmiHeader;
+    DWORD bmiColors[1];
+};
+
+#define FW_NORMAL 400
+#define FW_BOLD 700
+#define ANSI_CHARSET 0
+#define OUT_TT_ONLY_PRECIS 3
+#define CLIP_DEFAULT_PRECIS 0
+#define ANTIALIASED_QUALITY 4
+#define FF_SWISS 32
+
+struct LOGFONT {
+    LONG lfHeight;
+    LONG lfWidth;
+    LONG lfEscapement;
+    LONG lfOrientation;
+    LONG lfWeight;
+    BYTE lfItalic;
+    BYTE lfUnderline;
+    BYTE lfStrikeOut;
+    BYTE lfCharSet;
+    BYTE lfOutPrecision;
+    BYTE lfClipPrecision;
+    BYTE lfQuality;
+    BYTE lfPitchAndFamily;
+    char lfFaceName[32];
+};
+
+#define HFONT intptr_t
+
+inline HFONT CreateFont(int nHeight, int nWidth, int nEscapement, int nOrientation, int fnWeight,
+                        BOOL fdwItalic, BOOL fdwUnderline, BOOL fdwStrikeOut, DWORD fdwCharSet,
+                        DWORD fdwOutputPrecision, DWORD fdwClipPrecision, DWORD fdwQuality,
+                        DWORD fdwPitchAndFamily, const char* lpszFace) { return 0; }
+inline BOOL DeleteObject(HFONT hFont) { return TRUE; }
 
 #endif
 
