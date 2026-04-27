@@ -1,56 +1,59 @@
 //	AppCore.cpp
-//	Minimal macOS SDL2 application shell for milestone-1
+//	macOS SDL2 application shell
 //
-//	Provides:
-//	- SDL2 window and event loop
-//	- Software framebuffer for initial rendering
-//	- Basic HI (Human Interface) scaffolding
+//	Provides SDL2-based platform layer for the game engine
 
+#include "AppCore.h"
 #include <SDL2/SDL.h>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 
-constexpr int WINDOW_WIDTH = 1024;
-constexpr int WINDOW_HEIGHT = 768;
-constexpr int FRAMEBUFFER_WIDTH = 1024;
-constexpr int FRAMEBUFFER_HEIGHT = 768;
+constexpr int DEFAULT_WIDTH = 1024;
+constexpr int DEFAULT_HEIGHT = 768;
 
 struct SAppState
 {
     SDL_Window* pWindow = nullptr;
     SDL_Renderer* pRenderer = nullptr;
-    Uint32* pFrameBuffer = nullptr;
+    SDL_Texture* pTexture = nullptr;
+    uint32_t* pFrameBuffer = nullptr;
     bool bRunning = true;
     Uint32 lastTick = 0;
     int frameCount = 0;
     Uint32 fpsTick = 0;
     int fps = 0;
+    int cxWidth = DEFAULT_WIDTH;
+    int cyHeight = DEFAULT_HEIGHT;
 };
 
 static SAppState g_AppState;
 
-bool AppInit()
+int App_Init(void)
 {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) < 0)
     {
         fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
-        return false;
+        return 0;
     }
+
+    g_AppState.cxWidth = DEFAULT_WIDTH;
+    g_AppState.cyHeight = DEFAULT_HEIGHT;
 
     g_AppState.pWindow = SDL_CreateWindow(
         "Transcendence",
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
-        WINDOW_WIDTH,
-        WINDOW_HEIGHT,
+        g_AppState.cxWidth,
+        g_AppState.cyHeight,
         SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE
     );
 
     if (!g_AppState.pWindow)
     {
         fprintf(stderr, "SDL_CreateWindow failed: %s\n", SDL_GetError());
-        return false;
+        SDL_Quit();
+        return 0;
     }
 
     g_AppState.pRenderer = SDL_CreateRenderer(
@@ -62,39 +65,55 @@ bool AppInit()
     if (!g_AppState.pRenderer)
     {
         fprintf(stderr, "SDL_CreateRenderer failed: %s\n", SDL_GetError());
-        return false;
+        SDL_DestroyWindow(g_AppState.pWindow);
+        SDL_Quit();
+        return 0;
     }
 
-    g_AppState.pFrameBuffer = new Uint32[FRAMEBUFFER_WIDTH * FRAMEBUFFER_HEIGHT];
-    memset(g_AppState.pFrameBuffer, 0, FRAMEBUFFER_WIDTH * FRAMEBUFFER_HEIGHT * sizeof(Uint32));
+    // Create framebuffer texture for game rendering
+    g_AppState.pTexture = SDL_CreateTexture(
+        g_AppState.pRenderer,
+        SDL_PIXELFORMAT_RGBA32,
+        SDL_TEXTUREACCESS_STREAMING,
+        g_AppState.cxWidth,
+        g_AppState.cyHeight
+    );
 
-    for (int y = 0; y < FRAMEBUFFER_HEIGHT; y++)
+    if (!g_AppState.pTexture)
     {
-        for (int x = 0; x < FRAMEBUFFER_WIDTH; x++)
-        {
-            int idx = y * FRAMEBUFFER_WIDTH + x;
-            Uint8 r = (x * 255) / FRAMEBUFFER_WIDTH;
-            Uint8 g = (y * 255) / FRAMEBUFFER_HEIGHT;
-            Uint8 b = 128;
-            g_AppState.pFrameBuffer[idx] = (r << 16) | (g << 8) | b;
-        }
+        fprintf(stderr, "SDL_CreateTexture failed: %s\n", SDL_GetError());
+        SDL_DestroyRenderer(g_AppState.pRenderer);
+        SDL_DestroyWindow(g_AppState.pWindow);
+        SDL_Quit();
+        return 0;
     }
+
+    // Allocate software framebuffer for game to render into
+    g_AppState.pFrameBuffer = new uint32_t[g_AppState.cxWidth * g_AppState.cyHeight];
+    memset(g_AppState.pFrameBuffer, 0, g_AppState.cxWidth * g_AppState.cyHeight * sizeof(uint32_t));
 
     g_AppState.lastTick = SDL_GetTicks();
     g_AppState.fpsTick = SDL_GetTicks();
     g_AppState.frameCount = 0;
     g_AppState.fps = 0;
+    g_AppState.bRunning = true;
 
-    printf("AppCore: Initialized %dx%d window\n", WINDOW_WIDTH, WINDOW_HEIGHT);
-    return true;
+    printf("AppCore: Initialized %dx%d\n", g_AppState.cxWidth, g_AppState.cyHeight);
+    return 1;
 }
 
-void AppShutdown()
+void App_Shutdown(void)
 {
     if (g_AppState.pFrameBuffer)
     {
         delete[] g_AppState.pFrameBuffer;
         g_AppState.pFrameBuffer = nullptr;
+    }
+
+    if (g_AppState.pTexture)
+    {
+        SDL_DestroyTexture(g_AppState.pTexture);
+        g_AppState.pTexture = nullptr;
     }
 
     if (g_AppState.pRenderer)
@@ -113,7 +132,7 @@ void AppShutdown()
     printf("AppCore: Shutdown complete\n");
 }
 
-bool AppPumpEvents()
+int App_PumpEvents(void)
 {
     SDL_Event event;
     while (SDL_PollEvent(&event))
@@ -122,13 +141,13 @@ bool AppPumpEvents()
         {
         case SDL_QUIT:
             g_AppState.bRunning = false;
-            return false;
+            return 0;
 
         case SDL_KEYDOWN:
             if (event.key.keysym.sym == SDLK_ESCAPE)
             {
                 g_AppState.bRunning = false;
-                return false;
+                return 0;
             }
             break;
 
@@ -136,44 +155,48 @@ bool AppPumpEvents()
             if (event.window.event == SDL_WINDOWEVENT_CLOSE)
             {
                 g_AppState.bRunning = false;
-                return false;
+                return 0;
+            }
+            else if (event.window.event == SDL_WINDOWEVENT_RESIZED)
+            {
+                g_AppState.cxWidth = event.window.data1;
+                g_AppState.cyHeight = event.window.data2;
             }
             break;
         }
     }
-    return true;
+    return 1;
 }
 
-void AppRender()
+struct SFrameBufferInfo App_GetFrameBufferInfo(void)
 {
-    if (!g_AppState.pRenderer || !g_AppState.pFrameBuffer)
+    struct SFrameBufferInfo info;
+    info.pPixels = g_AppState.pFrameBuffer;
+    info.cxWidth = g_AppState.cxWidth;
+    info.cyHeight = g_AppState.cyHeight;
+    info.cbPitch = g_AppState.cxWidth * sizeof(uint32_t);
+    return info;
+}
+
+void App_PresentFrameBuffer(void)
+{
+    if (!g_AppState.pRenderer || !g_AppState.pTexture || !g_AppState.pFrameBuffer)
         return;
 
-    SDL_Surface* pSurface = SDL_CreateRGBSurfaceFrom(
+    // Update texture with framebuffer pixels
+    SDL_UpdateTexture(
+        g_AppState.pTexture,
+        nullptr,
         g_AppState.pFrameBuffer,
-        FRAMEBUFFER_WIDTH,
-        FRAMEBUFFER_HEIGHT,
-        32,
-        FRAMEBUFFER_WIDTH * sizeof(Uint32),
-        0x000000FF,
-        0x0000FF00,
-        0x00FF0000,
-        0xFF000000
+        g_AppState.cxWidth * sizeof(uint32_t)
     );
 
-    if (pSurface)
-    {
-        SDL_Texture* pTexture = SDL_CreateTextureFromSurface(g_AppState.pRenderer, pSurface);
-        if (pTexture)
-        {
-            SDL_RenderClear(g_AppState.pRenderer);
-            SDL_RenderCopy(g_AppState.pRenderer, pTexture, nullptr, nullptr);
-            SDL_RenderPresent(g_AppState.pRenderer);
-            SDL_DestroyTexture(pTexture);
-        }
-        SDL_FreeSurface(pSurface);
-    }
+    // Clear and render
+    SDL_RenderClear(g_AppState.pRenderer);
+    SDL_RenderCopy(g_AppState.pRenderer, g_AppState.pTexture, nullptr, nullptr);
+    SDL_RenderPresent(g_AppState.pRenderer);
 
+    // FPS counter
     g_AppState.frameCount++;
     Uint32 currentTick = SDL_GetTicks();
     if (currentTick - g_AppState.fpsTick >= 1000)
@@ -185,61 +208,15 @@ void AppRender()
     }
 }
 
-Uint32* AppGetFrameBuffer()
+int App_IsRunning(void)
 {
-    return g_AppState.pFrameBuffer;
+    return g_AppState.bRunning ? 1 : 0;
 }
 
-int AppGetFrameBufferPitch()
+void App_SetRunning(int bRunning)
 {
-    return FRAMEBUFFER_WIDTH * sizeof(Uint32);
+    g_AppState.bRunning = (bRunning != 0);
 }
-
-bool AppIsRunning()
-{
-    return g_AppState.bRunning;
-}
-
-void AppSetRunning(bool bRunning)
-{
-    g_AppState.bRunning = bRunning;
-}
-
-extern "C" {
-
-int App_Run()
-{
-    if (!AppInit())
-    {
-        AppShutdown();
-        return 1;
-    }
-
-    printf("AppCore: Entering main loop\n");
-
-    while (g_AppState.bRunning)
-    {
-        if (!AppPumpEvents())
-            break;
-
-        AppRender();
-
-        SDL_Delay(16);
-    }
-
-    printf("AppCore: Exiting main loop\n");
-    AppShutdown();
-    return 0;
-}
-
-void* App_GetFrameBuffer()
-{
-    return AppGetFrameBuffer();
-}
-
-int App_GetFrameBufferWidth() { return FRAMEBUFFER_WIDTH; }
-int App_GetFrameBufferHeight() { return FRAMEBUFFER_HEIGHT; }
-int App_GetFrameBufferPitch() { return AppGetFrameBufferPitch(); }
 
 void App_SetTitle(const char* pTitle)
 {
@@ -247,4 +224,49 @@ void App_SetTitle(const char* pTitle)
         SDL_SetWindowTitle(g_AppState.pWindow, pTitle);
 }
 
+void App_GetWindowSize(int* pcxWidth, int* pcyHeight)
+{
+    if (pcxWidth) *pcxWidth = g_AppState.cxWidth;
+    if (pcyHeight) *pcyHeight = g_AppState.cyHeight;
+}
+
+// Main entry point - basic loop for milestone-2
+// TODO: Integrate with CHumanInterface for full game
+int App_Run(void)
+{
+    if (!App_Init())
+    {
+        App_Shutdown();
+        return 1;
+    }
+
+    printf("AppCore: Entering main loop\n");
+
+    while (g_AppState.bRunning)
+    {
+        if (!App_PumpEvents())
+            break;
+
+        // For milestone-2: just render a gradient test pattern
+        // Later: this will call into the game engine
+        for (int y = 0; y < g_AppState.cyHeight; y++)
+        {
+            for (int x = 0; x < g_AppState.cxWidth; x++)
+            {
+                int idx = y * g_AppState.cxWidth + x;
+                uint8_t r = (x * 255) / g_AppState.cxWidth;
+                uint8_t g = (y * 255) / g_AppState.cyHeight;
+                uint8_t b = 128;
+                g_AppState.pFrameBuffer[idx] = (r << 16) | (g << 8) | b | 0xFF000000;
+            }
+        }
+
+        App_PresentFrameBuffer();
+
+        SDL_Delay(16);
+    }
+
+    printf("AppCore: Exiting main loop\n");
+    App_Shutdown();
+    return 0;
 }
