@@ -63,6 +63,7 @@ enum AlignmentStyles
 	alignBottom =			0x00000020,
 	};
 
+#ifdef _WIN32
 enum ChannelTypes
 	{
 	channelNone,
@@ -148,6 +149,7 @@ enum SurfaceTypes
 
 	stUnknown,
 	};
+#endif
 
 struct SPoint
 	{
@@ -250,7 +252,12 @@ bool dxLoadImageFile (const CString &sFilespec, HBITMAP *rethDIB, EBitmapTypes *
 
 //	Screen Manager ------------------------------------------------------------
 
+#ifdef __APPLE__
+#include "CScreenMgrSDL.h"
+using CScreenMgr3D = CScreenMgrSDL;
+#else
 #include "DXScreenMgr3D.h"
+#endif
 
 //	Inlines
 

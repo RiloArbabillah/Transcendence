@@ -208,6 +208,22 @@ void App_PresentFrameBuffer(void)
     }
 }
 
+// Platform screen abstraction for DirectXUtilCompat.h
+SPlatformScreenInfo PlatformGetScreenInfo(void)
+{
+    SPlatformScreenInfo info;
+    info.pPixels = g_AppState.pFrameBuffer;
+    info.cxWidth = g_AppState.cxWidth;
+    info.cyHeight = g_AppState.cyHeight;
+    info.cbPitch = g_AppState.cxWidth * (int)sizeof(uint32_t);
+    return info;
+}
+
+void PlatformPresentScreen(void)
+{
+    App_PresentFrameBuffer();
+}
+
 int App_IsRunning(void)
 {
     return g_AppState.bRunning ? 1 : 0;

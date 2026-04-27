@@ -30,6 +30,76 @@
 #define max(a,b) ((a) > (b) ? (a) : (b))
 #endif
 
+using namespace Kernel;
+
+#include "Euclid.h"
+#include "TImagePlane.h"
+#include "Graphics.h"
+
+enum ChannelTypes
+	{
+	channelNone,
+	channelAlpha,
+	channelRed,
+	channelGreen,
+	channelBlue,
+	};
+
+enum ChannelMap
+	{
+	channelMapNone,
+	channelMapAlpha,
+	channelMapRed,
+	channelMapGreen,
+	channelMapBlue,
+	channelMapAlphaToAlpha = 0x0101,
+	channelMapRedToRed = 0x0202,
+	channelMapGreenToGreen = 0x0303,
+	channelMapBlueToBlue = 0x0404,
+	channelMapAlphaToRed = 0x0201,
+	channelMapAlphaToGreen = 0x0301,
+	channelMapAlphaToBlue = 0x0401,
+	channelMapRedToAlpha = 0x0102,
+	channelMapRedToGreen = 0x0302,
+	channelMapRedToBlue = 0x0402,
+	channelMapGreenToAlpha = 0x0103,
+	channelMapGreenToRed = 0x0203,
+	channelMapGreenToBlue = 0x0403,
+	channelMapBlueToAlpha = 0x0104,
+	channelMapBlueToRed = 0x0204,
+	channelMapBlueToGreen = 0x0304,
+	};
+
+enum GradientDirections
+	{
+	gradientNone,
+	gradientHorizontal,
+	gradientVertical,
+	};
+
+enum MarkerTypes
+	{
+	markerPixel,
+	markerRoundDot,
+	markerSquareDot,
+	markerDiamondDot,
+	markerTriangleUpDot,
+	markerTriangleDownDot,
+	markerSmallCross,
+	markerMediumCross,
+	markerSmallSquare,
+	markerSmallFilledSquare,
+	markerTinyCircle,
+	markerSmallCircle,
+	markerSmallFilledCircle,
+	markerSmallTriangleUp,
+	markerSmallFilledTriangleUp,
+	markerSmallTriangleDown,
+	markerSmallFilledTriangleDown,
+	markerSmallDiamond,
+	markerSmallFilledDiamond,
+	};
+
 #ifndef RGB
 #define RGB(r, g, b) ((DWORD)(((BYTE)(r) | ((WORD)((BYTE)(g)) << 8) | (((DWORD)(BYTE)(b)) << 16)))
 #endif
@@ -587,6 +657,23 @@ inline HFONT CreateFont(int nHeight, int nWidth, int nEscapement, int nOrientati
                         DWORD fdwOutputPrecision, DWORD fdwClipPrecision, DWORD fdwQuality,
                         DWORD fdwPitchAndFamily, const char* lpszFace) { return 0; }
 inline BOOL DeleteObject(HFONT hFont) { return TRUE; }
+
+// Platform screen abstraction for macOS
+
+#ifndef SPlatformScreenInfoDefined
+#define SPlatformScreenInfoDefined
+struct SPlatformScreenInfo {
+    void* pPixels;
+    int cxWidth;
+    int cyHeight;
+    int cbPitch;
+};
+#endif
+
+SPlatformScreenInfo PlatformGetScreenInfo(void);
+void PlatformPresentScreen(void);
+
+using namespace Kernel;
 
 #endif
 

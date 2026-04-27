@@ -11,6 +11,23 @@
 extern "C" {
 #endif
 
+// Framebuffer info structure for game engine
+// This is also defined in DirectXUtilCompat.h for CScreenMgrSDL
+#ifndef SPlatformScreenInfoDefined
+#define SPlatformScreenInfoDefined
+struct SPlatformScreenInfo {
+    void* pPixels;
+    int cxWidth;
+    int cyHeight;
+    int cbPitch;
+};
+#endif
+
+// Platform screen functions - implemented in AppCore.cpp
+// Declared here so CScreenMgrSDL can use them via DirectXUtilCompat.h
+struct SPlatformScreenInfo PlatformGetScreenInfo(void);
+void PlatformPresentScreen(void);
+
 // Framebuffer info structure
 struct SFrameBufferInfo {
     uint32_t* pPixels;

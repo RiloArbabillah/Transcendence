@@ -72,6 +72,7 @@ set(ALCHEMY_JPEG_SOURCES
 
 set(ALCHEMY_GRAPHICS_SOURCES
     "Alchemy/Graphics/Misc.cpp"
+    "Alchemy/DirectXUtil/CScreenMgrSDL.cpp"
 )
 
 set(MAMMOTH_TSE_SOURCES
