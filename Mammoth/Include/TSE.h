@@ -1892,6 +1892,10 @@ class CAscendedObjectList
 #include "TSEItemInlines.h"
 #include "TSEUniverseInlines.h"
 
+#include "TSEDesignInlines.h"
+#include "TSEItemInlines.h"
+#include "TSEUniverseInlines.h"
+
 //	String-Constant Helpers
 
 Abilities AbilityDecode (const CString &sString);

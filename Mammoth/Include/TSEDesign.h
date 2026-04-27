@@ -40,7 +40,7 @@ struct SDestroyCtx;
 struct SSystemCreateCtx;
 struct STradeServiceCtx;
 
-ALERROR LoadUNID (SDesignLoadCtx &Ctx, const CString &sString, DWORD *retdwUNID, DWORD dwDefaultUNID);
+ALERROR LoadUNID (SDesignLoadCtx &Ctx, const CString &sString, DWORD *retdwUNID, DWORD dwDefaultUNID = 0);
 
 struct SDesignLoadCtx
 	{
@@ -605,32 +605,7 @@ template <class CLASS> class CDesignTypeRef
 				}
 }
 
-	static ALERROR BindType (SDesignLoadCtx &Ctx, DWORD dwUNID, CLASS *&pType)
-		{
-		CDesignType *pBaseType = Ctx.GetUniverse().FindDesignTypeUnbound(dwUNID);
-		if (pBaseType)
-			{
-			if (!pBaseType->IsBound())
-				{
-				if (ALERROR error = pBaseType->BindDesign(Ctx))
-					return error;
-				}
-			}
-		else
-			{
-			Ctx.sError = strPatternSubst(CONSTLIT("Unknown design type: %x"), dwUNID);
-			return ERR_FAIL;
-			}
-
-		pType = CLASS::AsType(pBaseType);
-		if (pType == NULL)
-			{
-			Ctx.sError = strPatternSubst(CONSTLIT("Specified type is invalid: %x"), dwUNID);
-			return ERR_FAIL;
-			}
-
-		return NOERROR;
-		}
+	static ALERROR BindType (SDesignLoadCtx &Ctx, DWORD dwUNID, CLASS *&pType);
 
 	protected:
 		CLASS *m_pType;
@@ -1559,7 +1534,7 @@ CG32bitPixel LoadRGBColor (const CString &sString, CG32bitPixel rgbDefault = CG3
 CG32bitPixel DWToRGBColor (const DWORD dwColor);
 CG32bitPixel LoadARGBColor (const CString &sString, CG32bitPixel rgbDefault = CG32bitPixel::Null());
 CG32bitPixel DWToARGBColor (const DWORD dwColor);
-ALERROR LoadUNID (SDesignLoadCtx &Ctx, const CString &sString, DWORD *retdwUNID, DWORD dwDefaultUNID = 0);
+ALERROR LoadUNID (SDesignLoadCtx &Ctx, const CString &sString, DWORD *retdwUNID, DWORD dwDefaultUNID);
 bool SetFrequencyByLevel (CString &sLevelFrequency, int iLevel, int iFreq);
 
 //	Inline implementations
