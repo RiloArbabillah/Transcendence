@@ -1,16 +1,19 @@
 //	Load.cpp
 //
-//	Implements loading JPEGs with Intel JPEG library
+//	Implements loading JPEGs
 //	Copyright (c) 2019 Kronosaur Productions, LLC. All Rights Reserved.
+//
+//	MacOS implementation using ImageIO framework
 
 #include "PreComp.h"
+#include "JPEGUtil.h"
+
+#include <ImageIO/ImageIO.h>
+#include <CoreGraphics/CoreGraphics.h>
+
+#ifdef _WIN32
 
 ALERROR JPEGLoadFromFile (CString sFilename, DWORD dwFlags, HPALETTE hPalette, HBITMAP *rethBitmap)
-
-//	JPEGLoadFromFile
-//
-//	Load from a JPEG file
-
 	{
 	ALERROR error;
 	CFileReadBlock JPEGFile(sFilename);
@@ -27,29 +30,18 @@ ALERROR JPEGLoadFromFile (CString sFilename, DWORD dwFlags, HPALETTE hPalette, H
 	}
 
 ALERROR JPEGLoadFromMemory (char *pImage, int iSize, DWORD dwFlags, HPALETTE hPalette, HBITMAP *rethBitmap)
-
-//	JPEGLoadFromMemory
-//
-//	Load from a memory stream
-
 	{
 	ALERROR error;
 	IJLERR jerr;
-
-	//	Initialize library
 
 	JPEG_CORE_PROPERTIES jcprops;
 	jerr = ijlInit(&jcprops);
 	if (jerr != IJL_OK)
 		return ERR_FAIL;
 
-	//	Point to the buffer
-
 	jcprops.JPGFile = NULL;
 	jcprops.JPGBytes = (BYTE *)pImage;
 	jcprops.JPGSizeBytes = iSize;
-
-	//	Read parameters
 
 	jerr = ijlRead(&jcprops, IJL_JBUFF_READPARAMS);
 	if (jerr != IJL_OK)
@@ -60,11 +52,9 @@ ALERROR JPEGLoadFromMemory (char *pImage, int iSize, DWORD dwFlags, HPALETTE hPa
 
 	DWORD width = jcprops.JPGWidth;
 	DWORD height = jcprops.JPGHeight;
-	DWORD nchannels = 3;	//	24-bits
+	DWORD nchannels = 3;
 	DWORD dib_line_width = width * nchannels;
 	DWORD dib_pad_bytes = IJL_DIB_PAD_BYTES(width,nchannels);
-
-	//	Allocate a dib
 
 	HBITMAP hBitmap;
 	BYTE *p24BitPixel;
@@ -78,16 +68,12 @@ ALERROR JPEGLoadFromMemory (char *pImage, int iSize, DWORD dwFlags, HPALETTE hPa
 		return error;
 		}
 
-	//	Setup the library to load into the dib format
-
 	jcprops.DIBWidth = width;
 	jcprops.DIBHeight = -(int)height;
 	jcprops.DIBChannels = nchannels;
 	jcprops.DIBColor = IJL_BGR;
 	jcprops.DIBPadBytes = dib_pad_bytes;
 	jcprops.DIBBytes = p24BitPixel;
-
-	//	Setup the color space
 
 	switch (jcprops.JPGChannels)
 		{
@@ -106,8 +92,6 @@ ALERROR JPEGLoadFromMemory (char *pImage, int iSize, DWORD dwFlags, HPALETTE hPa
 			}
 		}
 
-	//	Load the data in the buffer
-
 	jerr = ijlRead(&jcprops, IJL_JBUFF_READWHOLEIMAGE);
 	if (jerr != IJL_OK)
 		{
@@ -116,12 +100,7 @@ ALERROR JPEGLoadFromMemory (char *pImage, int iSize, DWORD dwFlags, HPALETTE hPa
 		return ERR_FAIL;
 		}
 
-	//	Done
-
 	ijlFree(&jcprops);
-
-	//	If we want a DIB, just return that; otherwise,
-	//	convert to DDB and return that
 
 	if (dwFlags & JPEG_LFR_DIB)
 		*rethBitmap = hBitmap;
@@ -139,9 +118,29 @@ ALERROR JPEGLoadFromMemory (char *pImage, int iSize, DWORD dwFlags, HPALETTE hPa
 	return NOERROR;
 	}
 
-ALERROR JPEGLoadToRGBAFromFile (CString sFilename, SJPEGLoadInfo *retImage)
+#else
 
+ALERROR JPEGLoadFromFile (CString sFilename, DWORD dwFlags, HPALETTE hPalette, HBITMAP *rethBitmap)
 	{
+	return JPEGLoadToRGBAFromFile(sFilename, NULL) == NOERROR ? ERR_FAIL : NOERROR;
+	}
+
+ALERROR JPEGLoadFromMemory (char *pImage, int iSize, DWORD dwFlags, HPALETTE hPalette, HBITMAP *rethBitmap)
+	{
+	SJPEGLoadInfo info;
+	ALERROR error = JPEGLoadToRGBAFromMemory(pImage, iSize, &info);
+	if (error != NOERROR)
+		return error;
+
+	*rethBitmap = (HBITMAP)info.Pixels.GetPointer();
+	return NOERROR;
+	}
+
+#endif
+
+ALERROR JPEGLoadToRGBAFromFile (CString sFilename, SJPEGLoadInfo *retImage)
+	{
+#ifdef _WIN32
 	ALERROR error;
 	CFileReadBlock JPEGFile(sFilename);
 
@@ -151,11 +150,81 @@ ALERROR JPEGLoadToRGBAFromFile (CString sFilename, SJPEGLoadInfo *retImage)
 	error = JPEGLoadToRGBAFromMemory(JPEGFile.GetPointer(0, JPEGFile.GetLength()), JPEGFile.GetLength(), retImage);
 	JPEGFile.Close();
 	return error;
+#else
+	if (retImage == NULL)
+		return ERR_FAIL;
+
+	CFStringRef cfFilename = CFStringCreateWithCString(kCFAllocatorDefault, sFilename.GetASCIIZPointer(), kCFStringEncodingUTF8);
+	if (cfFilename == NULL)
+		return ERR_FAIL;
+
+	CFURLRef url = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, cfFilename, kCFURLPOSIXPathStyle, false);
+	CFRelease(cfFilename);
+	if (url == NULL)
+		return ERR_FAIL;
+
+	CGImageSourceRef imageSource = CGImageSourceCreateWithURL(url, NULL);
+	CFRelease(url);
+	if (imageSource == NULL)
+		return ERR_FAIL;
+
+	CGImageRef image = CGImageSourceCreateImageAtIndex(imageSource, 0, NULL);
+	CFRelease(imageSource);
+	if (image == NULL)
+		return ERR_FAIL;
+
+	size_t width = CGImageGetWidth(image);
+	size_t height = CGImageGetHeight(image);
+
+	retImage->cxWidth = (int)width;
+	retImage->cyHeight = (int)height;
+	retImage->iPitch = (int)width * 4;
+
+	size_t dataSize = retImage->iPitch * retImage->cyHeight;
+	retImage->Pixels = "";
+
+	char *pixels = new char[dataSize];
+
+	CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+	if (colorSpace == NULL)
+		{
+		delete[] pixels;
+		CGImageRelease(image);
+		return ERR_FAIL;
+		}
+
+	CGContextRef context = CGBitmapContextCreate(
+		pixels,
+		width,
+		height,
+		8,
+		retImage->iPitch,
+		colorSpace,
+		(CGBitmapInfo)(kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big)
+	);
+	CGColorSpaceRelease(colorSpace);
+
+	if (context == NULL)
+		{
+		delete[] pixels;
+		CGImageRelease(image);
+		return ERR_FAIL;
+		}
+
+	CGContextDrawImage(context, CGRectMake(0, 0, width, height), image);
+	CGContextRelease(context);
+	CGImageRelease(image);
+
+	retImage->Pixels = CString(pixels, dataSize);
+	delete[] pixels;
+
+	return NOERROR;
+#endif
 	}
 
 ALERROR JPEGLoadToRGBAFromMemory (char *pImage, int iSize, SJPEGLoadInfo *retImage)
-
 	{
+#ifdef _WIN32
 	if (retImage == NULL)
 		return ERR_FAIL;
 
@@ -180,20 +249,15 @@ ALERROR JPEGLoadToRGBAFromMemory (char *pImage, int iSize, SJPEGLoadInfo *retIma
 
 	int cxWidth = (int)jcprops.JPGWidth;
 	int cyHeight = (int)jcprops.JPGHeight;
-	int iPitch = cxWidth * (int)sizeof(CG32bitPixel);
-	int iDataSize = iPitch * cyHeight;
 
-	retImage->Pixels.SetLength(iDataSize);
 	retImage->cxWidth = cxWidth;
 	retImage->cyHeight = cyHeight;
-	retImage->iPitch = iPitch;
 
 	jcprops.DIBWidth = cxWidth;
 	jcprops.DIBHeight = -cyHeight;
 	jcprops.DIBChannels = 4;
 	jcprops.DIBColor = IJL_RGBA_FPX;
 	jcprops.DIBPadBytes = 0;
-	jcprops.DIBBytes = (BYTE *)retImage->Pixels.GetPointer();
 
 	switch (jcprops.JPGChannels)
 		{
@@ -211,10 +275,19 @@ ALERROR JPEGLoadToRGBAFromMemory (char *pImage, int iSize, SJPEGLoadInfo *retIma
 			break;
 		}
 
+	retImage->iPitch = cxWidth * 4;
+
+	size_t dataSize = retImage->iPitch * cyHeight;
+	retImage->Pixels = "";
+
+	char *pixels = new char[dataSize];
+	jcprops.DIBBytes = (BYTE *)pixels;
+
 	jerr = ijlRead(&jcprops, IJL_JBUFF_READWHOLEIMAGE);
 	if (jerr != IJL_OK)
 		{
-		retImage->Pixels.SetLength(0);
+		delete[] pixels;
+		retImage->Pixels = "";
 		retImage->cxWidth = 0;
 		retImage->cyHeight = 0;
 		retImage->iPitch = 0;
@@ -223,15 +296,79 @@ ALERROR JPEGLoadToRGBAFromMemory (char *pImage, int iSize, SJPEGLoadInfo *retIma
 		}
 
 	ijlFree(&jcprops);
+
+	retImage->Pixels = CString(pixels, dataSize);
+	delete[] pixels;
+
 	return NOERROR;
+#else
+	if (retImage == NULL)
+		return ERR_FAIL;
+
+	CFDataRef dataRef = CFDataCreateWithBytesNoCopy(kCFAllocatorDefault, (const UInt8 *)pImage, iSize, kCFAllocatorNull);
+	if (dataRef == NULL)
+		return ERR_FAIL;
+
+	CGImageSourceRef imageSource = CGImageSourceCreateWithData(dataRef, NULL);
+	CFRelease(dataRef);
+	if (imageSource == NULL)
+		return ERR_FAIL;
+
+	CGImageRef image = CGImageSourceCreateImageAtIndex(imageSource, 0, NULL);
+	CFRelease(imageSource);
+	if (image == NULL)
+		return ERR_FAIL;
+
+	size_t width = CGImageGetWidth(image);
+	size_t height = CGImageGetHeight(image);
+
+	retImage->cxWidth = (int)width;
+	retImage->cyHeight = (int)height;
+	retImage->iPitch = (int)width * 4;
+
+	size_t dataSize = retImage->iPitch * retImage->cyHeight;
+
+	char *pixels = new char[dataSize];
+
+	CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+	if (colorSpace == NULL)
+		{
+		delete[] pixels;
+		CGImageRelease(image);
+		return ERR_FAIL;
+		}
+
+	CGContextRef context = CGBitmapContextCreate(
+		pixels,
+		width,
+		height,
+		8,
+		retImage->iPitch,
+		colorSpace,
+		(CGBitmapInfo)(kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big)
+	);
+	CGColorSpaceRelease(colorSpace);
+
+	if (context == NULL)
+		{
+		delete[] pixels;
+		CGImageRelease(image);
+		return ERR_FAIL;
+		}
+
+	CGContextDrawImage(context, CGRectMake(0, 0, width, height), image);
+	CGContextRelease(context);
+	CGImageRelease(image);
+
+	retImage->Pixels = CString(pixels, dataSize);
+	delete[] pixels;
+
+	return NOERROR;
+#endif
 	}
 
+#ifdef _WIN32
 ALERROR JPEGLoadFromResource (HINSTANCE hInst, char *pszRes, DWORD dwFlags, HPALETTE hPalette, HBITMAP *rethBitmap)
-
-//	JPEGLoadFromResource
-//
-//	Load from a resource
-
 	{
 	HRSRC hRes;
 	HGLOBAL hGlobalRes;
@@ -254,7 +391,6 @@ ALERROR JPEGLoadFromResource (HINSTANCE hInst, char *pszRes, DWORD dwFlags, HPAL
 	if (pImage == NULL)
 		return ERR_FAIL;
 
-	//	Done
-
 	return JPEGLoadFromMemory((char *)pImage, iSize, dwFlags, hPalette, rethBitmap);
 	}
+#endif

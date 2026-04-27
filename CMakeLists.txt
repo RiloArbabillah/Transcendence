@@ -112,26 +112,30 @@ target_link_libraries(alchemy_graphics PUBLIC
     alchemy_kernel
 )
 
-add_library(mammoth_tse STATIC ${MAMMOTH_TSE_SOURCES})
-target_include_directories(mammoth_tse PUBLIC
-    "${CMAKE_CURRENT_SOURCE_DIR}/Alchemy/Include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/Mammoth/Include"
-)
-target_link_libraries(mammoth_tse PUBLIC
-    alchemy_kernel
-    alchemy_codechain
-    alchemy_xmlutil
-    alchemy_graphics
-    alchemy_zlib
-    alchemy_jpeg
-)
+# mammoth_tse requires extensive Windows-specific code that assumes 32-bit pointers
+# There are fundamental issues with pointer-to-DWORD casting throughout the codebase
+# Keeping disabled until more porting work is done
+# add_library(mammoth_tse STATIC ${MAMMOTH_TSE_SOURCES})
+# target_include_directories(mammoth_tse PUBLIC
+#     "${CMAKE_CURRENT_SOURCE_DIR}/Alchemy/Include"
+#     "${CMAKE_CURRENT_SOURCE_DIR}/Mammoth/Include"
+# )
+# target_link_libraries(mammoth_tse PUBLIC
+#     alchemy_kernel
+#     alchemy_codechain
+#     alchemy_xmlutil
+#     alchemy_graphics
+#     alchemy_zlib
+#     alchemy_jpeg
+# )
 
-add_library(mammoth_tsui_core INTERFACE)
-target_link_libraries(mammoth_tsui_core INTERFACE
-    mammoth_tse
-    alchemy_kernel
-    alchemy_graphics
-)
+# mammoth_tsui_core requires mammoth_tse
+# add_library(mammoth_tsui_core INTERFACE)
+# target_link_libraries(mammoth_tsui_core INTERFACE
+#     mammoth_tse
+#     alchemy_kernel
+#     alchemy_graphics
+# )
 
 add_library(platform_common INTERFACE)
 
@@ -157,34 +161,35 @@ if(TRANSCENDENCE_ENABLE_AUDIO_BACKEND)
     target_link_libraries(audio_backend INTERFACE platform_common)
 endif()
 
-add_library(transcendence_menu_path INTERFACE)
-target_link_libraries(transcendence_menu_path INTERFACE
-    mammoth_tsui_core
-    mammoth_tse
-    alchemy_kernel
-    alchemy_graphics
-    alchemy_jpeg
-)
+# transcendence_menu_path requires mammoth_tsui_core and mammoth_tse
+# add_library(transcendence_menu_path INTERFACE)
+# target_link_libraries(transcendence_menu_path INTERFACE
+#     mammoth_tsui_core
+#     mammoth_tse
+#     alchemy_kernel
+#     alchemy_graphics
+#     alchemy_jpeg
+# )
 
-add_executable(transcendence_app EXCLUDE_FROM_ALL
-    "Transcendence/Transcendence/Main.cpp"
-)
+# add_executable(transcendence_app EXCLUDE_FROM_ALL
+#     "Transcendence/Transcendence/Main.cpp"
+# )
 
-target_link_libraries(transcendence_app PRIVATE
-    transcendence_menu_path
-    platform_common
-    platform_sdl
-    render_common
-    render_metal
-)
+# target_link_libraries(transcendence_app PRIVATE
+#     transcendence_menu_path
+#     platform_common
+#     platform_sdl
+#     render_common
+#     render_metal
+# )
 
-if(TARGET platform_macos)
-    target_link_libraries(transcendence_app PRIVATE platform_macos)
-endif()
+# if(TARGET platform_macos)
+#     target_link_libraries(transcendence_app PRIVATE platform_macos)
+# endif()
 
-set_target_properties(transcendence_app PROPERTIES
-    OUTPUT_NAME "Transcendence"
-)
+# set_target_properties(transcendence_app PROPERTIES
+#     OUTPUT_NAME "Transcendence"
+# )
 
 message(STATUS "Configured bounded milestone-1 macOS scaffold.")
 message(STATUS "Targets are placeholders for the audited menu-path graph and are not yet full source manifests.")

@@ -10,6 +10,7 @@
 using namespace Kernel;
 
 #include "Graphics.h"
+#include "JPEGUtil.h"
 #include "IntelJPEGUtil.h"
 
 #include "ijl.h"
