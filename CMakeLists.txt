@@ -6,6 +6,10 @@ if(NOT APPLE)
     message(FATAL_ERROR "This scaffold is currently intended for macOS only.")
 endif()
 
+find_package(SDL2 REQUIRED)
+
+include_directories(${SDL2_INCLUDE_DIRS})
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -142,8 +146,18 @@ target_link_libraries(mammoth_tsui_core INTERFACE
 
 add_library(platform_common INTERFACE)
 
-add_library(platform_sdl INTERFACE)
-target_link_libraries(platform_sdl INTERFACE platform_common)
+add_library(platform_sdl STATIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/Transcendence/Transcendence/Platform/AppCore.cpp"
+)
+target_include_directories(platform_sdl PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/Transcendence/Transcendence/Platform"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Transcendence/Transcendence"
+)
+target_link_libraries(platform_sdl PUBLIC
+    SDL2::SDL2main
+    SDL2::SDL2
+    platform_common
+)
 
 add_library(render_common INTERFACE)
 
@@ -164,35 +178,32 @@ if(TRANSCENDENCE_ENABLE_AUDIO_BACKEND)
     target_link_libraries(audio_backend INTERFACE platform_common)
 endif()
 
-# transcendence_menu_path requires mammoth_tsui_core and mammoth_tse
-# add_library(transcendence_menu_path INTERFACE)
-# target_link_libraries(transcendence_menu_path INTERFACE
-#     mammoth_tsui_core
-#     mammoth_tse
-#     alchemy_kernel
-#     alchemy_graphics
-#     alchemy_jpeg
-# )
+add_executable(transcendence_app
+    "Transcendence/Transcendence/main.cpp"
+)
 
-# add_executable(transcendence_app EXCLUDE_FROM_ALL
-#     "Transcendence/Transcendence/Main.cpp"
-# )
+target_include_directories(transcendence_app PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/Alchemy/Include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Mammoth/Include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Transcendence/Transcendence/Platform"
+)
 
-# target_link_libraries(transcendence_app PRIVATE
-#     transcendence_menu_path
-#     platform_common
-#     platform_sdl
-#     render_common
-#     render_metal
-# )
+target_link_libraries(transcendence_app PRIVATE
+    alchemy_kernel
+    alchemy_codechain
+    alchemy_xmlutil
+    alchemy_graphics
+    alchemy_jpeg
+    mammoth_tse
+    platform_common
+    platform_sdl
+    render_common
+    render_metal
+)
 
-# if(TARGET platform_macos)
-#     target_link_libraries(transcendence_app PRIVATE platform_macos)
-# endif()
-
-# set_target_properties(transcendence_app PROPERTIES
-#     OUTPUT_NAME "Transcendence"
-# )
+set_target_properties(transcendence_app PROPERTIES
+    OUTPUT_NAME "Transcendence"
+)
 
 message(STATUS "Configured bounded milestone-1 macOS scaffold.")
 message(STATUS "Targets are placeholders for the audited menu-path graph and are not yet full source manifests.")
