@@ -112,30 +112,33 @@ target_link_libraries(alchemy_graphics PUBLIC
     alchemy_kernel
 )
 
-# mammoth_tse requires extensive Windows-specific code that assumes 32-bit pointers
-# There are fundamental issues with pointer-to-DWORD casting throughout the codebase
-# Keeping disabled until more porting work is done
-# add_library(mammoth_tse STATIC ${MAMMOTH_TSE_SOURCES})
-# target_include_directories(mammoth_tse PUBLIC
-#     "${CMAKE_CURRENT_SOURCE_DIR}/Alchemy/Include"
-#     "${CMAKE_CURRENT_SOURCE_DIR}/Mammoth/Include"
-# )
-# target_link_libraries(mammoth_tse PUBLIC
-#     alchemy_kernel
-#     alchemy_codechain
-#     alchemy_xmlutil
-#     alchemy_graphics
-#     alchemy_zlib
-#     alchemy_jpeg
-# )
+# mammoth_tse requires extensive Windows-specific code including DirectX utilities
+# Full port is deferred - the codebase includes heavy DirectX dependencies
+# (d3d9.h, ddraw.h, dsound.h, vfw.h) that require significant stub work.
+# For milestone-1, we focus on the shell/platform layer instead.
+add_library(mammoth_tse STATIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/Mammoth/TSE/TSEDummy.cpp"
+)
+target_include_directories(mammoth_tse PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/Alchemy/Include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Mammoth/Include"
+)
+target_link_libraries(mammoth_tse PUBLIC
+    alchemy_kernel
+    alchemy_codechain
+    alchemy_xmlutil
+    alchemy_graphics
+    alchemy_zlib
+    alchemy_jpeg
+)
 
 # mammoth_tsui_core requires mammoth_tse
-# add_library(mammoth_tsui_core INTERFACE)
-# target_link_libraries(mammoth_tsui_core INTERFACE
-#     mammoth_tse
-#     alchemy_kernel
-#     alchemy_graphics
-# )
+add_library(mammoth_tsui_core INTERFACE)
+target_link_libraries(mammoth_tsui_core INTERFACE
+    mammoth_tse
+    alchemy_kernel
+    alchemy_graphics
+)
 
 add_library(platform_common INTERFACE)
 

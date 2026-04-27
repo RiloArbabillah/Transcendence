@@ -10,6 +10,7 @@
 
 #pragma once
 
+#ifdef _WIN32
 #include <d3d9.h>
 
 #ifndef __DDRAW_INCLUDED__
@@ -22,6 +23,10 @@
 
 #ifndef _INC_VFW
 #include "vfw.h"
+#endif
+
+#else
+#include "DirectXUtilCompat.h"
 #endif
 
 #ifndef INCL_EUCLID
