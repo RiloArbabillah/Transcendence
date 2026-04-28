@@ -123,6 +123,9 @@ set(MAMMOTH_TSUI_SOURCES
     "Mammoth/TSUI/CListSaveFilesTask.cpp"
     "Mammoth/TSUI/CHumanInterface.cpp"
     "Transcendence/Transcendence/CIntroSession.cpp"
+    "Transcendence/Transcendence/CLoadingSession.cpp"
+    "Transcendence/Transcendence/CLoginSession.cpp"
+    "Transcendence/Transcendence/CNewGameSession.cpp"
 )
 
 add_library(alchemy_kernel STATIC ${ALCHEMY_KERNEL_SOURCES})

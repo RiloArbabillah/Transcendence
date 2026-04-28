@@ -294,6 +294,8 @@ struct WNDCLASSEX { UINT cbSize; UINT style; void* lpfnWndProc; int cbClsExtra; 
 #define VK_F1 0x70
 #define VK_F2 0x71
 #define VK_F11 0x7A
+#define VK_LEFT 0x25
+#define VK_RIGHT 0x27
 
 #define WAIT_TIMEOUT 258
 
