@@ -59,16 +59,62 @@ typedef void *HANDLE;
 typedef unsigned int SOCKET;
 struct OVERLAPPED { void *Internal; void *InternalHigh; void *Offset; HANDLE hEvent; };
 typedef DWORD (*LPTHREAD_START_ROUTINE)(LPVOID);
+
 typedef unsigned int UINT;
 typedef std::uint16_t WORD;
 typedef std::int8_t INT8;
 typedef std::uint8_t UINT8;
 typedef DWORD COLORREF;
+typedef void *HICON;
+typedef void *HCURSOR;
+typedef void *HGDIOBJ;
+typedef void *HMENU;
+typedef std::uintptr_t UINT_PTR;
+typedef std::intptr_t LONG_PTR;
+typedef std::uintptr_t WPARAM;
+typedef std::intptr_t LPARAM;
+typedef long LONG;
+typedef long LRESULT;
+typedef int INT;
+typedef int WMSG;
+
+#define WM_USER 0x0400
+#define APIENTRY __stdcall
+#define CALLBACK __stdcall
+#define WINAPI __stdcall
+
+#ifndef TRUE
+#define TRUE 1
+#endif
+
+#ifndef FALSE
+#define FALSE 0
+#endif
 
 #define LOBYTE(w) ((BYTE)((w) & 0xFF))
 #define HIBYTE(w) ((BYTE)(((w) >> 8) & 0xFF))
 #define LOWORD(dw) ((WORD)((dw) & 0xFFFF))
 #define HIWORD(dw) ((WORD)(((dw) >> 16) & 0xFFFF))
+
+#ifndef TRUE
+#define TRUE 1
+#endif
+
+#ifndef FALSE
+#define FALSE 0
+#endif
+
+#ifndef INFINITE
+#define INFINITE 0xffffffff
+#endif
+
+#ifndef WAIT_TIMEOUT
+#define WAIT_TIMEOUT 258
+#endif
+
+#ifndef WAIT_OBJECT_0
+#define WAIT_OBJECT_0 0
+#endif
 
 struct RECT
 	{
@@ -89,6 +135,183 @@ struct SIZE
 	LONG cx;
 	LONG cy;
 	};
+
+#ifdef TARGET_PLATFORM_MACOS
+inline HDC GetDC(HWND hWnd) { return nullptr; }
+inline int ReleaseDC(HWND hWnd, HDC hDC) { return 0; }
+inline int ShowCursor(BOOL bShow) { return 0; }
+inline BOOL SetCapture(HWND hWnd) { return TRUE; }
+inline BOOL ReleaseCapture() { return TRUE; }
+inline BOOL ShowWindow(HWND hWnd, int nCmdShow) { return TRUE; }
+inline BOOL UpdateWindow(HWND hWnd) { return TRUE; }
+inline HWND GetForegroundWindow() { return nullptr; }
+inline BOOL SetForegroundWindow(HWND hWnd) { return TRUE; }
+inline BOOL SetWindowPos(HWND hWnd, HWND hWndInsertAfter, int X, int Y, int cx, int cy, UINT uFlags) { return TRUE; }
+inline BOOL GetWindowRect(HWND hWnd, RECT* pRect) { if (pRect) { pRect->left = pRect->top = pRect->right = pRect->bottom = 0; } return TRUE; }
+inline BOOL IsWindow(HWND hWnd) { return hWnd != nullptr; }
+inline BOOL DestroyWindow(HWND hWnd) { return TRUE; }
+inline int GetSystemMetrics(int nIndex) { return 0; }
+
+#define MCIWndGetLength(h) (0)
+#define MCIWndGetPosition(h) (0)
+#define MCIWndCreate(h, style, flags, file) (nullptr)
+#define MCIWndDestroy(h) (0)
+#define MCIWndStop(h) (0)
+#define MCIWndPlay(h) (0)
+#define MCIWndPause(h) (0)
+#define MCIWndResume(h) (0)
+#define MCIWndSeek(h, pos) (0)
+#define MCIWndGetError(h, buf, len) (0)
+#define MCIWndOpen(h, file, flags) (0)
+#define MCIWndHome(h) (0)
+#define MCIWndGetMode(h, buf, len) (0)
+#define MCI_MODE_NOT_READY 0
+#define MCI_MODE_OPEN 1
+#define MCI_MODE_PAUSE 2
+#define MCI_MODE_PLAY 3
+#define MCI_MODE_RECORD 4
+#define MCI_MODE_SEEK 5
+#define MCI_MODE_STOP 6
+#define MCIWNDF_NOERRORDLG 0x0004
+#define MCIWNDF_NOMENU 0x0040
+#define MCIWNDF_NOPLAYBAR 0x0080
+#define MCIWNDF_NOTIFYALL 0x0010
+#define WS_OVERLAPPED 0
+#define WS_CHILD 0x40000000
+#define SetWindowLong(h, idx, val) (0)
+#define GWL_WNDPROC 0
+#define GWL_USERDATA (-21)
+#define lstrlen(s) ((s) ? strlen(s) : 0)
+
+#define SW_SHOWMAXIMIZED 3
+#define SW_SHOW 5
+#define SW_RESTORE 9
+#define WM_QUIT 0x0012
+#define WM_CLOSE 0x0010
+#define WM_DESTROY 0x0002
+#define WM_SIZE 0x0005
+#define WM_MOVE 0x0003
+#define WM_KEYDOWN 0x0100
+#define WM_KEYUP 0x0101
+#define WM_CHAR 0x0102
+#define WM_LBUTTONDOWN 0x0201
+#define WM_LBUTTONUP 0x0202
+#define WM_RBUTTONDOWN 0x0204
+#define WM_RBUTTONUP 0x0205
+#define WM_MOUSEMOVE 0x0200
+#define WM_MOUSEWHEEL 0x020A
+#define WM_PAINT 0x000F
+#define WM_ERASEBKGND 0x0014
+#define WM_SETFOCUS 0x0007
+#define WM_KILLFOCUS 0x0008
+#define WM_ACTIVATE 0x0006
+#define WM_ENABLE 0x000A
+#define WM_CREATE 0x0001
+#define WM_TIMER 0x0113
+#define WM_COMMAND 0x0111
+#define WM_NOTIFY 0x004E
+#define WM_USER 0x0400
+
+#define CS_DBLCLKS 0x0008
+#define BLACK_BRUSH 4
+#define IDC_ARROW 32512
+
+#define DM_BITMAPWIDTH 1
+#define DM_BITMAPHEIGHT 2
+
+#define EWX_LOGOFF 0
+#define EWX_SHUTDOWN 1
+
+inline HGDIOBJ GetStockObject(int nIndex) { return nullptr; }
+inline int RegisterClassEx(const void* pWndClass) { return 1; }
+inline HWND CreateWindowEx(DWORD dwExStyle, LPCSTR lpClassName, LPCSTR lpWindowName, DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, void* pParam) { return nullptr; }
+inline HWND GetCapture() { return nullptr; }
+inline HWND SetFocus(HWND hWnd) { return nullptr; }
+inline LRESULT SendMessage(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) { return 0; }
+inline bool PostMessage(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) { return true; }
+inline bool PostQuitMessage(int nExitCode) { return true; }
+inline HDC BeginPaint(HWND hWnd, void* pPaintStruct) { return nullptr; }
+inline bool EndPaint(HWND hWnd, const void* pPaintStruct) { return true; }
+inline bool InvalidateRect(HWND hWnd, const RECT* pRect, bool bErase) { return true; }
+inline bool GetClientRect(HWND hWnd, RECT* pRect) { if (pRect) { pRect->left = pRect->top = 0; pRect->right = 1024; pRect->bottom = 768; } return true; }
+#define SetTimer(hwnd, id, elapse, callback) (0)
+#define KillTimer(hwnd, id) (0)
+inline int LoadCursor(HINSTANCE hInstance, LPCSTR lpCursorName) { return 0; }
+inline int SetCursor(int hCursor) { return 0; }
+inline bool PeekMessage(void* pMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg) { return false; }
+inline bool TranslateMessage(const void* pMsg) { return false; }
+inline LRESULT DispatchMessage(const void* pMsg) { return 0; }
+
+struct tagMSG { void* hwnd; UINT message; WPARAM wParam; LPARAM lParam; DWORD time; POINT pt; };
+typedef tagMSG MSG;
+#define PM_REMOVE 0x0001
+#define PM_NOYIELD 0x0002
+
+inline int MessageBox(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) { return 0; }
+#define MB_OK 0x00000000
+#define MB_YESNO 0x00000004
+#define IDYES 6
+#define IDNO 7
+
+inline bool GetCursorPos(POINT* pPoint) { if (pPoint) { pPoint->x = 0; pPoint->y = 0; } return true; }
+
+#define VK_DOWN 0x28
+#define VK_UP 0x26
+#define VK_NEXT 0x22
+#define VK_PRIOR 0x21
+#define VK_END 0x23
+#define VK_HOME 0x24
+#define VK_MEDIA_NEXT_TRACK 0xB0
+#define VK_MEDIA_PLAY_PAUSE 0xB3
+#define VK_MEDIA_PREV_TRACK 0xB1
+#define VK_MEDIA_STOP 0xB2
+
+inline int timeBeginPeriod(int u) { return 0; }
+inline DWORD timeGetTime() { return 0; }
+
+typedef void* HBRUSH;
+struct WNDCLASSEXA { UINT cbSize; UINT style; void* lpfnWndProc; int cbClsExtra; int cbWndExtra; HINSTANCE hInstance; HICON hIcon; HCURSOR hCursor; HBRUSH hbrBackground; LPCSTR lpszMenuName; LPCSTR lpszClassName; HICON hIconSm; };
+struct WNDCLASSEX { UINT cbSize; UINT style; void* lpfnWndProc; int cbClsExtra; int cbWndExtra; HINSTANCE hInstance; HICON hIcon; HCURSOR hCursor; HBRUSH hbrBackground; LPCSTR lpszMenuName; LPCSTR lpszClassName; HICON hIconSm; };
+#define WS_POPUP 0x80000000
+#define SM_CXSCREEN 0
+#define SM_CYSCREEN 1
+
+#define WM_ACTIVATEAPP 0x001C
+#define WM_DISPLAYCHANGE 0x007E
+#define WM_LBUTTONDBLCLK 0x0203
+#define WM_MBUTTONDBLCLK 0x0209
+#define WM_MBUTTONDOWN 0x0207
+#define WM_MBUTTONUP 0x0208
+#define WM_RBUTTONDBLCLK 0x0206
+#define WM_PAINT 0x000F
+#define WM_ERASEBKGND 0x0014
+
+#define VK_LBUTTON 0x01
+#define VK_RBUTTON 0x02
+#define VK_RETURN 0x0D
+#define VK_ESCAPE 0x1B
+
+#define WAIT_TIMEOUT 258
+
+inline HANDLE CreateEvent(void* pAttrs, BOOL bManualReset, BOOL bInitialState, LPCSTR lpName) { return nullptr; }
+inline DWORD WaitForMultipleObjects(DWORD nCount, const HANDLE* pHandles, BOOL bWaitAll, DWORD dwTimeout) { return WAIT_TIMEOUT; }
+inline void CloseHandle(HANDLE) { }
+
+#define TIMER_RESOLUTION 1
+
+inline void ZeroMemory(void* p, size_t n) { memset(p, 0, n); }
+inline void Sleep(DWORD dwMs) { }
+inline void timeEndPeriod(int u) { }
+
+struct PAINTSTRUCT { void* hdc; int fErase; RECT rcPaint; int fRestore; int fUpdate; int rgbReserved[32]; };
+inline HDC BeginPaint(HWND hwnd, PAINTSTRUCT* ps) { if (ps) memset(ps, 0, sizeof(PAINTSTRUCT)); return nullptr; }
+inline BOOL EndPaint(HWND hwnd, const PAINTSTRUCT* ps) { return TRUE; }
+inline LRESULT DefWindowProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) { return 0; }
+struct CREATESTRUCTA { void* lpCreateParams; HINSTANCE hInstance; HMENU hMenu; HWND hwndParent; int cy; int cx; int y; int x; LONG style; LPCSTR lpszName; LPCSTR lpszClass; DWORD dwExStyle; };
+typedef const CREATESTRUCTA* LPCREATESTRUCT;
+struct SScreenMgrOptions { int cx; int cy; int bWindowed; void* hIcon; };
+
+#endif
 
 struct SYSTEMTIME
 	{
@@ -148,7 +371,6 @@ inline SHORT GetKeyState (int) { return 0; }
 inline BOOL IsCharAlpha (char chChar) { return (((chChar >= 'a' && chChar <= 'z') || (chChar >= 'A' && chChar <= 'Z')) ? TRUE : FALSE); }
 inline BOOL IsCharAlphaNumeric (char chChar) { return (((chChar >= 'a' && chChar <= 'z') || (chChar >= 'A' && chChar <= 'Z') || (chChar >= '0' && chChar <= '9')) ? TRUE : FALSE); }
 inline UINT MapVirtualKey (UINT, UINT) { return 0; }
-inline void CloseHandle (HANDLE) { }
 inline HANDLE GetProcessHeap (void) { return nullptr; }
 inline LPVOID HeapAlloc (HANDLE, DWORD, size_t iSize) { return std::malloc(iSize); }
 inline BOOL HeapFree (HANDLE, DWORD, LPVOID pMem) { std::free(pMem); return TRUE; }

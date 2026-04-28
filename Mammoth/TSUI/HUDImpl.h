@@ -5,6 +5,9 @@
 
 #pragma once
 
+#include "TSUIHUD.h"
+#include "TSE.h"
+
 //	Default Set ----------------------------------------------------------------
 //
 //	This is the default set of HUDs, created at the dawn of the game. This set

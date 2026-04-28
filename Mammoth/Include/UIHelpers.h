@@ -93,12 +93,14 @@ class CListCollectionTask : public IHITask
 	public:
 		struct SOptions
 			{
-			DWORD dwSelectUNID = 0;
+			DWORD dwSelectUNID;
 
-			RECT rcRect = { 0 };
+			RECT rcRect;
 			TSharedPtr<CG32bitImage> pGenericIcon;
 
-			bool bShowLibraries = false;
+			bool bShowLibraries;
+
+			SOptions() : dwSelectUNID(0), rcRect{0,0,0,0}, pGenericIcon(nullptr), bShowLibraries(false) {}
 			};
 
 		CListCollectionTask (CHumanInterface &HI, 
@@ -135,9 +137,11 @@ class CListSaveFilesTask : public IHITask
 		struct SOptions
 			{
 			CString sUsername;					//	Sign-in player
-			int cxWidth = DEFAULT_WIDTH;		//	Width of area
-			bool bFilterPermadeath = false;		//	Don't show non-permadeath games
-			bool bDebugSaveFiles = false;		//	Add debug info
+			int cxWidth;						//	Width of area
+			bool bFilterPermadeath;				//	Don't show non-permadeath games
+			bool bDebugSaveFiles;				//	Add debug info
+
+			SOptions() : cxWidth(DEFAULT_WIDTH), bFilterPermadeath(false), bDebugSaveFiles(false) {}
 			};
 
 		CListSaveFilesTask (CHumanInterface &HI, const TArray<CString> &Folders, const SOptions &Options = SOptions());

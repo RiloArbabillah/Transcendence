@@ -28,6 +28,11 @@
 
 #define USE_COMPOSITE_LAYERS
 
+#ifdef TARGET_PLATFORM_MACOS
+#include "IPlatformSystem.h"
+#include "CScreenMgrSDL.h"
+#endif
+
 #ifdef DEBUG
 //#define DEBUG_MAX_FRAME_RATE
 #endif
@@ -335,12 +340,13 @@ class CBackgroundProcessor : public ITaskProcessor
 class CTimerRegistry
 	{
 	public:
-		CTimerRegistry (void) : m_dwNextID(1) { }
+		CTimerRegistry (void) : m_dwNextID(1), m_pTimerSystem(nullptr) { }
 
 		DWORD AddTimer (HWND hWnd, DWORD dwMilliseconds, IHICommand *pListener, const CString &sCmd, bool bRecurring = true);
 		void DeleteTimer (HWND hWnd, DWORD dwID);
 		void FireTimer (HWND hWnd, DWORD dwID);
 		void ListenerDestroyed (HWND hWnd, IHICommand *pListener);
+		void SetTimerSystem (IPlatformTimerSystem *pSystem) { m_pTimerSystem = pSystem; }
 
 	private:
 		struct SEntry
@@ -353,6 +359,7 @@ class CTimerRegistry
 
 		TArray<SEntry> m_Timers;
 		DWORD m_dwNextID;
+		IPlatformTimerSystem *m_pTimerSystem;
 	};
 
 //	Visual Style Objects ------------------------------------------------------
@@ -745,7 +752,11 @@ class CHumanInterface
 		const SHIOptions &GetOptions (void) { return m_Options; }
 		CReanimator &GetReanimator (void);
 		CG32bitImage &GetScreen (void) { return m_ScreenMgr.GetScreen(); }
+#ifdef TARGET_PLATFORM_MACOS
+		CScreenMgrSDL &GetScreenMgr (void) { return m_ScreenMgr; }
+#else
 		CScreenMgr3D &GetScreenMgr (void) { return m_ScreenMgr; }
+#endif
 		int GetScreenHeight (void) const { return m_ScreenMgr.GetHeight(); }
 		int GetScreenWidth (void) const { return m_ScreenMgr.GetWidth(); }
 		IHISession *GetSession (void) { return m_pCurSession; }
@@ -784,6 +795,8 @@ class CHumanInterface
 		void BeginSessionUpdate (void);
 		void EndSessionPaint (CG32bitImage &Screen, bool bTopMost);
 		void EndSessionUpdate (bool bTopMost);
+		void BltScreen (void) { m_ScreenMgr.Render(); }
+		void FlipScreen (void) { m_ScreenMgr.Flip(); }
 
 		static bool Create (void);
 		static void Destroy (void);
@@ -798,11 +811,9 @@ class CHumanInterface
 		CHumanInterface (void);
 		~CHumanInterface (void);
 
-		void BltScreen (void) { m_ScreenMgr.Render(); }
 		void CalcBackgroundSessions (void);
 		void CaptureMouse (void);
 		void CleanUp (EHIShutdownReasons iShutdownCode);
-		void FlipScreen (void) { m_ScreenMgr.Flip(); }
 		void HardCrash (const CString &sProgramState);
 		void PaintFrameRate (void);
 		void ReleaseMouse (void);
@@ -842,7 +853,11 @@ class CHumanInterface
 		TArray<IHISession *> m_BackgroundSessions;
 
 		HWND m_hWnd;
+#ifdef TARGET_PLATFORM_MACOS
+		CScreenMgrSDL m_ScreenMgr;
+#else
 		CScreenMgr3D m_ScreenMgr;
+#endif
 		CBackgroundProcessor m_Background;
 		CBackgroundProcessor m_BackgroundLowPriority;
 		CTimerRegistry m_Timers;
@@ -870,13 +885,11 @@ class CHumanInterface
 extern CHumanInterface *g_pHI;
 
 #include "CloudInterface.h"
-#include "Painters.h"
-#include "Soundtrack.h"
-#include "TSUIHUD.h"
-#include "TSUIMapPainters.h"
-#include "TSUISessions.h"
-#include "TSUISettings.h"
 #include "UIHelpers.h"
+#include "Painters.h"
+#include "TSUIMapPainters.h"
+
+#include "Soundtrack.h"
 
 //	Inlines
 

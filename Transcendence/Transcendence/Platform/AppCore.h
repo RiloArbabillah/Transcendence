@@ -80,12 +80,24 @@ void PlatformRemoveTimer(int timerID);
 #define PLATFORM_MSG_COMMAND       2
 #define PLATFORM_MSG_TASK_COMPLETE 3
 
+struct SPlatformMessage
+{
+    int msg;
+    int wParam;
+    void* lParam;
+};
+
 // Post a platform message (for internal event handling)
 void PlatformPostMessage(int msg, int wParam, void* lParam);
 
 // Get next platform message - returns true if message available
 // Fill in msg/wParam/lParam with message data
 int PlatformPeekMessage(int* pMsg, int* pWParam, void** ppLParam);
+
+// Get framebuffer for direct pixel access
+uint32_t* App_GetFrameBuffer(void);
+int App_GetFrameBufferWidth(void);
+int App_GetFrameBufferHeight(void);
 
 #ifdef __cplusplus
 }

@@ -1,7 +1,8 @@
 //	main.cpp
-//	Transcendence macOS Application Entry Point
+//	Transcendence macOS - Full game entry point
 //
-//	Minimal shell that initializes the app and runs the main loop
+//	Strategy: We start with working scaffold, add sources incrementally
+//	and fix Windows dependencies as we encounter them.
 
 #include "Platform/AppCore.h"
 

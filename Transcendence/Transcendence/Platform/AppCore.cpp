@@ -13,13 +13,6 @@
 constexpr int DEFAULT_WIDTH = 1024;
 constexpr int DEFAULT_HEIGHT = 768;
 
-// Internal message type
-struct SPlatformMessage {
-    int msg;
-    int wParam;
-    void* lParam;
-};
-
 struct SAppState
 {
     SDL_Window* pWindow = nullptr;
@@ -154,23 +147,31 @@ int App_PumpEvents(void)
             return 0;
 
         case SDL_KEYDOWN:
-            if (event.key.keysym.sym == SDLK_ESCAPE)
-            {
-                g_AppState.bRunning = false;
-                return 0;
-            }
+            break;
+
+        case SDL_KEYUP:
+            break;
+
+        case SDL_MOUSEBUTTONDOWN:
+            break;
+
+        case SDL_MOUSEBUTTONUP:
+            break;
+
+        case SDL_MOUSEMOTION:
             break;
 
         case SDL_WINDOWEVENT:
-            if (event.window.event == SDL_WINDOWEVENT_CLOSE)
-            {
-                g_AppState.bRunning = false;
-                return 0;
-            }
-            else if (event.window.event == SDL_WINDOWEVENT_RESIZED)
+            if (event.window.event == SDL_WINDOWEVENT_RESIZED)
             {
                 g_AppState.cxWidth = event.window.data1;
                 g_AppState.cyHeight = event.window.data2;
+            }
+            else if (event.window.event == SDL_WINDOWEVENT_MINIMIZED)
+            {
+            }
+            else if (event.window.event == SDL_WINDOWEVENT_RESTORED)
+            {
             }
             break;
         }
@@ -180,17 +181,17 @@ int App_PumpEvents(void)
 
 struct SFrameBufferInfo App_GetFrameBufferInfo(void)
 {
-    struct SFrameBufferInfo info;
+    SFrameBufferInfo info;
     info.pPixels = g_AppState.pFrameBuffer;
     info.cxWidth = g_AppState.cxWidth;
     info.cyHeight = g_AppState.cyHeight;
-    info.cbPitch = g_AppState.cxWidth * sizeof(uint32_t);
+    info.cbPitch = g_AppState.cxWidth * (int)sizeof(uint32_t);
     return info;
 }
 
 void App_PresentFrameBuffer(void)
 {
-    if (!g_AppState.pRenderer || !g_AppState.pTexture || !g_AppState.pFrameBuffer)
+    if (!g_AppState.pTexture || !g_AppState.pFrameBuffer)
         return;
 
     SDL_UpdateTexture(
@@ -285,8 +286,25 @@ int PlatformPeekMessage(int* pMsg, int* pWParam, void** ppLParam)
     return 1;
 }
 
-// For now, use gradient test pattern
-// Full integration requires extensive CHumanInterface modifications
+static void RenderTestPattern(void)
+{
+    for (int y = 0; y < g_AppState.cyHeight; y++)
+    {
+        for (int x = 0; x < g_AppState.cxWidth; x++)
+        {
+            int idx = y * g_AppState.cxWidth + x;
+            uint8_t r = (x * 255) / g_AppState.cxWidth;
+            uint8_t g = (y * 255) / g_AppState.cyHeight;
+            uint8_t b = 128;
+            g_AppState.pFrameBuffer[idx] = (r << 16) | (g << 8) | b | 0xFF000000;
+        }
+    }
+}
+
+uint32_t* App_GetFrameBuffer(void) { return g_AppState.pFrameBuffer; }
+int App_GetFrameBufferWidth(void) { return g_AppState.cxWidth; }
+int App_GetFrameBufferHeight(void) { return g_AppState.cyHeight; }
+
 int App_Run(void)
 {
     if (!App_Init())
@@ -302,19 +320,7 @@ int App_Run(void)
         if (!App_PumpEvents())
             break;
 
-        // Render test pattern
-        for (int y = 0; y < g_AppState.cyHeight; y++)
-        {
-            for (int x = 0; x < g_AppState.cxWidth; x++)
-            {
-                int idx = y * g_AppState.cxWidth + x;
-                uint8_t r = (x * 255) / g_AppState.cxWidth;
-                uint8_t g = (y * 255) / g_AppState.cyHeight;
-                uint8_t b = 128;
-                g_AppState.pFrameBuffer[idx] = (r << 16) | (g << 8) | b | 0xFF000000;
-            }
-        }
-
+        RenderTestPattern();
         App_PresentFrameBuffer();
         SDL_Delay(16);
     }

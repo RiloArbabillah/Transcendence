@@ -14,6 +14,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 add_compile_options(-Wno-non-pod-varargs)
+add_compile_definitions(TARGET_PLATFORM_MACOS)
 
 option(TRANSCENDENCE_M1_MENU_ONLY "Limit the build graph to the milestone-1 menu path." ON)
 option(TRANSCENDENCE_ENABLE_PLATFORM_MACOS "Enable macOS-specific platform target placeholder." OFF)
@@ -83,6 +84,46 @@ set(MAMMOTH_TSE_SOURCES
     "Mammoth/TSE/CreateSystem.cpp"
 )
 
+set(MAMMOTH_TSUI_SOURCES
+    "Mammoth/TSUI/CVisualPalette.cpp"
+    "Mammoth/TSUI/IHISession.cpp"
+    "Mammoth/TSUI/IHIController.cpp"
+    "Mammoth/TSUI/TSUICodeChain.cpp"
+    "Mammoth/TSUI/CBackgroundProcessor.cpp"
+    "Mammoth/TSUI/HardCrash.cpp"
+    "Mammoth/TSUI/CHexarcServiceStub.cpp"
+    "Mammoth/TSUI/CCloudService.cpp"
+    "Mammoth/TSUI/CMapLegendPainter.cpp"
+    "Mammoth/TSUI/CMapScaleCounter.cpp"
+    "Mammoth/TSUI/CSoundtrackManager.cpp"
+    "Mammoth/TSUI/CTilePainter.cpp"
+    "Mammoth/TSUI/CTimersHUD.cpp"
+    "Mammoth/TSUI/IHUDPainter.cpp"
+    "Mammoth/TSUI/CWeaponHUDDefault.cpp"
+    "Mammoth/TSUI/CReactorHUDDefault.cpp"
+    "Mammoth/TSUI/CUIHelper.cpp"
+    "Mammoth/TSUI/CArmorHUDImages.cpp"
+    "Mammoth/TSUI/CArmorHUDRingSegments.cpp"
+    "Mammoth/TSUI/CArmorHUDShaped.cpp"
+    "Mammoth/TSUI/CArmorHUDRectangular.cpp"
+    "Mammoth/TSUI/Dialogs.cpp"
+    "Mammoth/TSUI/ClassInfoHelpers.cpp"
+    "Mammoth/TSUI/CItemPainter.cpp"
+    "Mammoth/TSUI/CHoverDescriptionPainter.cpp"
+    "Mammoth/TSUI/CStargateEffectPainter.cpp"
+    "Mammoth/TSUI/CTextAreaAnimator.cpp"
+    "Mammoth/TSUI/CSmallOptionButtonAnimator.cpp"
+    "Mammoth/TSUI/CAccelerateHUD.cpp"
+    "Mammoth/TSUI/CAutomataEffectPainter.cpp"
+    "Mammoth/TSUI/CLRSHUD.cpp"
+    "Mammoth/TSUI/CItemDataAnimatron.cpp"
+    "Mammoth/TSUI/CGalacticMapSystemDetails.cpp"
+    "Mammoth/TSUI/CReadProfileTask.cpp"
+    "Mammoth/TSUI/CListCollectionTask.cpp"
+    "Mammoth/TSUI/CListSaveFilesTask.cpp"
+    "Mammoth/TSUI/CHumanInterface.cpp"
+)
+
 add_library(alchemy_kernel STATIC ${ALCHEMY_KERNEL_SOURCES})
 target_include_directories(alchemy_kernel PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/Alchemy/Include"
@@ -140,6 +181,19 @@ target_link_libraries(mammoth_tse PUBLIC
     alchemy_jpeg
 )
 
+# mammoth_tsui - Transcendence UI Engine
+add_library(mammoth_tsui STATIC ${MAMMOTH_TSUI_SOURCES})
+target_include_directories(mammoth_tsui PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/Alchemy/Include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Mammoth/Include"
+)
+target_link_libraries(mammoth_tsui PUBLIC
+    mammoth_tse
+    alchemy_kernel
+    alchemy_graphics
+    platform_sdl
+)
+
 # mammoth_tsui_core requires mammoth_tse
 add_library(mammoth_tsui_core INTERFACE)
 target_link_libraries(mammoth_tsui_core INTERFACE
@@ -152,8 +206,11 @@ add_library(platform_common INTERFACE)
 
 add_library(platform_sdl STATIC
     "${CMAKE_CURRENT_SOURCE_DIR}/Transcendence/Transcendence/Platform/AppCore.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Transcendence/Transcendence/Platform/CPlatformTimerSystem.cpp"
 )
 target_include_directories(platform_sdl PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/Alchemy/Include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Mammoth/Include"
     "${CMAKE_CURRENT_SOURCE_DIR}/Transcendence/Transcendence/Platform"
     "${CMAKE_CURRENT_SOURCE_DIR}/Transcendence/Transcendence"
 )
@@ -190,6 +247,7 @@ target_include_directories(transcendence_app PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/Alchemy/Include"
     "${CMAKE_CURRENT_SOURCE_DIR}/Mammoth/Include"
     "${CMAKE_CURRENT_SOURCE_DIR}/Transcendence/Transcendence/Platform"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Transcendence/Transcendence"
 )
 
 target_link_libraries(transcendence_app PRIVATE
@@ -199,6 +257,7 @@ target_link_libraries(transcendence_app PRIVATE
     alchemy_graphics
     alchemy_jpeg
     mammoth_tse
+    mammoth_tsui
     platform_common
     platform_sdl
     render_common
