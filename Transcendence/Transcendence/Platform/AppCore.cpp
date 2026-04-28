@@ -304,7 +304,18 @@ int App_Run(void)
         if (!App_PumpEvents())
             break;
 
-        RenderTestPattern();
+        for (int y = 0; y < g_AppState.cyHeight; y++)
+        {
+            for (int x = 0; x < g_AppState.cxWidth; x++)
+            {
+                int idx = y * g_AppState.cxWidth + x;
+                uint8_t r = (x * 255) / g_AppState.cxWidth;
+                uint8_t g = (y * 255) / g_AppState.cyHeight;
+                uint8_t b = 128;
+                g_AppState.pFrameBuffer[idx] = (r << 16) | (g << 8) | b | 0xFF000000;
+            }
+        }
+
         App_PresentFrameBuffer();
         SDL_Delay(16);
     }

@@ -9,10 +9,6 @@
 #include <SDL2/SDL.h>
 #include <queue>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #ifndef SPlatformScreenInfoDefined
 #define SPlatformScreenInfoDefined
 struct SPlatformScreenInfo {
@@ -23,6 +19,8 @@ struct SPlatformScreenInfo {
 };
 #endif
 
+#ifndef SFrameBufferInfoDefined
+#define SFrameBufferInfoDefined
 struct SFrameBufferInfo
 {
     uint32_t* pPixels;
@@ -30,6 +28,7 @@ struct SFrameBufferInfo
     int cyHeight;
     int cbPitch;
 };
+#endif
 
 struct SPlatformMessage
 {
@@ -86,7 +85,3 @@ int App_GetFrameBufferWidth(void);
 int App_GetFrameBufferHeight(void);
 
 struct SAppState& GetAppState(void);
-
-#ifdef __cplusplus
-}
-#endif
