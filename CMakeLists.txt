@@ -7,8 +7,9 @@ if(NOT APPLE)
 endif()
 
 find_package(SDL2 REQUIRED)
+find_package(SDL2_image REQUIRED)
 
-include_directories(${SDL2_INCLUDE_DIRS})
+include_directories(${SDL2_INCLUDE_DIRS} ${SDL2_IMAGE_INCLUDE_DIRS})
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -90,6 +91,7 @@ set(ALCHEMY_GRAPHICS_SOURCES
     "Alchemy/DirectXUtil/32bitFill.cpp"
     "Alchemy/DirectXUtil/Files.cpp"
     "Alchemy/DirectXUtil/Noise.cpp"
+    "Alchemy/DirectXUtil/SDLBitmap.cpp"
     "Alchemy/DirectXUtil/CGRealRGB.cpp"
     "Alchemy/DirectXUtil/CGRealHSB.cpp"
     "Alchemy/DirectXUtil/CG16bitImage.cpp"
@@ -194,6 +196,7 @@ target_include_directories(alchemy_graphics PUBLIC
 )
 target_link_libraries(alchemy_graphics PUBLIC
     alchemy_kernel
+    SDL2_image::SDL2_image-static
 )
 
 # mammoth_tse - Transcendence Space Engine
@@ -254,6 +257,7 @@ target_include_directories(platform_sdl PUBLIC
 target_link_libraries(platform_sdl PUBLIC
     SDL2::SDL2main
     SDL2::SDL2
+    SDL2_image::SDL2_image-static
     "-framework CoreFoundation"
     platform_common
 )

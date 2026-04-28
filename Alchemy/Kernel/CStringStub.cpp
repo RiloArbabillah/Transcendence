@@ -37,22 +37,6 @@ HANDLE kernelCreateThread(LPTHREAD_START_ROUTINE pfStart, LPVOID pData) { return
 
 }
 
-struct CG32bitPixel {
-    CG32bitPixel(unsigned short val = 0) : m_val(val) {}
-    CG32bitPixel(CG32bitPixel const& other) : m_val(other.m_val) {}
-    CG32bitPixel& operator=(const CG32bitPixel& other) { m_val = other.m_val; return *this; }
-    operator unsigned short() const { return m_val; }
-    unsigned short m_val;
-};
-
-ALERROR dibGetInfo(void *hDIB, int *retcxWidth, int *retcyHeight, void **retpBase, int *retiStride, BITMAPINFOHEADER *retpBMIH, void **retpBits) { return ERR_FAIL; }
-bool dibIs16bit(void *hDIB) { return false; }
-bool dibIs24bit(void *hDIB) { return false; }
-ALERROR dibLoadFromFile(Kernel::CString sFilename, void **rethDIB, EBitmapTypes *retiType) { if (rethDIB) *rethDIB = nullptr; if (retiType) *retiType = bitmapNone; return ERR_FAIL; }
-ALERROR dibLoadToBufferFromFile(Kernel::CString sFilespec, SBMPImageLoad *retImage) { if (retImage) { retImage->cxWidth = 0; retImage->cyHeight = 0; retImage->iPitch = 0; retImage->iType = bitmapNone; } return ERR_FAIL; }
-void CalcBltTransform(double xCenter, double yCenter, double xWidth, double yWidth, double rAngle, int cxDest, int cyDest, int cxSrc, int cySrc, void *pSrcToDest, void *pDestToSrc, void *retrcSrc) { }
-void CopyBltTransformed(void) { }
-
 namespace Kernel
 {
 
