@@ -64,6 +64,7 @@ struct OVERLAPPED { void *Internal; void *InternalHigh; void *Offset; HANDLE hEv
 typedef DWORD (*LPTHREAD_START_ROUTINE)(LPVOID);
 
 typedef unsigned int UINT;
+typedef float FLOAT;
 typedef std::uint16_t WORD;
 typedef std::int8_t INT8;
 typedef std::uint8_t UINT8;

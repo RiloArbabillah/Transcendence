@@ -101,7 +101,7 @@ enum MarkerTypes
 	};
 
 #ifndef RGB
-#define RGB(r, g, b) ((DWORD)(((BYTE)(r) | ((WORD)((BYTE)(g)) << 8) | (((DWORD)(BYTE)(b)) << 16)))
+#define RGB(r, g, b) ((DWORD)(((BYTE)(r) | ((WORD)((BYTE)(g)) << 8) | (((DWORD)(BYTE)(b)) << 16))))
 #endif
 
 #ifndef GetRValue
@@ -650,15 +650,50 @@ struct LOGFONT {
     char lfFaceName[32];
 };
 
-#define HFONT intptr_t
+typedef void *HFONT;
 
-inline HFONT CreateFont(int nHeight, int nWidth, int nEscapement, int nOrientation, int fnWeight,
+static inline void *CreateFont(int nHeight, int nWidth, int nEscapement, int nOrientation, int fnWeight,
                         BOOL fdwItalic, BOOL fdwUnderline, BOOL fdwStrikeOut, DWORD fdwCharSet,
                         DWORD fdwOutputPrecision, DWORD fdwClipPrecision, DWORD fdwQuality,
-                        DWORD fdwPitchAndFamily, const char* lpszFace) { return 0; }
-inline BOOL DeleteObject(HFONT hFont) { return TRUE; }
+                        DWORD fdwPitchAndFamily, const char* lpszFace) { return NULL; }
 
-// Platform screen abstraction for macOS
+struct BITMAPFILEHEADER {
+    WORD bfType;
+    DWORD bfSize;
+    WORD bfReserved1;
+    WORD bfReserved2;
+    DWORD bfOffBits;
+};
+
+#define BI_RGB 0
+#define BI_BITFIELDS 3
+#define CF_BITMAP 2
+#define DIB_RGB_COLORS 0
+
+struct BITMAP {
+    LONG bmType;
+    LONG bmWidth;
+    LONG bmHeight;
+    LONG bmWidthBytes;
+    WORD bmPlanes;
+    WORD bmBitsPixel;
+    LPVOID bmBits;
+};
+
+typedef void *HFONT;
+
+static inline int SetDIBitsToDevice(void* hDC, int xDest, int yDest, DWORD w, DWORD h, int xSrc, int ySrc, UINT StartScan, UINT cLines, const void *lpBits, const void *lpBMI, UINT Usage) { return 0; }
+static inline void *GetDesktopWindow(void) { return NULL; }
+static inline void *CreateCompatibleDC(void *hDC) { return NULL; }
+static inline void *CreateCompatibleBitmap(void *hDC, int nWidth, int nHeight) { return NULL; }
+static inline void *SelectObject(void *hDC, void *hObject) { return NULL; }
+static inline int GetObjectA(void *hBitmap, int nSize, void *lpvObject) { return 0; }
+static inline int GetObject(void *hBitmap, int nSize, void *lpvObject) { return 0; }
+static inline BOOL DeleteDC(void *hDC) { return TRUE; }
+static inline BOOL OpenClipboard(void *hWnd) { return FALSE; }
+static inline BOOL CloseClipboard(void) { return TRUE; }
+static inline BOOL EmptyClipboard(void) { return FALSE; }
+static inline void *SetClipboardData(unsigned int uFormat, void *hMem) { return NULL; }
 
 #ifndef SPlatformScreenInfoDefined
 #define SPlatformScreenInfoDefined

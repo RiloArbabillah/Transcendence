@@ -70,6 +70,7 @@ void CG32bitImage::BltToDC (HDC hDC, int x, int y) const
 //	Blt the surface to a DC
 
 	{
+#if defined(PLATFORM_API_WIN32)
 	//	Initialize a bitmap info structure
 
 	if (m_pBMI == NULL)
@@ -89,6 +90,7 @@ void CG32bitImage::BltToDC (HDC hDC, int x, int y) const
 			m_pRGBA,
 			m_pBMI,
 			DIB_RGB_COLORS);
+#endif
 	}
 
 void CG32bitImage::CleanUp (void)
@@ -157,6 +159,7 @@ bool CG32bitImage::CopyToClipboard (void)
 //	Copies to the clipboard
 
 	{
+#if defined(PLATFORM_API_WIN32)
 	//	Create an HBITMAP
 
 	HWND hDesktopWnd = ::GetDesktopWindow();
@@ -190,6 +193,9 @@ bool CG32bitImage::CopyToClipboard (void)
 		return false;
 
 	return true;
+#else
+	return false;
+#endif
 	}
 
 void CG32bitImage::CopyTransformed (const RECT &rcDest, const CG32bitImage &Src, const RECT &rcSrc, const CXForm &SrcToDest, const CXForm &DestToSrc, const RECT &rcDestXForm)
@@ -661,7 +667,7 @@ bool CG32bitImage::CreateFromRaw (const void *pBuffer, int cxWidth, int cyHeight
 	BYTE *pDestRow = (BYTE *)m_pRGBA;
 	for (int y = 0; y < cyHeight; y++)
 		{
-		utlMemCopy(pSrcRow, pDestRow, m_iPitch);
+		utlMemCopy((const char *)pSrcRow, (char *)pDestRow, m_iPitch);
 		pSrcRow += iPitch;
 		pDestRow += m_iPitch;
 		}
@@ -1571,6 +1577,7 @@ bool CG32bitImage::SaveAsWindowsBMP (const CString &sFilespec)
 //	Save to a file
 
 	{
+#if defined(PLATFORM_API_WIN32)
 	CFileWriteStream OutputFile(sFilespec);
 	if (OutputFile.Create() != NOERROR)
 		return false;
@@ -1579,6 +1586,9 @@ bool CG32bitImage::SaveAsWindowsBMP (const CString &sFilespec)
 	OutputFile.Close();
 
 	return bSuccess;
+#else
+	return false;
+#endif
 	}
 
 void CG32bitImage::SwapBuffers (CG32bitImage &Other)

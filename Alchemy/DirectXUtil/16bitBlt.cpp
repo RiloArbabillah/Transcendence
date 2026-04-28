@@ -643,12 +643,12 @@ void DrawBltShimmer (CG16bitImage &Dest,
 					}
 				else if (*pAlphaPos == 255 || *pDestPos == 0)
 					{
-					if (PERM((DWORD)pDestPos * LARGE_PRIME2 + dwRnd) < byIntensity)
+					if (PERM((DWORD)(uintptr_t)pDestPos * LARGE_PRIME2 + dwRnd) < byIntensity)
 						*pDestPos = *pSrcPos;
 					}
 				else
 					{
-					if (PERM((DWORD)pDestPos * LARGE_PRIME2 + dwRnd) < byIntensity)
+					if (PERM((DWORD)(uintptr_t)pDestPos * LARGE_PRIME2 + dwRnd) < byIntensity)
 						{
 						DWORD pxSource = *pSrcPos;
 						DWORD pxDest = *pDestPos;
@@ -738,7 +738,7 @@ void DrawBltShimmer (CG16bitImage &Dest,
 			while (pSrcPos < pSrcPosEnd)
 				{
 				if ((*pSrcPos != wSrcBackColor)
-						&& (PERM((DWORD)pDestPos * LARGE_PRIME2 + dwRnd) < byIntensity))
+						&& (PERM((DWORD)(uintptr_t)pDestPos * LARGE_PRIME2 + dwRnd) < byIntensity))
 					*pDestPos = *pSrcPos;
 
 				pDestPos++;

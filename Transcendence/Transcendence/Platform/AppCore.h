@@ -85,3 +85,6 @@ int App_GetFrameBufferWidth(void);
 int App_GetFrameBufferHeight(void);
 
 struct SAppState& GetAppState(void);
+
+void InitGameUI(SAppState& state);
+void UpdateGameUI(SAppState& state);

@@ -21,8 +21,14 @@ option(TRANSCENDENCE_ENABLE_PLATFORM_MACOS "Enable macOS-specific platform targe
 option(TRANSCENDENCE_ENABLE_AUDIO_BACKEND "Enable audio backend placeholder target." OFF)
 
 set(ALCHEMY_KERNEL_SOURCES
+    "Alchemy/Kernel/CArchiver.cpp"
     "Alchemy/Kernel/CalcConvexHull.cpp"
     "Alchemy/Kernel/CArrayBase.cpp"
+    "Alchemy/Kernel/CFileWriteStream.cpp"
+    "Alchemy/Kernel/CMemoryStream.cpp"
+    "Alchemy/Kernel/CObject.cpp"
+    "Alchemy/Kernel/CStringStub.cpp"
+    "Alchemy/Kernel/CSymbolTable.cpp"
     "Alchemy/Kernel/CAtomizer.cpp"
     "Alchemy/Kernel/CAtomTable.cpp"
     "Alchemy/Kernel/CConsoleFormat.cpp"
@@ -75,6 +81,30 @@ set(ALCHEMY_JPEG_SOURCES
 set(ALCHEMY_GRAPHICS_SOURCES
     "Alchemy/Graphics/Misc.cpp"
     "Alchemy/DirectXUtil/CScreenMgrSDL.cpp"
+    "Alchemy/DirectXUtil/CSoundMgrSDL.cpp"
+    "Alchemy/DirectXUtil/CG16bitFontSDL.cpp"
+    "Alchemy/DirectXUtil/CG32bitImage.cpp"
+    "Alchemy/DirectXUtil/CG32bitPixel.cpp"
+    "Alchemy/DirectXUtil/32bitBlt.cpp"
+    "Alchemy/DirectXUtil/16bitBlt.cpp"
+    "Alchemy/DirectXUtil/32bitFill.cpp"
+    "Alchemy/DirectXUtil/Files.cpp"
+    "Alchemy/DirectXUtil/Noise.cpp"
+    "Alchemy/DirectXUtil/CGRealRGB.cpp"
+    "Alchemy/DirectXUtil/CGRealHSB.cpp"
+    "Alchemy/DirectXUtil/CG16bitImage.cpp"
+    "Alchemy/DirectXUtil/CG16bitSprite.cpp"
+    "Alchemy/DirectXUtil/16bitImageDrawing.cpp"
+    "Alchemy/DirectXUtil/8bitDrawCircle.cpp"
+    "Alchemy/DirectXUtil/8bitImageDrawing.cpp"
+    "Alchemy/DirectXUtil/CReanimator.cpp"
+    "Alchemy/DirectXUtil/IAnimatron.cpp"
+    "Alchemy/DirectXUtil/IPropertyAnimator.cpp"
+    "Alchemy/DirectXUtil/PropertyAnimators.cpp"
+    "Alchemy/DirectXUtil/CAniPropertySet.cpp"
+    "Alchemy/DirectXUtil/CAniProperty.cpp"
+    "Alchemy/DirectXUtil/CFrameRateCounter.cpp"
+    "Alchemy/DirectXUtil/CLinearAnimator.cpp"
 )
 
 set(MAMMOTH_TSE_SOURCES
@@ -121,8 +151,12 @@ set(MAMMOTH_TSUI_SOURCES
     "Mammoth/TSUI/CReadProfileTask.cpp"
     "Mammoth/TSUI/CListCollectionTask.cpp"
     "Mammoth/TSUI/CListSaveFilesTask.cpp"
-    "Mammoth/TSUI/CHumanInterface.cpp"
-"Mammoth/TSUI/TSUISessions.cpp"
+"Mammoth/TSUI/CHumanInterface.cpp"
+    "Mammoth/TSUI/CTimerRegistrySDL.cpp"
+    "Transcendence/Transcendence/CResourcePathResolver.cpp"
+    "Transcendence/Transcendence/GameUIBridge.cpp"
+    "Mammoth/TSUI/TSUISessions.cpp"
+    "Transcendence/Transcendence/GameUIBridge.cpp"
     "Transcendence/Transcendence/CIntroSession.cpp"
     "Transcendence/Transcendence/CTranscendenceController.cpp"
 )
@@ -266,6 +300,8 @@ target_link_libraries(transcendence_app PRIVATE
     platform_sdl
     render_common
     render_metal
+    "-framework CoreGraphics"
+    "-framework ApplicationServices"
 )
 
 set_target_properties(transcendence_app PROPERTIES

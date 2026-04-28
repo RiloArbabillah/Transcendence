@@ -1,280 +1,111 @@
 //	CMemoryStream.cpp
-//
-//	Implements CMemoryWriteStream and CMemoryReadStream object
-//	Copyright (c) 2019 Kronosaur Productions, LLC. All Rights Reserved.
+//	Stub implementation for non-Windows platforms
 
 #include "PreComp.h"
 
-#define ALLOC_SIZE							4096
+namespace Kernel
+{
 
 static CObjectClass<CMemoryWriteStream>g_WriteClass(OBJID_CMEMORYWRITESTREAM, NULL);
-
 static CObjectClass<CMemoryReadStream>g_ReadClass(OBJID_CMEMORYREADSTREAM, NULL);
 
+#define ALLOC_SIZE 4096
+#define DEFAULT_MAX_SIZE (1024 * 1024)
+
 CMemoryWriteStream::CMemoryWriteStream (int iMaxSize) :
-		CObject(&g_WriteClass),
-		m_iMaxSize(iMaxSize),
-		m_iCommittedSize(0),
-		m_iCurrentSize(0),
-		m_pBlock(NULL)
+        CObject(&g_WriteClass),
+        m_iMaxSize(iMaxSize),
+        m_iCommittedSize(0),
+        m_iCurrentSize(0),
+        m_pBlock(NULL)
+{
+    if (m_iMaxSize == 0) m_iMaxSize = DEFAULT_MAX_SIZE;
+}
 
-//	CMemoryWriteStream constructor
+CMemoryWriteStream::~CMemoryWriteStream (void) {
+    if (m_pBlock) free(m_pBlock);
+}
 
-	{
-	ASSERT(m_iMaxSize >= 0);
-	if (m_iMaxSize == 0)
-		m_iMaxSize = DEFAULT_MAX_SIZE;
-	}
+ALERROR CMemoryWriteStream::Close (void) { return NOERROR; }
 
-CMemoryWriteStream::~CMemoryWriteStream (void)
+ALERROR CMemoryWriteStream::Create (void) {
+    if (m_pBlock == NULL) {
+        m_pBlock = (char *)malloc(m_iMaxSize);
+        if (m_pBlock == NULL) return ERR_MEMORY;
+        m_iCommittedSize = 0;
+    }
+    m_iCurrentSize = 0;
+    return NOERROR;
+}
 
-//	CMemoryWriteStream destructor
+void CMemoryWriteStream::Seek (int iPos) {
+    if (iPos < 0) return;
+    else if (iPos <= m_iCommittedSize) m_iCurrentSize = iPos;
+    else Write((const char *)NULL, iPos - m_iCurrentSize);
+}
 
-	{
-	//	Close the stream if necessary
+ALERROR CMemoryWriteStream::Write (const char *pData, int iLength, int *retiBytesWritten) {
+    ASSERT(m_pBlock);
+    ASSERT(iLength >= 0);
 
-	if (m_pBlock)
-		{
-		//	This will decommit and free
-        VirtualFree(m_pBlock, 0, MEM_RELEASE);
-		}
-	}
+    if (m_iCurrentSize + iLength > m_iMaxSize) {
+        int iNewMaxSize = m_iMaxSize * 2;
+        char *pNewBlock = (char *)realloc(m_pBlock, iNewMaxSize);
+        if (pNewBlock == NULL) return ERR_MEMORY;
+        m_pBlock = pNewBlock;
+        m_iMaxSize = iNewMaxSize;
+    }
 
-ALERROR CMemoryWriteStream::Close (void)
+    if (pData) memcpy(m_pBlock + m_iCurrentSize, pData, iLength);
+    m_iCurrentSize += iLength;
+    if (retiBytesWritten) *retiBytesWritten = iLength;
+    return NOERROR;
+}
 
-//	CMemoryWriteStream
-//
-//	Close the stream
-
-	{
-	return NOERROR;
-	}
-
-ALERROR CMemoryWriteStream::Create (void)
-
-//	Create
-//
-//	Creates a new file
-
-	{
-	//	Reserve a block of memory equal to the maximum size requested
-
-	if (m_pBlock == NULL)
-		{
-		m_pBlock = (char *)VirtualAlloc(NULL, m_iMaxSize, MEM_RESERVE, PAGE_NOACCESS);
-		if (m_pBlock == NULL)
-			{
-			::kernelDebugLogPattern("Out of Memory: VirtualAlloc failed reserving %d bytes.", m_iMaxSize);
-			return ERR_MEMORY;
-			}
-
-		m_iCommittedSize = 0;
-		}
-
-	//	Initialize
-
-	m_iCurrentSize = 0;
-
-	return NOERROR;
-	}
-
-void CMemoryWriteStream::Seek (int iPos)
-
-//	Seek
-//
-//	Seek to the given position.
-
-	{
-	if (iPos < 0)
-		return;
-
-	else if (iPos <= m_iCommittedSize)
-		m_iCurrentSize = iPos;
-
-	else
-		{
-		Write((const char *)NULL, iPos - m_iCurrentSize);
-		}
-	}
-
-ALERROR CMemoryWriteStream::Write (const char *pData, int iLength, int *retiBytesWritten)
-
-//	Write
-//
-//	Writes the given bytes to the file. If this call returns NOERROR, it is
-//	guaranteed that the requested number of bytes were written.
-
-	{
-	//	Make sure we called Create
-
-	ASSERT(m_pBlock);
-	ASSERT(iLength >= 0);
-
-	//	Commit the required space
-
-	if (m_iCurrentSize + iLength > m_iCommittedSize)
-		{
-		int iAdditionalSize;
-
-		//	Figure out how much to add
-
-		iAdditionalSize = AlignUp(m_iCurrentSize + iLength, ALLOC_SIZE) - m_iCommittedSize;
-
-		//	Figure out if we're over the limit. We cannot rely on VirtualAlloc
-		//	to keep track of our maximum reservation
-
-		if (m_iCommittedSize + iAdditionalSize > m_iMaxSize)
-			{
-			//	Allocate a new, bigger virtual block
-
-			int iNewMaxSize = (m_iMaxSize < 0x3fff0000 ? m_iMaxSize * 2 : 0x7fff0000);
-			char *pNewBlock = (char *)::VirtualAlloc(NULL, iNewMaxSize, MEM_RESERVE, PAGE_NOACCESS);
-			if (pNewBlock == NULL)
-				{
-				::kernelDebugLogPattern("Out of Memory: VirtualAlloc failed reserving %d bytes.", iNewMaxSize);
-				return ERR_MEMORY;
-				}
-
-			//	Commit and copy the new block
-
-			if (m_iCommittedSize > 0)
-				{
-				if (::VirtualAlloc(pNewBlock, m_iCommittedSize, MEM_COMMIT, PAGE_READWRITE) == NULL)
-					{
-					::kernelDebugLogPattern("Out of Memory: VirtualAlloc failed committing %d bytes.", m_iCommittedSize);
-					return ERR_MEMORY;
-					}
-
-				//	Copy over to the new block
-
-				utlMemCopy(m_pBlock, pNewBlock, m_iCommittedSize);
-				}
-
-			//	Free original (NOTE: This will decommit and free)
-
-			::VirtualFree(m_pBlock, 0, MEM_RELEASE);
-
-			//	Flip over
-
-			m_pBlock = pNewBlock;
-			m_iMaxSize = iNewMaxSize;
-			}
-
-		//	Commit
-
-		if (VirtualAlloc(m_pBlock + m_iCommittedSize,
-				iAdditionalSize,
-				MEM_COMMIT,
-				PAGE_READWRITE) == NULL)
-			{
-			::kernelDebugLogPattern("Out of Memory: VirtualAlloc failed committing %d bytes.", m_iCommittedSize + iAdditionalSize);
-			return ERR_MEMORY;
-			}
-
-		m_iCommittedSize += iAdditionalSize;
-		}
-
-	//	Copy the stuff over
-
-	if (pData)
-		utlMemCopy(pData, m_pBlock + m_iCurrentSize, iLength);
-
-	m_iCurrentSize += iLength;
-	if (retiBytesWritten)
-		*retiBytesWritten = iLength;
-
-	return NOERROR;
-	}
-
-CMemoryReadStream::CMemoryReadStream (void) :
-		CObject(&g_WriteClass)
-
-//	CMemoryReadStream constructor
-
-	{
-	}
-
-CMemoryReadStream::CMemoryReadStream (char *pData, int iDataSize) :
-		CObject(&g_WriteClass),
-		m_pData(pData),
-		m_iDataSize(iDataSize)
-
-//	CMemoryReadStream constructor
-
-	{
+CMemoryReadStream::CMemoryReadStream (void) : CObject(&g_ReadClass), m_pData(NULL), m_iDataSize(0) {
 #ifdef DEBUG
-	m_iPos = -1;
+    m_iPos = -1;
 #endif
-	}
+}
 
-CMemoryReadStream::~CMemoryReadStream (void)
+CMemoryReadStream::CMemoryReadStream (char *pData, int iDataSize) : CObject(&g_ReadClass), m_pData(pData), m_iDataSize(iDataSize) {
+#ifdef DEBUG
+    m_iPos = 0;
+#endif
+}
 
-//	CMemoryReadStream destructor
+CMemoryReadStream::~CMemoryReadStream (void) { }
 
-	{
-	}
+ALERROR CMemoryReadStream::Read (char *pData, int iLength, int *retiBytesRead) {
+    ASSERT(m_iPos >= 0);
+    ASSERT(iLength >= 0);
 
-ALERROR CMemoryReadStream::Read (char *pData, int iLength, int *retiBytesRead)
+    ALERROR error = NOERROR;
 
-//	Read
+    if (m_iPos + iLength > m_iDataSize) {
+        iLength = m_iDataSize - m_iPos;
+        error = ERR_ENDOFFILE;
+    }
 
-	{
-	ASSERT(m_iPos >= 0);	//	This happens if we don't Open the stream first
-	ASSERT(iLength >= 0);
+    if (pData && iLength > 0) memcpy(pData, m_pData + m_iPos, iLength);
+    m_iPos += iLength;
+    if (retiBytesRead) *retiBytesRead = iLength;
+    return error;
+}
 
-	ALERROR error = NOERROR;
+ALERROR IWriteStream::WriteChar (char chChar, int iLength) {
+    if (iLength == 1) {
+        Write(&chChar, 1);
+    } else {
+        char chBuffer[sizeof(DWORD)];
+        for (int i = 0; i < sizeof(DWORD); i++) chBuffer[i] = chChar;
+        while (iLength > 0) {
+            int iChunk = Min((int)sizeof(DWORD), iLength);
+            Write(chBuffer, iChunk);
+            iLength -= iChunk;
+        }
+    }
+    return NOERROR;
+}
 
-	//	If we don't have enough data left, read out what we can
-
-	if (m_iPos + iLength > m_iDataSize)
-		{
-		iLength = m_iDataSize - m_iPos;
-		error = ERR_ENDOFFILE;
-		}
-
-	//	Copy the stuff over
-
-	if (pData)
-		utlMemCopy(m_pData + m_iPos, pData, iLength);
-	m_iPos += iLength;
-	if (retiBytesRead)
-		*retiBytesRead = iLength;
-
-	return error;
-	}
-
-//	IWriteStream ----------------------------------------------------------------
-
-ALERROR Write (int iValue);
-ALERROR Write (DWORD dwValue);
-ALERROR Write (const CString &sString);
-
-ALERROR IWriteStream::WriteChar (char chChar, int iLength)
-
-//	WriteChar
-//
-//	Write out a sequence of characters
-
-	{
-	if (iLength == 1)
-		{
-		Write(&chChar, 1);
-		}
-	else
-		{
-		int i;
-		char chBuffer[sizeof(DWORD)];
-
-		for (i = 0; i < sizeof(DWORD); i++)
-			chBuffer[i] = chChar;
-
-		while (iLength > 0)
-			{
-			int iChunk = Min((int)sizeof(DWORD), iLength);
-			Write(chBuffer, iChunk);
-			iLength -= iChunk;
-			}
-		}
-
-	return NOERROR;
-	}
+}
