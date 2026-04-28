@@ -13,23 +13,7 @@
 constexpr int DEFAULT_WIDTH = 1024;
 constexpr int DEFAULT_HEIGHT = 768;
 
-struct SAppState
-{
-    SDL_Window* pWindow = nullptr;
-    SDL_Renderer* pRenderer = nullptr;
-    SDL_Texture* pTexture = nullptr;
-    uint32_t* pFrameBuffer = nullptr;
-    bool bRunning = true;
-    Uint32 lastTick = 0;
-    int frameCount = 0;
-    Uint32 fpsTick = 0;
-    int fps = 0;
-    int cxWidth = DEFAULT_WIDTH;
-    int cyHeight = DEFAULT_HEIGHT;
-    std::queue<SPlatformMessage> msgQueue;
-};
-
-static SAppState g_AppState;
+SAppState g_AppState;
 
 int App_Init(void)
 {
@@ -216,7 +200,7 @@ void App_PresentFrameBuffer(void)
     }
 }
 
-SPlatformScreenInfo PlatformGetScreenInfo(void)
+struct SPlatformScreenInfo PlatformGetScreenInfo(void)
 {
     SPlatformScreenInfo info;
     info.pPixels = g_AppState.pFrameBuffer;
@@ -329,3 +313,5 @@ int App_Run(void)
     App_Shutdown();
     return 0;
 }
+
+SAppState& GetAppState(void) { return g_AppState; }

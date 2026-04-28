@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include "TSUISettings.h"
+
 //	Key mapping class ---------------------------------------------------------
 
 class CGameKeys

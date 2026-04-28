@@ -290,6 +290,10 @@ struct WNDCLASSEX { UINT cbSize; UINT style; void* lpfnWndProc; int cbClsExtra; 
 #define VK_RBUTTON 0x02
 #define VK_RETURN 0x0D
 #define VK_ESCAPE 0x1B
+#define VK_PAUSE 0x13
+#define VK_F1 0x70
+#define VK_F2 0x71
+#define VK_F11 0x7A
 
 #define WAIT_TIMEOUT 258
 

@@ -798,7 +798,7 @@ class CTranscendencePlayer : public IPlayerController
 
 		//	IPlayerController interface
 
-		virtual ICCItem *CreateGlobalRef (CCodeChain &CC) override { return CC.CreateInteger((int)m_pPlayer); }
+		virtual ICCItem *CreateGlobalRef (CCodeChain &CC) override { return CC.CreateInteger((intptr_t)m_pPlayer); }
 		virtual CPlayerGameStats *GetGameStats (void) const override { return &m_pPlayer->GetGameStats(); }
 		virtual GenomeTypes GetGenome (void) const override;
 		virtual DWORD GetLastWarningTick () const override { return m_EphemeralState.dwLastWarningTick; };

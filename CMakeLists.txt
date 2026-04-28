@@ -122,6 +122,7 @@ set(MAMMOTH_TSUI_SOURCES
     "Mammoth/TSUI/CListCollectionTask.cpp"
     "Mammoth/TSUI/CListSaveFilesTask.cpp"
     "Mammoth/TSUI/CHumanInterface.cpp"
+    "Transcendence/Transcendence/CIntroSession.cpp"
 )
 
 add_library(alchemy_kernel STATIC ${ALCHEMY_KERNEL_SOURCES})
@@ -217,6 +218,7 @@ target_include_directories(platform_sdl PUBLIC
 target_link_libraries(platform_sdl PUBLIC
     SDL2::SDL2main
     SDL2::SDL2
+    "-framework CoreFoundation"
     platform_common
 )
 

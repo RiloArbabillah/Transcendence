@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include "TSUIHUD.h"
+
 class CHeadsUpDisplay
 	{
 	public:
@@ -92,17 +94,16 @@ class CMenuDisplay
 	public:
 		enum EPositions
 			{
-			posNone,
-
-			posCenter,
-			posRight,
-			posLeft,
+			posNone = 0,
+			posCenter = 1,
+			posRight = 2,
+			posLeft = 3
 			};
 
 		struct SOptions
 			{
-			EPositions iPos = posCenter;
-			bool bHideShortCutKeys = false;
+			EPositions iPos;
+			bool bHideShortCutKeys;
 			};
 
 		CMenuDisplay (CHumanInterface &HI, CTranscendenceModel &Model) :
