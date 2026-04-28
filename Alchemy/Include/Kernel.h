@@ -53,6 +53,9 @@ typedef void *HFONT;
 typedef void *HINSTANCE;
 typedef void *HMODULE;
 typedef void *HPALETTE;
+#define MAKEINTRESOURCE(id) ((char *)(intptr_t)(id))
+#define IDR_HELP_BACKGROUND 100
+inline BOOL DeleteObject(HBITMAP hBitmap) { return 1; }
 typedef void *HRGN;
 typedef void *HWND;
 typedef void *HANDLE;
@@ -295,9 +298,20 @@ struct WNDCLASSEX { UINT cbSize; UINT style; void* lpfnWndProc; int cbClsExtra; 
 #define VK_F1 0x70
 #define VK_F2 0x71
 #define VK_F11 0x7A
+#define VK_F6 0x75
+#define VK_F7 0x76
+#define VK_F8 0x77
+#define VK_F9 0x78
 #define VK_LEFT 0x25
 #define VK_RIGHT 0x27
 #define VK_TAB 0x09
+#define VK_SPACE 0x20
+#define VK_MBUTTON 0x04
+#define VK_SUBTRACT 0x6D
+#define VK_OEM_MINUS 0xBD
+#define VK_ADD 0x6B
+#define VK_OEM_PLUS 0xBB
+#define VK_BACK 0x08
 
 #define WAIT_TIMEOUT 258
 
@@ -633,6 +647,8 @@ inline int RectHeight(RECT *pRect) { return pRect->bottom - pRect->top; }
 inline int RectHeight(const RECT &Rect) { return Rect.bottom - Rect.top; }
 inline int RectWidth(RECT *pRect) { return pRect->right - pRect->left; }
 inline int RectWidth(const RECT &Rect) { return Rect.right - Rect.left; }
+inline bool PtInRect(const RECT *pRect, int x, int y) { return (x >= pRect->left && x <= pRect->right && y >= pRect->top && y <= pRect->bottom); }
+inline bool PtInRect(const RECT *pRect, const POINT& pt) { return PtInRect(pRect, pt.x, pt.y); }
 inline void RectCenter (const RECT &rcRect, int *retx, int *rety) { *retx = rcRect.left + (RectWidth(rcRect) / 2); *rety = rcRect.top + (RectHeight(rcRect) / 2); }
 inline bool RectsIntersect(const RECT &R1, const RECT &R2)
 	{

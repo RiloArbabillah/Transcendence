@@ -363,7 +363,7 @@ bool CGameSession::ShowInvokeMenu ()
 						NULL_STR,
 						sHelp,
 						dwFlags,
-						(DWORD)pPower);
+						(DWORD)(intptr_t)pPower);
 				
 				if (dwCooldownStart != dwCooldownEnd)
 					g_pTrans->m_MenuData.SetItemCooldown(iEntry, dwCooldownStart, dwCooldownEnd);

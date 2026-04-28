@@ -298,7 +298,7 @@ ICCItemPtr IDockScreenDisplay::GetProperty (const CString &sProperty) const
 		if (pObj == NULL)
 			return ICCItemPtr(ICCItem::Nil);
 
-		return ICCItemPtr((int)pObj);
+		return ICCItemPtr((int)(intptr_t)pObj);
 		}
 	else
 		return OnGetProperty(sProperty);

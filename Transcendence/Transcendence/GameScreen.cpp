@@ -421,7 +421,7 @@ bool CTranscendenceWnd::ShowCommsTargetMenu (void)
 							sKey,
 							pObj->GetNounPhrase(),
 							CMenuData::FLAG_SORT_BY_KEY,
-							(DWORD)pObj);
+							(DWORD)(intptr_t)pObj);
 
 					pObj->SetHighlightChar(*sKey.GetASCIIZPointer());
 					KeyMap.SetAt(sKey, true);
@@ -453,7 +453,7 @@ bool CTranscendenceWnd::ShowCommsTargetMenu (void)
 							sKey,
 							pObj->GetNounPhrase(),
 							CMenuData::FLAG_SORT_BY_KEY,
-							(DWORD)pObj);
+							(DWORD)(intptr_t)pObj);
 
 					pObj->SetHighlightChar(*sKey.GetASCIIZPointer());
 					KeyMap.SetAt(sKey, true);
