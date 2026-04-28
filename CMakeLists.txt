@@ -134,6 +134,8 @@ set(MAMMOTH_TSUI_SOURCES
     "Transcendence/Transcendence/CDockScreenList.cpp"
     "Transcendence/Transcendence/CDockScreenDetailsPane.cpp"
     "Transcendence/Transcendence/CDockScreenCustomList.cpp"
+    "Transcendence/Transcendence/CDockScreenItemList.cpp"
+    "Transcendence/Transcendence/CDockScreenIconList.cpp"
 )
 
 add_library(alchemy_kernel STATIC ${ALCHEMY_KERNEL_SOURCES})
