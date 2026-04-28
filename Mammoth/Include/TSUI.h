@@ -888,7 +888,7 @@ extern CHumanInterface *g_pHI;
 #include "UIHelpers.h"
 #include "Painters.h"
 #include "TSUIMapPainters.h"
-
+#include "TSUISessions.h"
 #include "Soundtrack.h"
 
 //	Inlines

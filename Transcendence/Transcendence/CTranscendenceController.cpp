@@ -1986,7 +1986,7 @@ ALERROR CTranscendenceController::OnCommand (const CString &sCmd, void *pData)
 		}
 
 	else if (strEquals(sCmd, CMD_SOUNDTRACK_UPDATE_PLAY_POS))
-		m_Soundtrack.NotifyUpdatePlayPos((int)pData);
+		m_Soundtrack.NotifyUpdatePlayPos((int)(intptr_t)pData);
 
 	else if (strEquals(sCmd, CMD_SOUNDTRACK_PLAY_PAUSE))
 		m_Soundtrack.TogglePlayPaused();
@@ -2003,7 +2003,7 @@ ALERROR CTranscendenceController::OnCommand (const CString &sCmd, void *pData)
 
 	else if (strEquals(sCmd, CMD_DISABLE_EXTENSION))
 		{
-		DWORD dwUNID = (DWORD)pData;
+		DWORD dwUNID = (DWORD)(intptr_t)pData;
 		if (dwUNID == 0)
 			return NOERROR;
 
@@ -2014,7 +2014,7 @@ ALERROR CTranscendenceController::OnCommand (const CString &sCmd, void *pData)
 
 	else if (strEquals(sCmd, CMD_ENABLE_EXTENSION))
 		{
-		DWORD dwUNID = (DWORD)pData;
+		DWORD dwUNID = (DWORD)(intptr_t)pData;
 		if (dwUNID == 0)
 			return NOERROR;
 
