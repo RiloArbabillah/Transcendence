@@ -126,6 +126,10 @@ set(MAMMOTH_TSUI_SOURCES
     "Transcendence/Transcendence/CLoadingSession.cpp"
     "Transcendence/Transcendence/CLoginSession.cpp"
     "Transcendence/Transcendence/CNewGameSession.cpp"
+    "Transcendence/Transcendence/CChooseAdventureSession.cpp"
+    "Transcendence/Transcendence/CAdventureIntroSession.cpp"
+    "Transcendence/Transcendence/CGameSession.cpp"
+    "Transcendence/Transcendence/CDockScreen.cpp"
 )
 
 add_library(alchemy_kernel STATIC ${ALCHEMY_KERNEL_SOURCES})

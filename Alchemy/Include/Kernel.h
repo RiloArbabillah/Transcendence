@@ -254,6 +254,7 @@ inline int MessageBox(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) { 
 #define IDNO 7
 
 inline bool GetCursorPos(POINT* pPoint) { if (pPoint) { pPoint->x = 0; pPoint->y = 0; } return true; }
+inline void SetCursorPos(int x, int y) { }
 
 #define VK_DOWN 0x28
 #define VK_UP 0x26
@@ -296,6 +297,7 @@ struct WNDCLASSEX { UINT cbSize; UINT style; void* lpfnWndProc; int cbClsExtra; 
 #define VK_F11 0x7A
 #define VK_LEFT 0x25
 #define VK_RIGHT 0x27
+#define VK_TAB 0x09
 
 #define WAIT_TIMEOUT 258
 
