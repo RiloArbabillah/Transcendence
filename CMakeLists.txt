@@ -145,6 +145,7 @@ set(ALCHEMY_GRAPHICS_SOURCES
     "Alchemy/DirectXUtil/Files.cpp"
     "Alchemy/DirectXUtil/Noise.cpp"
     "Alchemy/DirectXUtil/SDLBitmap.cpp"
+    "Alchemy/DirectXUtil/PolygonSimple.cpp"
     "Alchemy/DirectXUtil/CGRealRGB.cpp"
     "Alchemy/DirectXUtil/CGRealHSB.cpp"
     "Alchemy/DirectXUtil/CG16bitImage.cpp"
@@ -158,6 +159,7 @@ set(ALCHEMY_GRAPHICS_SOURCES
     "Alchemy/DirectXUtil/PropertyAnimators.cpp"
     "Alchemy/DirectXUtil/CAniPropertySet.cpp"
     "Alchemy/DirectXUtil/CAniProperty.cpp"
+    "Alchemy/DirectXUtil/CAniPropertySet.cpp"
     "Alchemy/DirectXUtil/CFrameRateCounter.cpp"
     "Alchemy/DirectXUtil/CLinearAnimator.cpp"
 )
