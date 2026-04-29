@@ -4,7 +4,7 @@
 //	Copyright (c) 2018 Kronosaur Productions, LLC. All Rights Reserved.
 
 #include "PreComp.h"
-#include "lodepng\lodepng.h"
+#include "lodepng/lodepng.h"
 
 bool CGPNG::Load (IReadBlock &Data, CG32bitImage &Image, CString *retsError)
 

@@ -118,6 +118,11 @@ set(ALCHEMY_XMLUTIL_SOURCES
     "Alchemy/XMLUtil/CEntityResolverList.cpp"
     "Alchemy/XMLUtil/CExternalEntityTable.cpp"
     "Alchemy/XMLUtil/Misc.cpp"
+    "Alchemy/XMLUtil/CXMLElement.cpp"
+    "Alchemy/XMLUtil/JSONParser.cpp"
+    "Alchemy/XMLUtil/CJSONMessage.cpp"
+    "Alchemy/XMLUtil/CJSONValue.cpp"
+    "Alchemy/XMLUtil/Parser.cpp"
 )
 
 set(ALCHEMY_JPEG_SOURCES
@@ -129,7 +134,7 @@ set(ALCHEMY_GRAPHICS_SOURCES
     #"Alchemy/Graphics/CGBitmap.cpp"
     #"Alchemy/Graphics/CGFont.cpp"
     #"Alchemy/Graphics/CGResourceFile.cpp"
-    #"Alchemy/Graphics/DIB.cpp"
+    "Alchemy/Graphics/DIBSDL.cpp"
     #"Alchemy/Graphics/GDI.cpp"
     "Alchemy/Graphics/Misc.cpp"
     "Alchemy/Graphics/Raw.cpp"
@@ -150,6 +155,7 @@ set(ALCHEMY_GRAPHICS_SOURCES
     "Alchemy/DirectXUtil/CGRealHSB.cpp"
     "Alchemy/DirectXUtil/CG16bitImage.cpp"
     "Alchemy/DirectXUtil/CG16bitSprite.cpp"
+    "Alchemy/DirectXUtil/Polygon.cpp"
     "Alchemy/DirectXUtil/16bitImageDrawing.cpp"
     "Alchemy/DirectXUtil/8bitDrawCircle.cpp"
     "Alchemy/DirectXUtil/8bitImageDrawing.cpp"
@@ -159,9 +165,63 @@ set(ALCHEMY_GRAPHICS_SOURCES
     "Alchemy/DirectXUtil/PropertyAnimators.cpp"
     "Alchemy/DirectXUtil/CAniPropertySet.cpp"
     "Alchemy/DirectXUtil/CAniProperty.cpp"
-    "Alchemy/DirectXUtil/CAniPropertySet.cpp"
+    "Alchemy/DirectXUtil/CAniButton.cpp"
+    "Alchemy/DirectXUtil/CAniListBox.cpp"
+    "Alchemy/DirectXUtil/CAniText.cpp"
+    "Alchemy/DirectXUtil/CAniTextInput.cpp"
+    "Alchemy/DirectXUtil/CAniShape.cpp"
+    "Alchemy/DirectXUtil/CAniPolygon.cpp"
+    "Alchemy/DirectXUtil/CAniRect.cpp"
+    "Alchemy/DirectXUtil/CAniRoundedRect.cpp"
+    "Alchemy/DirectXUtil/CAniSolidFill.cpp"
+    "Alchemy/DirectXUtil/CAniSequencer.cpp"
+    "Alchemy/DirectXUtil/CAniCartoucheBlock.cpp"
+    "Alchemy/DirectXUtil/CAniControl.cpp"
+    "Alchemy/DirectXUtil/CAniImageFill.cpp"
+    "Alchemy/DirectXUtil/CAniRichText.cpp"
+    "Alchemy/DirectXUtil/CAniVScroller.cpp"
+    "Alchemy/DirectXUtil/CGTextArea.cpp"
+    "Alchemy/DirectXUtil/CTextBlock.cpp"
+    "Alchemy/DirectXUtil/CGButtonArea.cpp"
+    "Alchemy/DirectXUtil/CGFrameArea.cpp"
+    "Alchemy/DirectXUtil/CGImageArea.cpp"
+    "Alchemy/DirectXUtil/CGRegion.cpp"
+    "Alchemy/DirectXUtil/CG8bitImage.cpp"
+    "Alchemy/DirectXUtil/CG8bitSparseImage.cpp"
+    "Alchemy/DirectXUtil/CG16bitLinePainter.cpp"
+    "Alchemy/DirectXUtil/CG16bitRegion.cpp"
+    "Alchemy/DirectXUtil/CG16bitBinaryRegion.cpp"
+    "Alchemy/DirectXUtil/CG16bitRealRegion.cpp"
+    "Alchemy/DirectXUtil/CGPath.cpp"
+    "Alchemy/DirectXUtil/CLinePainter.cpp"
+    "Alchemy/DirectXUtil/CGShape.cpp"
+    "Alchemy/DirectXUtil/CPolygonRasterizer.cpp"
+    "Alchemy/DirectXUtil/CSortedEdgeList.cpp"
+    "Alchemy/DirectXUtil/CGlobalEdgeTable.cpp"
+    "Alchemy/DirectXUtil/CGCloudGenerator3D.cpp"
+    "Alchemy/DirectXUtil/CGImageCache.cpp"
+    "Alchemy/DirectXUtil/CGPNG.cpp"
+    #"Alchemy/DirectXUtil/BlendModes.cpp"
+    #"Alchemy/DirectXUtil/FilterBlur.cpp"
+    #"Alchemy/DirectXUtil/FilterMinMax.cpp"
+    #"Alchemy/DirectXUtil/FilterThreshold.cpp"
+    #"Alchemy/DirectXUtil/8bitNoise.cpp"
+    #"Alchemy/DirectXUtil/16bitDrawGradient.cpp"
+    "Alchemy/DirectXUtil/CDrawText.cpp"
+    "Alchemy/DirectXUtil/DrawText.cpp"
+    #"Alchemy/DirectXUtil/DrawRegion.cpp"
+    #"Alchemy/DirectXUtil/DrawLine.cpp"
+    #"Alchemy/DirectXUtil/DrawRect.cpp"
+    #"Alchemy/DirectXUtil/DrawCircle.cpp"
+    #"Alchemy/DirectXUtil/DrawFill.cpp"
+    #"Alchemy/DirectXUtil/DrawClouds.cpp"
+    "Alchemy/DirectXUtil/CListScroller.cpp"
+    "Alchemy/DirectXUtil/CCartoucheBlock.cpp"
+    "Alchemy/DirectXUtil/CGRealChannel.cpp"
+    "Alchemy/DirectXUtil/CompositeCircle.cpp"
     "Alchemy/DirectXUtil/CFrameRateCounter.cpp"
     "Alchemy/DirectXUtil/CLinearAnimator.cpp"
+    "Alchemy/DirectXUtil/lodepng/lodepng.cpp"
 )
 
 set(MAMMOTH_TSE_SOURCES
@@ -341,10 +401,11 @@ target_link_libraries(alchemy_jpeg PUBLIC
     alchemy_kernel
 )
 
-add_library(alchemy_graphics STATIC ${ALCHEMY_GRAPHICS_SOURCES})
-target_include_directories(alchemy_graphics PUBLIC
-    "${CMAKE_CURRENT_SOURCE_DIR}/Alchemy/Include"
-)
+ add_library(alchemy_graphics STATIC ${ALCHEMY_GRAPHICS_SOURCES})
+ target_include_directories(alchemy_graphics PUBLIC
+     "${CMAKE_CURRENT_SOURCE_DIR}/Alchemy/Include"
+     "${CMAKE_CURRENT_SOURCE_DIR}/Alchemy/DirectXUtil/lodepng"
+ )
 target_link_libraries(alchemy_graphics PUBLIC
     alchemy_kernel
     SDL2_image::SDL2_image-static

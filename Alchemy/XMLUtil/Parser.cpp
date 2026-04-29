@@ -4,6 +4,7 @@
 //	Copyright (c) 2019 by Kronosaur Productions, LLC. All Rights Reserved.
 
 #include "PreComp.h"
+#include "CHTML.h"
 
 enum TokenTypes
 	{
