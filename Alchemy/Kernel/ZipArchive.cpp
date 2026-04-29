@@ -6,15 +6,19 @@
 #include "PreComp.h"
 #include "Zip.h"
 
+#ifdef _WIN32
 #define ZLIB_WINAPI
 #include "..\zlib-1.2.7\zlib.h"
 
 #ifdef ZLIB_H
-//	unzip.h needs _ZLIB_H defined (not ZLIB_H, for some reason)
 #define _ZLIB_H
 #endif
 
 #include "..\zlib-1.2.7\contrib\minizip\unzip.h"
+#else
+#include <zlib.h>
+#include <minizip/unzip.h>
+#endif
 
 const int BUFFER_SIZE = 64 * 1024;
 

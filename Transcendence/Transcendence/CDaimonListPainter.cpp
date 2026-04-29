@@ -269,8 +269,8 @@ void CDaimonListPainter::Paint (CG32bitImage &Dest)
 		if (i == iSelection)
 			{
 			Dest.ResetClipRect();
-			CGDraw::RoundedRect(Dest, x, y, m_cxWidth + SELECTION_EXTRA_WIDTH, cyDaimon, CORNER_RADIUS, AA_STYLECOLOR(colorDeployDaimonBack));
-			CGDraw::RoundedRectOutline(Dest, x, y, m_cxWidth + SELECTION_EXTRA_WIDTH, cyDaimon, CORNER_RADIUS, LINE_WIDTH, AA_STYLECOLOR(colorDeployDaimonFore));
+			CGDraw::RoundedRect(Dest, x, y, m_cxWidth + SELECTION_EXTRA_WIDTH, cyDaimon, CORNER_RADIUS, CArtifactAwakenVisuals::GetColor(CArtifactAwakenVisuals::colorDeployDaimonBack));
+			CGDraw::RoundedRectOutline(Dest, x, y, m_cxWidth + SELECTION_EXTRA_WIDTH, cyDaimon, CORNER_RADIUS, LINE_WIDTH, CArtifactAwakenVisuals::GetColor(CArtifactAwakenVisuals::colorDeployDaimonFore));
 			Dest.SetClipRect(m_rcRect);
 			}
 
@@ -302,7 +302,7 @@ void CDaimonListPainter::PaintDaimon (CG32bitImage &Dest, CItemType *pDaimon, in
 	Options.bTitle = true;
 	Painter.Init(CItem(pDaimon, 1), cxWidth, Options);
 
-	Painter.Paint(Dest, x, y, AA_STYLECOLOR(colorDeployDaimonTitle));
+	Painter.Paint(Dest, x, y, CArtifactAwakenVisuals::GetColor(CArtifactAwakenVisuals::colorDeployDaimonTitle));
 	}
 
 bool CDaimonListPainter::Update (void)

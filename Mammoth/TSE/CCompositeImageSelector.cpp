@@ -46,7 +46,7 @@ void CCompositeImageSelector::AddFlotsam (DWORD dwID, CItemType *pItemType)
 	SEntry *pEntry = m_Sel.Insert();
 
 	pEntry->dwID = dwID;
-	pEntry->dwExtra = (DWORD)pItemType;
+	pEntry->dwExtra = (DWORD)(uintptr_t)pItemType;
 	pEntry->iVariant = -1;
 	}
 
@@ -60,7 +60,7 @@ void CCompositeImageSelector::AddShipwreck (DWORD dwID, CShipClass *pWreckClass,
 	SEntry *pEntry = m_Sel.Insert();
 
 	pEntry->dwID = dwID;
-	pEntry->dwExtra = (DWORD)pWreckClass;
+	pEntry->dwExtra = (DWORD)(uintptr_t)pWreckClass;
 	pEntry->iVariant = 0;
 	}
 
@@ -234,7 +234,7 @@ void CCompositeImageSelector::ReadFromItem (const CDesignCollection &Design, ICC
 			{
 			const CItemType *pItemType = CItemType::AsType(Design.FindEntry(dwUNID));
 			if (pItemType)
-				m_Sel[i].dwExtra = (DWORD)pItemType;
+				m_Sel[i].dwExtra = (DWORD)(uintptr_t)pItemType;
 			else
 				m_Sel[i].dwExtra = 0;
 			}
@@ -245,7 +245,7 @@ void CCompositeImageSelector::ReadFromItem (const CDesignCollection &Design, ICC
 				{
 				const CShipClass *pShipClass = CShipClass::AsType(Design.FindEntry(dwUNID));
 				if (pShipClass)
-					m_Sel[i].dwExtra = (DWORD)pShipClass;
+					m_Sel[i].dwExtra = (DWORD)(uintptr_t)pShipClass;
 				else
 					m_Sel[i].dwExtra = 0;
 				}
@@ -284,9 +284,9 @@ void CCompositeImageSelector::ReadFromStream (SLoadCtx &Ctx)
 			if (dwLoad == 0)
 				m_Sel[i].dwExtra = 0;
 			else if (m_Sel[i].iVariant == -1)
-				m_Sel[i].dwExtra = (DWORD)Ctx.GetUniverse().FindItemType(dwLoad);
+				m_Sel[i].dwExtra = (DWORD)(uintptr_t)Ctx.GetUniverse().FindItemType(dwLoad);
 			else
-				m_Sel[i].dwExtra = (DWORD)Ctx.GetUniverse().FindShipClass(dwLoad);
+				m_Sel[i].dwExtra = (DWORD)(uintptr_t)Ctx.GetUniverse().FindShipClass(dwLoad);
 			}
 		}
 	}

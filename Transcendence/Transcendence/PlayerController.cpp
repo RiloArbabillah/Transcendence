@@ -834,7 +834,7 @@ void CPlayerShipController::InitTargetList (ETargetClass iTargetType, bool bUpda
 
 					//	Compute the sort order based on the main key and the distance
 
-					wsprintf(szBuffer, "%d%08d%8x", iMainKey, iDist, (DWORD)pObj);
+					wsprintf(szBuffer, "%d%08d%8x", iMainKey, iDist, (DWORD)(uintptr_t)pObj);
 					bInList = true;
 					}
 				}

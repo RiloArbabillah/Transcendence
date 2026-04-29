@@ -218,7 +218,7 @@ CString CContinuousBeam::DebugCrashInfo (void) const
 		}
 	catch (...)
 		{
-		sResult.Append(strPatternSubst(CONSTLIT("m_pPainter: %x [invalid]\r\n"), (DWORD)m_pPainter));
+		sResult.Append(strPatternSubst(CONSTLIT("m_pPainter: %x [invalid]\r\n"), (DWORD)(uintptr_t)m_pPainter));
 		}
 
 	return sResult;

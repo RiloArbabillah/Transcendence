@@ -415,10 +415,10 @@ DWORD COrderDesc::GetDataInteger () const
 	switch (GetDataType())
 		{
 		case EDataType::Int32:
-			return (DWORD)m_pData;
+			return (DWORD)(uintptr_t)m_pData;
 
 		case EDataType::Int16Pair:
-			return LOWORD((DWORD)m_pData);
+			return LOWORD((DWORD)(uintptr_t)m_pData);
 
 		default:
 			return 0;
@@ -469,7 +469,7 @@ DWORD COrderDesc::GetDataInteger2 () const
 	switch (GetDataType())
 		{
 		case EDataType::Int16Pair:
-			return HIWORD((DWORD)m_pData);
+			return HIWORD((DWORD)(uintptr_t)m_pData);
 
 		default:
 			return 0;
@@ -1044,7 +1044,7 @@ void COrderDesc::WriteToStream (IWriteStream &Stream, const CShip &Ship) const
 		{
 		case EDataType::Int32:
 		case EDataType::Int16Pair:
-			Stream.Write((DWORD)m_pData);
+			Stream.Write((DWORD)(uintptr_t)m_pData);
 			break;
 
 		case EDataType::Item:

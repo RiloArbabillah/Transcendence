@@ -497,7 +497,7 @@ void CString::Capitalize (CapitalizeOptions iOption)
 			{
 			//	Capitalize first letter
 
-			*pPos = (char)(DWORD)::CharUpper((LPTSTR)(int)*pPos);
+			*pPos = (char)(DWORD)(uintptr_t)::CharUpper((LPTSTR)(uintptr_t)*pPos);
 			break;
 			}
 
@@ -589,7 +589,7 @@ int CString::GetMemoryUsage (void) const
 	if (m_pStore == NULL || m_pStore->iAllocSize <= 0)
 		return 0;
 
-	return (sizeof STORESTRUCT) + m_pStore->iAllocSize;
+	return (int)((sizeof(STORESTRUCT)) + m_pStore->iAllocSize);
 	}
 
 char *CString::GetPointer (void) const
@@ -2025,7 +2025,7 @@ CString Kernel::strConvertToToken (const CString &sString, bool bLowercase)
 		if (strIsAlphaNumeric(pSrc))
 			{
 			if (bLowercase)
-				*pDest++ = (char)(DWORD)CharLower((LPTSTR)(BYTE)(*pSrc++));
+				*pDest++ = (char)(uintptr_t)CharLower((LPTSTR)(uintptr_t)(BYTE)(*pSrc++));
 			else
 				*pDest++ = *pSrc++;
 			}
@@ -2197,7 +2197,7 @@ bool Kernel::strIsUpper (const char *pPos)
 //	Returns TRUE if this is an uppercase character.
 
 	{
-	char chLower = (char)(DWORD)::CharLowerA((LPSTR)(BYTE)*pPos);
+	char chLower = (char)(uintptr_t)::CharLowerA((LPSTR)(uintptr_t)(BYTE)*pPos);
 	return (chLower != *pPos);
 	}
 
@@ -2852,12 +2852,12 @@ CString Kernel::strTitleCapitalize (const CString &sString, const char **pExcept
 
 	//	The first word is capitalized
 
-	*Words[0] = (char)(DWORD)::CharUpper((LPSTR)*Words[0]);
+	*Words[0] = (char)(uintptr_t)::CharUpper((LPSTR)(uintptr_t)*Words[0]);
 
 	//	The last word is capitalized
 
 	if (Words.GetCount() > 1)
-		*Words[Words.GetCount() - 1] = (char)(DWORD)::CharUpper((LPSTR)*Words[Words.GetCount() - 1]);
+		*Words[Words.GetCount() - 1] = (char)(uintptr_t)::CharUpper((LPSTR)(uintptr_t)*Words[Words.GetCount() - 1]);
 
 	//	All the words in between are capitalized if they are not on the
 	//	exception list.
@@ -2875,7 +2875,7 @@ CString Kernel::strTitleCapitalize (const CString &sString, const char **pExcept
 				}
 
 		if (!bException)
-			*Words[i] = (char)(DWORD)::CharUpper((LPSTR)*Words[i]);
+			*Words[i] = (char)(uintptr_t)::CharUpper((LPSTR)(uintptr_t)*Words[i]);
 		}
 
 	//	Don

@@ -4,7 +4,53 @@
 //	Copyright (c) 2019 Kronosaur Productions, LLC. All Rights Reserved.
 
 #include "PreComp.h"
+#ifdef _WIN32
 #include "shlobj.h"
+#else
+#include <copyfile.h>
+#include <sys/stat.h>
+#define SHGFP_TYPE_CURRENT 0
+#define CSIDL_LOCAL_APPDATA 28
+#define HRESULT long
+#define S_OK 0
+#define E_FAIL 1
+#define LPITEMIDLIST void*
+#define FO_DELETE 0x0003
+#define FOF_ALLOWUNDO 0x0040
+#define FOF_NO_UI 0x0400
+#define FILEOP_FLAGS unsigned int
+#define FILE_ATTRIBUTE_HIDDEN 0x0002
+#define FILE_ATTRIBUTE_SYSTEM 0x0004
+#define FILE_ATTRIBUTE_DIRECTORY 0x0010
+#define FILETIME unsigned long long
+#define SW_SHOWDEFAULT 5
+#define CSIDL_APPDATA 26
+#define CSIDL_PERSONAL 5
+#define CSIDL_MYPICTURES 0x0027
+#define CSIDL_MYMUSIC 0x000D
+#define MAX_PATH 260
+#define LPMALLOC void*
+struct WIN32_FIND_DATA { DWORD dwFileAttributes; FILETIME ftCreationTime; FILETIME ftLastAccessTime; FILETIME ftLastWriteTime; DWORD nFileSizeHigh; DWORD nFileSizeLow; DWORD dwReserved0; DWORD dwReserved1; char cFileName[260]; char cAlternateFileName[14]; };
+struct SHFILEOPSTRUCT { void* hwnd; UINT wFunc; char* pFrom; char* pTo; FILEOP_FLAGS fFlags; BOOL fAnyOperationsAborted; void* hNameMappings; char* lpszProgressTitle; };
+inline HRESULT SHGetFolderPath(void* pToken, int iCSIDL, void* pReserved, DWORD dwFlags, char* pDest) { return E_FAIL; }
+inline int SHFileOperation(SHFILEOPSTRUCT* lpFileOp) { return 1; }
+inline BOOL DeleteFile(const char* pFile) { return unlink(pFile) == 0; }
+inline BOOL CopyFile(const char* pSrc, const char* pDst, BOOL bFailIfExists) { return copyfile(pSrc, pDst, nullptr, COPYFILE_ALL) == 0; }
+inline void* FindFirstFile(const char* pPattern, WIN32_FIND_DATA* pData) { return nullptr; }
+inline BOOL FindNextFile(void* hFind, WIN32_FIND_DATA* pData) { return FALSE; }
+inline BOOL FindClose(void* hFind) { return TRUE; }
+inline BOOL GetFileTime(HANDLE hFile, FILETIME* pCreation, FILETIME* pLastAccess, FILETIME* pLastWrite) { return TRUE; }
+inline BOOL FileTimeToSystemTime(FILETIME* pFileTime, SYSTEMTIME* pSystemTime) { return TRUE; }
+inline DWORD GetTempPath(DWORD nBufferLength, char* lpBuffer) { strcpy(lpBuffer, "/tmp"); return strlen(lpBuffer); }
+inline DWORD GetFileAttributes(const char* lpFileName) { return FILE_ATTRIBUTE_NORMAL; }
+inline BOOL CreateDirectory(const char* lpPathName, void* lpSecurityAttributes) { return mkdir(lpPathName, 0755) == 0; }
+inline BOOL RemoveDirectory(const char* lpPathName) { return rmdir(lpPathName) == 0; }
+inline void* CoTaskMemAlloc(DWORD cb) { return malloc(cb); }
+inline void CoTaskMemFree(void* pv) { free(pv); }
+inline DWORD GetFullPathName(const char* lpFileName, DWORD nBufferLength, char* lpBuffer, char** lpFilePart) { strcpy(lpBuffer, lpFileName); if (lpFilePart) *lpFilePart = nullptr; return strlen(lpBuffer); }
+inline void* SHGetMalloc() { return nullptr; }
+inline HRESULT SHGetMalloc(void** ppMalloc) { *ppMalloc = (void*)1; return S_OK; }
+#endif
 
 #define STR_PATH_SEPARATOR				CONSTLIT("\\")
 
@@ -294,7 +340,7 @@ bool Kernel::fileOpen (const CString &sFile, const CString &sParameters, const C
 //	Launches the current file.
 
 	{
-	int iResult = (int)::ShellExecute(NULL,
+	intptr_t iResult = (intptr_t)::ShellExecute(NULL,
 			NULL,
 			pathMakeAbsolute(sFile.GetASCIIZPointer()).GetASCIIZPointer(),
 			(!sParameters.IsBlank() ? sParameters.GetASCIIZPointer() : NULL),
@@ -604,8 +650,8 @@ CString Kernel::pathGetResourcePath (char *pszResID)
 //	resID:\{resID}
 
 	{
-	if ((DWORD)pszResID < 65536)
-		return strPatternSubst(CONSTLIT("resID:\\@%d"), (DWORD)pszResID);
+	if ((uintptr_t)pszResID < 65536)
+		return strPatternSubst(CONSTLIT("resID:\\@%d"), (uintptr_t)pszResID);
 	else
 		return strPatternSubst(CONSTLIT("resID:\\%s"), CString(pszResID));
 	}
@@ -917,12 +963,7 @@ bool Kernel::pathValidateFilename (const CString &sFilename, CString *retsValidF
 
 void FreePIDL (LPITEMIDLIST pidl)
 	{
-	LPMALLOC pMalloc;
-	if (SHGetMalloc(&pMalloc) != S_OK)
-		return;
-
-	pMalloc->Free(pidl);
-	pMalloc->Release();
+	(void)pidl;
 	}
 
 CString GetVersionString (char *pData, WORD *pLangInfo, const CString &sString)

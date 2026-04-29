@@ -594,7 +594,8 @@ void CObjectImageArray::CopyFrom (const CObjectImageArray &Source)
 	m_pScaledImages = NULL;
 	m_cxScaledImage = -1;
 
-	m_cs = CCriticalSection();
+	m_cs.~CCriticalSection();
+	new (&m_cs) CCriticalSection();
 	}
 
 void CObjectImageArray::CopyImage (CG32bitImage &Dest, int x, int y, int iFrame, int iRotation) const

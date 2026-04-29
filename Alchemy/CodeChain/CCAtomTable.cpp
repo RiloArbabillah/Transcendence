@@ -22,16 +22,16 @@ bool CCAtomTable::AddEntry (ICCItem *pAtom, ICCItem *pEntry, bool bForceLocalAdd
 
 	{
 	ICCItem *pPrevEntry = NULL;
-	std::intptr_t iOldEntry;
+	int iOldEntry;
 	bool bAdded;
 
-	if (m_Table.ReplaceEntry(pAtom->GetIntegerValue(), (std::intptr_t)pEntry->Reference(), true, &bAdded, &iOldEntry) != NOERROR)
+	if (m_Table.ReplaceEntry(pAtom->GetIntegerValue(), (int)(intptr_t)pEntry->Reference(), true, &bAdded, &iOldEntry) != NOERROR)
 		throw CException(ERR_MEMORY);
 
 	//	If we have a previous entry, decrement its refcount since we're
 	//	throwing it away
 
-	pPrevEntry = (ICCItem *)iOldEntry;
+	pPrevEntry = (ICCItem *)(intptr_t)iOldEntry;
 	if (!bAdded && pPrevEntry)
 		pPrevEntry->Discard();
 
@@ -66,11 +66,11 @@ void CCAtomTable::DestroyItem (void)
 	for (i = 0; i < m_Table.GetCount(); i++)
 		{
 		int iKey;
-		std::intptr_t iValue;
+		int iValue;
 		ICCItem *pItem;
 
 		m_Table.GetEntry(i, &iKey, &iValue);
-		pItem = (ICCItem *)iValue;
+		pItem = (ICCItem *)(intptr_t)iValue;
 		pItem->Discard();
 		}
 
@@ -150,7 +150,7 @@ ICCItem *CCAtomTable::LookupEx (CCodeChain *pCC, ICCItem *pAtom, bool *retbFound
 
 	{
 	ALERROR error;
-	std::intptr_t iValue;
+	int iValue;
 	ICCItem *pBinding;
 
 	if (error = m_Table.Find(pAtom->GetIntegerValue(), &iValue))
@@ -166,7 +166,7 @@ ICCItem *CCAtomTable::LookupEx (CCodeChain *pCC, ICCItem *pAtom, bool *retbFound
 			throw CException(ERR_MEMORY);
 		}
 
-	pBinding = (ICCItem *)iValue;
+	pBinding = (ICCItem *)(intptr_t)iValue;
 	ASSERT(pBinding);
 
 	if (retbFound)

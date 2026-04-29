@@ -52,6 +52,10 @@ inline DWORD GetTickCount(void)
 #define MAKELONG(a, b) ((DWORD)(((WORD)(a)) | ((DWORD)((WORD)(b))) << 16))
 #endif
 
+#ifndef MAKEWORD
+#define MAKEWORD(a, b) ((WORD)(((BYTE)((DWORD_PTR)(a) & 0xff)) | ((WORD)((BYTE)((DWORD_PTR)(b) & 0xff))) << 8))
+#endif
+
 #ifndef RectWidth
 #define RectWidth(rc) ((rc).right - (rc).left)
 #endif
@@ -211,6 +215,20 @@ typedef LONG_PTR SPONG_PTR;
 typedef LONG_PTR LPARAM;
 typedef UINT_PTR WPARAM;
 typedef LONG_PTR LRESULT;
+
+#ifndef LARGE_INTEGER
+typedef union _LARGE_INTEGER {
+    struct {
+        DWORD LowPart;
+        LONG HighPart;
+    } DUMMYSTRUCTNAME;
+    struct {
+        DWORD LowPart;
+        LONG HighPart;
+    } u;
+    LONGLONG QuadPart;
+} LARGE_INTEGER;
+#endif
 
 #ifndef D3DFMT_UNKNOWN
 #define D3DFMT_UNKNOWN 0
@@ -685,5 +703,113 @@ typedef const PIXELFORMATDESCRIPTOR* PCPIXELFORMATDESCRIPTOR;
 
 #define _3D_Z_ZEROVAL 0.0f
 #define _3D_Z_MAXZVAL 1.0f
+
+#ifndef INVALID_HANDLE_VALUE
+#define INVALID_HANDLE_VALUE ((HANDLE)(intptr_t)(-1))
+#endif
+
+#ifndef INVALID_SET_FILE_POINTER
+#define INVALID_SET_FILE_POINTER ((DWORD)(-1))
+#endif
+
+#ifndef FILE_BEGIN
+#define FILE_BEGIN 0
+#endif
+
+#ifndef FILE_CURRENT
+#define FILE_CURRENT 1
+#endif
+
+#ifndef FILE_END
+#define FILE_END 2
+#endif
+
+#ifndef GENERIC_READ
+#define GENERIC_READ (0x80000000L)
+#endif
+
+#ifndef GENERIC_WRITE
+#define GENERIC_WRITE (0x40000000L)
+#endif
+
+#ifndef FILE_SHARE_READ
+#define FILE_SHARE_READ 0x00000001
+#endif
+
+#ifndef FILE_SHARE_WRITE
+#define FILE_SHARE_WRITE 0x00000002
+#endif
+
+#ifndef CREATE_ALWAYS
+#define CREATE_ALWAYS 2
+#endif
+
+#ifndef OPEN_EXISTING
+#define OPEN_EXISTING 3
+#endif
+
+#ifndef FILE_ATTRIBUTE_NORMAL
+#define FILE_ATTRIBUTE_NORMAL 0x00000080
+#endif
+
+#ifndef PAGE_READONLY
+#define PAGE_READONLY 0x02
+#endif
+
+#ifndef PAGE_READWRITE
+#define PAGE_READWRITE 0x04
+#endif
+
+#ifndef FILE_MAP_READ
+#define FILE_MAP_READ 0x0004
+#endif
+
+#ifndef FILE_MAP_WRITE
+#define FILE_MAP_WRITE 0x0002
+#endif
+
+#ifndef CloseHandle
+#define CloseHandle(fd) close(fd)
+#endif
+
+#ifndef ReadFile
+#define ReadFile(fd, buf, len, read_out, extra) (*(read_out) = read(fd, buf, len), TRUE)
+#endif
+
+#ifndef WriteFile
+#define WriteFile(fd, buf, len, written_out, extra) (*(written_out) = write(fd, buf, len), TRUE)
+#endif
+
+#ifndef SetFilePointer
+#define SetFilePointer(fd, dist, extra, whence) lseek(fd, dist, whence)
+#endif
+
+#ifndef GetFileSize
+#define GetFileSize(fd, extra) lseek(fd, 0, SEEK_END)
+#endif
+
+#ifndef CreateFileMapping
+inline HANDLE CreateFileMapping(HANDLE hFile, void* pAttr, DWORD flProtect, DWORD dwMaxSizeHigh, DWORD dwMaxSizeLow, const char* pName) {
+    return mmap(NULL, ((size_t)dwMaxSizeHigh << 32) | dwMaxSizeLow,
+                (flProtect == PAGE_READONLY) ? PROT_READ : PROT_READ | PROT_WRITE,
+                MAP_PRIVATE, hFile, 0);
+}
+#endif
+
+#ifndef MapViewOfFile
+inline void* MapViewOfFile(HANDLE hFileMapping, DWORD dwAccess, DWORD dwOffsetHigh, DWORD dwOffsetLow, SIZE_T dwNumBytes) {
+    return mmap(NULL, dwNumBytes,
+                (dwAccess == FILE_MAP_READ) ? PROT_READ : PROT_READ | PROT_WRITE,
+                MAP_PRIVATE, hFileMapping, ((off_t)dwOffsetHigh << 32) | dwOffsetLow);
+}
+#endif
+
+#ifndef UnmapViewOfFile
+#define UnmapViewOfFile(ptr) munmap(ptr, 0)
+#endif
+
+#ifndef FlushViewOfFile
+#define FlushViewOfFile(ptr, size) msync(ptr, size, MS_SYNC)
+#endif
 
 #endif

@@ -91,7 +91,7 @@ SProcessorInfo Kernel::sysGetProcessorInfo(void)
 			//	handle the union correctly. Its actually non-NULL.
 
 			pBufferPos = &(pBuffer[dwOffset]);
-			CurInfo = *pCurSysInfo;
+			CurInfo = *(PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)pBufferPos;
 
 			//	If this has data about cpu cores
 
@@ -257,7 +257,7 @@ bool Kernel::sysOpenURL (const CString &sURL)
 
 	{
 	HINSTANCE hResult = ::ShellExecute(NULL, "open", sURL.GetASCIIZPointer(), NULL, NULL, SW_SHOWNORMAL);
-	if ((DWORD)hResult <= 32)
+	if (hResult == nullptr || (intptr_t)hResult <= 32)
 		{
 		//	Errors are <= 32.
 		return false;

@@ -46,6 +46,8 @@ class CString
 		explicit operator bool () const { return !IsBlank(); }
 		bool operator== (const CString &sValue) const;
 		bool operator!= (const CString &sValue) const;
+		bool operator== (const char *pValue) const { return strcmp(GetPointer(), pValue) == 0; }
+		bool operator!= (const char *pValue) const { return strcmp(GetPointer(), pValue) != 0; }
 
 		static constexpr DWORD FLAG_ALLOC_EXTRA = 0x00000001;
 		void Append (LPCSTR pString, int iLength = -1, DWORD dwFlags = 0);
@@ -255,7 +257,7 @@ int strParseIntOfBase (const char *pStart, int iBase, int iNullResult, const cha
 
 void strParseWhitespace (const char *pPos, const char **retpPos);
 Kernel::CString strPattern (const Kernel::CString &sPattern, LPVOID *pArgs);
-inline Kernel::CString strPatternSubst (Kernel::CString sLine, ...) { return Kernel::CString(); }
+Kernel::CString strPatternSubst (Kernel::CString sLine, ...);
 
 constexpr DWORD STRPROC_NO_DOUBLE_QUOTES =			0x00000001;
 constexpr DWORD STRPROC_ESCAPE_DOUBLE_QUOTES =		0x00000002;

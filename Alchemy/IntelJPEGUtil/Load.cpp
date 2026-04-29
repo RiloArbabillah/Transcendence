@@ -393,4 +393,9 @@ ALERROR JPEGLoadFromResource (HINSTANCE hInst, char *pszRes, DWORD dwFlags, HPAL
 
 	return JPEGLoadFromMemory((char *)pImage, iSize, dwFlags, hPalette, rethBitmap);
 	}
+#else
+ALERROR JPEGLoadFromResource (HINSTANCE hInst, char *pszRes, DWORD dwFlags, HPALETTE hPalette, HBITMAP *rethBitmap)
+{
+    return ERR_NOTFOUND;
+}
 #endif

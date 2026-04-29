@@ -100,7 +100,7 @@ void CArtifactAICorePainter::Paint (CG32bitImage &Dest, int x, int y)
 
 	//CGDraw::Circle(Dest, x, y, MAX_RADIUS, STYLECOLOR(colorAICoreBack));
 
-	CG32bitPixel rgbCore = CG32bitPixel(AA_STYLECOLOR(colorAICoreFore), 0x80);
+	CG32bitPixel rgbCore = CG32bitPixel(CArtifactAwakenVisuals::GetColor(CArtifactAwakenVisuals::colorAICoreFore), 0x80);
 	CG32bitPixel rgbGlow = CG32bitPixel(0xff, 0x00, 0x00);
 
 	//	Adjust all sphere points

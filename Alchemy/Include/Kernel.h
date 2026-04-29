@@ -28,24 +28,64 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <cmath>
+#include <cstdarg>
+#include <cstdio>
 #include <mutex>
 #include <sys/time.h>
+#include <sys/mman.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <errno.h>
+#include <mach/mach_time.h>
+
+#undef htons
+inline u_short htons(u_short x) { return x; }
+#undef ntohs
+inline u_short ntohs(u_short x) { return x; }
+
+#ifndef DBL_MAX
+#define DBL_MAX 1.7976931348623158e+308
+#endif
 
 typedef unsigned char BYTE;
 typedef int BOOL;
 typedef std::uint32_t DWORD;
 typedef std::uint64_t DWORDLONG;
+typedef std::uint64_t UINT64;
 typedef std::uint64_t KAFFINITY;
 typedef long long INT64;
 typedef long long LONGLONG;
+typedef unsigned long long ULONGLONG;
 typedef long LONG;
 typedef short SHORT;
+
+#ifndef LARGE_INTEGER
+typedef union _LARGE_INTEGER {
+    struct {
+        DWORD LowPart;
+        LONG HighPart;
+    } DUMMYSTRUCTNAME;
+    struct {
+        DWORD LowPart;
+        LONG HighPart;
+    } u;
+    LONGLONG QuadPart;
+} LARGE_INTEGER;
+#endif
+
 typedef std::uintptr_t SIZE_T;
 typedef std::uint64_t ULONG64;
 typedef const char *LPCSTR;
+typedef const char *LPCTSTR;
 typedef void *HKEY;
 typedef void *LPVOID;
 typedef char *LPSTR;
+typedef char *LPTSTR;
 typedef void *HANDLE;
 typedef void *HBITMAP;
 typedef void *HDC;
@@ -56,11 +96,87 @@ typedef void *HPALETTE;
 #define MAKEINTRESOURCE(id) ((char *)(intptr_t)(id))
 #define IDR_HELP_BACKGROUND 100
 inline BOOL DeleteObject(HBITMAP hBitmap) { return 1; }
+typedef DWORD COLORREF;
+inline COLORREF SetTextColor(HDC hDC, COLORREF crColor) { return 0; }
+inline COLORREF SetBkColor(HDC hDC, COLORREF crColor) { return 0; }
+#define RGB(r,g,b) ((DWORD)(((BYTE)(r)|((WORD)((BYTE)(g))<<8))|(((DWORD)(BYTE)(b))<<16)))
+inline HFONT CreateFont(int nHeight, int nWidth, int nEscapement, int nOrientation, int fnWeight, DWORD fdwItalic, DWORD fdwUnderline, DWORD fdwStrikeOut, DWORD fdwCharSet, DWORD fdwOutputPrecision, DWORD fdwClipPrecision, DWORD fdwQuality, DWORD fdwPitchAndFamily, const char* lpszFace) { return nullptr; }
+#define CBM_INIT 0x4
+#define DIB_RGB_COLORS 0
+#define BI_RGB 0
+#define BI_BITFIELDS 3
+#define RT_BITMAP 2
+inline HPALETTE SelectPalette(HDC hDC, HPALETTE hPal, BOOL bForceBackground) { return nullptr; }
+inline unsigned int RealizePalette(HDC hDC) { return 0; }
+inline HBITMAP CreateDIBitmap(HDC hDC, void* lpInfo, DWORD dwUsage, void* lpInitBits, void* lpColorInfo, DWORD dwColorUsage) { return nullptr; }
+inline HBITMAP CreateDIBSection(HDC hDC, void* pInfo, DWORD usage, void** ppBits, HANDLE hSection, DWORD offset) { return nullptr; }
+inline int SetDIBits(HDC hDC, HBITMAP hBitmap, unsigned int uStartScan, unsigned int cScanLines, void* pBits, void* pInfo, DWORD dwColorUse) { return 0; }
+#define SRCAND 0x008800C6
+#define SRCCOPY 0x00CC0020
+#define SRCPAINT 0x00EE0086
+#define FW_BOLD 700
+#define FW_NORMAL 400
+#define ANSI_CHARSET 0
+#define OUT_DEFAULT_PRECIS 0
+#define CLIP_EMBEDDED 0x80
+#define DEFAULT_QUALITY 0
+#define VARIABLE_PITCH 2
+#define FF_SWISS 32
 typedef void *HRGN;
 typedef void *HWND;
 typedef void *HANDLE;
 typedef unsigned int SOCKET;
-struct OVERLAPPED { void *Internal; void *InternalHigh; void *Offset; HANDLE hEvent; };
+typedef struct sockaddr_in SOCKADDR_IN;
+typedef struct sockaddr SOCKADDR;
+typedef struct hostent HOSTENT;
+typedef struct in_addr IN_ADDR;
+#define AF_INET 2
+#define SOCK_STREAM 1
+#define IPPROTO_TCP 6
+#define INADDR_NONE ((unsigned long)-1)
+#define INVALID_SOCKET ((SOCKET)(~0))
+#define SOCKET_ERROR (-1)
+#define ERROR_IO_PENDING 997
+#define ERROR_IO_INCOMPLETE 996
+#define ERROR_ALREADY_EXISTS 183
+#define ERROR_SUCCESS 0
+#define ERROR_INSUFFICIENT_BUFFER 122
+typedef std::uint16_t WCHAR;
+inline int MultiByteToWideChar(unsigned int CodePage, DWORD dwFlags, const char* lpMultiByteStr, int cbMultiByte, WCHAR* lpWideCharStr, int cchWideChar) { return 0; }
+inline int WideCharToMultiByte(unsigned int CodePage, DWORD dwFlags, const WCHAR* lpWideCharStr, int cchWideChar, char* lpMultiByteStr, int cbMultiByte, const char* lpDefaultChar, BOOL* lpUsedDefaultChar) { return 0; }
+#define KEY_READ 0x20019
+#define KEY_WRITE 0x20006
+#define REG_OPTION_NON_VOLATILE 0
+
+typedef void* HRSRC;
+typedef void* HGLOBAL;
+#define PAGE_NOACCESS 0x01
+#define MEM_RESERVE 0x2000
+#define MEM_RELEASE 0x8000
+inline HRSRC FindResource(HMODULE hModule, const char* pName, const char* pType) { return nullptr; }
+inline HGLOBAL LoadResource(HMODULE hModule, HRSRC hResInfo) { return nullptr; }
+inline void* LockResource(HGLOBAL hResData) { return nullptr; }
+inline BOOL VirtualFree(void* lpAddress, SIZE_T dwSize, DWORD dwFreeType) { return TRUE; }
+inline void* VirtualAlloc(void* lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect) { return nullptr; }
+#define MEM_COMMIT 0x1000
+inline DWORD SizeofResource(HMODULE hModule, HRSRC hResInfo) { return 0; }
+
+typedef void* HKEY;
+#define HKEY_CURRENT_USER ((HKEY)1)
+#define REG_SZ 1
+
+inline LONG RegCloseKey(HKEY hKey) { return 0; }
+inline LONG RegQueryValueEx(HKEY hKey, const char* pValueName, void* pReserved, DWORD* pType, BYTE* pData, DWORD* pcbData) { return ERROR_SUCCESS; }
+inline LONG RegOpenKeyEx(HKEY hKey, const char* pSubKey, DWORD ulOptions, DWORD samDesired, HKEY* phkResult) { return ERROR_SUCCESS; }
+inline LONG RegCreateKeyEx(HKEY hKey, const char* pSubKey, DWORD Reserved, const char* pClass, DWORD dwOptions, DWORD samDesired, void* pSecurity, HKEY* phkResult, DWORD* pdwDisposition) { return ERROR_SUCCESS; }
+inline LONG RegSetValueEx(HKEY hKey, const char* pValueName, DWORD Reserved, DWORD dwType, const BYTE* pData, DWORD cbData) { return ERROR_SUCCESS; }
+inline DWORD WSAGetLastError() { return errno; }
+typedef struct protoent PROTOENT;
+#define closesocket close
+struct OVERLAPPED { void *Internal; void *InternalHigh; void *Offset; DWORD OffsetHigh; HANDLE hEvent; };
+typedef OVERLAPPED *LPOVERLAPPED;
+typedef DWORD *LPDWORD;
+inline BOOL GetOverlappedResult(HANDLE hFile, LPOVERLAPPED lpOverlapped, LPDWORD lpNumberOfBytesTransferred, BOOL bWait) { return TRUE; }
 typedef DWORD (*LPTHREAD_START_ROUTINE)(LPVOID);
 
 typedef unsigned int UINT;
@@ -74,6 +190,7 @@ typedef void *HCURSOR;
 typedef void *HGDIOBJ;
 typedef void *HMENU;
 typedef std::uintptr_t UINT_PTR;
+typedef UINT_PTR DWORD_PTR;
 typedef std::intptr_t LONG_PTR;
 typedef std::uintptr_t WPARAM;
 typedef std::intptr_t LPARAM;
@@ -118,6 +235,150 @@ typedef int WMSG;
 
 #ifndef WAIT_OBJECT_0
 #define WAIT_OBJECT_0 0
+#endif
+
+#ifndef INVALID_HANDLE_VALUE
+#define INVALID_HANDLE_VALUE ((HANDLE)(intptr_t)(-1))
+#endif
+
+#ifndef INVALID_SET_FILE_POINTER
+#define INVALID_SET_FILE_POINTER ((DWORD)(-1))
+#endif
+
+#ifndef ERROR_FILE_NOT_FOUND
+#define ERROR_FILE_NOT_FOUND 2
+#endif
+
+#ifndef ERROR_PATH_NOT_FOUND
+#define ERROR_PATH_NOT_FOUND 3
+#endif
+
+#ifndef GetLastError
+inline DWORD GetLastError() { return errno; }
+#endif
+
+#ifndef FILE_BEGIN
+#define FILE_BEGIN 0
+#endif
+
+#ifndef FILE_CURRENT
+#define FILE_CURRENT 1
+#endif
+
+#ifndef FILE_END
+#define FILE_END 2
+#endif
+
+#ifndef GENERIC_READ
+#define GENERIC_READ (0x80000000L)
+#endif
+
+#ifndef GENERIC_WRITE
+#define GENERIC_WRITE (0x40000000L)
+#endif
+
+#ifndef FILE_SHARE_READ
+#define FILE_SHARE_READ 0x00000001
+#endif
+
+#ifndef FILE_SHARE_WRITE
+#define FILE_SHARE_WRITE 0x00000002
+#endif
+
+#ifndef CREATE_ALWAYS
+#define CREATE_ALWAYS 2
+#endif
+
+#ifndef OPEN_EXISTING
+#define OPEN_EXISTING 3
+#endif
+
+#ifndef CreateFile
+inline HANDLE CreateFile(const char* pFilename, DWORD dwAccess, DWORD dwShareMode, void* pSecurity, DWORD dwCreationDisposition, DWORD dwFlags, HANDLE hTemplate) {
+    (void)pSecurity; (void)hTemplate; (void)dwShareMode; (void)dwFlags;
+    int flags = O_RDONLY;
+    if (dwAccess & GENERIC_WRITE) flags = O_WRONLY | O_CREAT | O_TRUNC;
+    if (dwCreationDisposition == OPEN_EXISTING && access(pFilename, F_OK) != 0) return INVALID_HANDLE_VALUE;
+    int fd = open(pFilename, flags, 0666);
+    return (HANDLE)(intptr_t)fd;
+}
+#endif
+
+#ifndef FILE_ATTRIBUTE_NORMAL
+#define FILE_ATTRIBUTE_NORMAL 0x00000080
+#endif
+
+#ifndef PAGE_READONLY
+#define PAGE_READONLY 0x02
+#endif
+
+#ifndef PAGE_READWRITE
+#define PAGE_READWRITE 0x04
+#endif
+
+#ifndef FILE_MAP_READ
+#define FILE_MAP_READ 0x0004
+#endif
+
+#ifndef FILE_MAP_WRITE
+#define FILE_MAP_WRITE 0x0002
+#endif
+
+#ifndef ReadFile
+inline BOOL ReadFile(HANDLE hFile, void* buf, DWORD len, DWORD* read_out, void* extra) {
+    ssize_t result = read((int)(intptr_t)hFile, buf, len);
+    if (read_out) *read_out = (DWORD)result;
+    return result >= 0;
+}
+#endif
+
+#ifndef WriteFile
+inline BOOL WriteFile(HANDLE hFile, const void* buf, DWORD len, DWORD* written_out, void* extra) {
+    ssize_t result = write((int)(intptr_t)hFile, buf, len);
+    if (written_out) *written_out = (DWORD)result;
+    return result >= 0;
+}
+#endif
+
+#ifndef SetFilePointer
+inline DWORD SetFilePointer(HANDLE hFile, LONG lDist, LONG* pHighWord, DWORD dwWhence) {
+    off_t result = lseek((int)(intptr_t)hFile, lDist, (int)dwWhence);
+    if (pHighWord && result > 0xFFFFFFFF) *pHighWord = (DWORD)(result >> 32);
+    return (DWORD)result;
+}
+#endif
+
+#ifndef GetFileSize
+inline DWORD GetFileSize(HANDLE hFile, DWORD* pHighWord) {
+    off_t size = lseek((int)(intptr_t)hFile, 0, SEEK_END);
+    if (pHighWord) *pHighWord = (DWORD)(size >> 32);
+    return (DWORD)size;
+}
+#endif
+
+#ifndef CreateFileMapping
+inline HANDLE CreateFileMapping(HANDLE hFile, void* pAttr, DWORD flProtect, DWORD dwMaxSizeHigh, DWORD dwMaxSizeLow, const char* pName) {
+    (void)pAttr; (void)pName;
+    size_t size = ((size_t)dwMaxSizeHigh << 32) | dwMaxSizeLow;
+    int prot = (flProtect == PAGE_READONLY) ? PROT_READ : PROT_READ | PROT_WRITE;
+    return mmap(NULL, size, prot, MAP_PRIVATE, (int)(intptr_t)hFile, 0);
+}
+#endif
+
+#ifndef MapViewOfFile
+inline void* MapViewOfFile(HANDLE hFileMapping, DWORD dwAccess, DWORD dwOffsetHigh, DWORD dwOffsetLow, SIZE_T dwNumBytes) {
+    int prot = (dwAccess == FILE_MAP_READ) ? PROT_READ : PROT_READ | PROT_WRITE;
+    off_t offset = ((off_t)dwOffsetHigh << 32) | dwOffsetLow;
+    return mmap(NULL, dwNumBytes, prot, MAP_PRIVATE, (int)(intptr_t)hFileMapping, offset);
+}
+#endif
+
+#ifndef UnmapViewOfFile
+#define UnmapViewOfFile(ptr) munmap(ptr, 0)
+#endif
+
+#ifndef FlushViewOfFile
+#define FlushViewOfFile(ptr, size) msync(ptr, size, MS_SYNC)
 #endif
 
 struct RECT
@@ -321,12 +582,32 @@ struct WNDCLASSEX { UINT cbSize; UINT style; void* lpfnWndProc; int cbClsExtra; 
 #define VK_ADD 0x6B
 #define VK_OEM_PLUS 0xBB
 #define VK_BACK 0x08
+#define VK_INSERT 0x2D
+#define VK_DELETE 0x2E
+#define VK_HOME 0x24
+#define VK_END 0x23
+#define VK_PRIOR 0x21
+#define VK_NEXT 0x22
+#define VK_NUMPAD0 0x60
+#define VK_NUMPAD1 0x61
+#define VK_NUMPAD2 0x62
+#define VK_NUMPAD3 0x63
+#define VK_NUMPAD4 0x64
+#define VK_NUMPAD5 0x65
+#define VK_NUMPAD6 0x66
+#define VK_NUMPAD7 0x67
+#define VK_NUMPAD8 0x68
+#define VK_NUMPAD9 0x69
+#define VK_CLEAR 0x0C
+#define VK_MULTIPLY 0x6A
+#define VK_DIVIDE 0x6F
+#define VK_DECIMAL 0x6E
 
 #define WAIT_TIMEOUT 258
 
 inline HANDLE CreateEvent(void* pAttrs, BOOL bManualReset, BOOL bInitialState, LPCSTR lpName) { return nullptr; }
 inline DWORD WaitForMultipleObjects(DWORD nCount, const HANDLE* pHandles, BOOL bWaitAll, DWORD dwTimeout) { return WAIT_TIMEOUT; }
-inline void CloseHandle(HANDLE) { }
+inline void CloseHandle(HANDLE h) { close((int)(intptr_t)h); }
 
 #define TIMER_RESOLUTION 1
 
@@ -342,6 +623,44 @@ struct CREATESTRUCTA { void* lpCreateParams; HINSTANCE hInstance; HMENU hMenu; H
 typedef const CREATESTRUCTA* LPCREATESTRUCT;
 struct SScreenMgrOptions { int cx; int cy; int bWindowed; void* hIcon; };
 
+inline int wsprintf(char* buf, const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    int result = vsnprintf(buf, 4096, format, args);
+    va_end(args);
+    return result;
+}
+
+inline char* CharLower(char* s) {
+    if (s) { while (*s) { *s = tolower(*s); s++; } }
+    return s;
+}
+inline char* CharLower(DWORD_PTR p) { static char buf[2]; buf[0] = tolower((char)p); buf[1] = '\0'; return buf; }
+inline char* CharUpper(char* s) {
+    if (s) { while (*s) { *s = toupper(*s); s++; } }
+    return s;
+}
+inline char* CharUpper(DWORD_PTR p) { static char buf[2]; buf[0] = toupper((char)p); buf[1] = '\0'; return buf; }
+inline DWORD CharUpperBuff(char* s, DWORD n) { for (DWORD i = 0; i < n && s[i]; i++) s[i] = toupper(s[i]); return n; }
+
+#define _CVTBUFSIZE 309
+inline int _gcvt_s(char* buf, int len, double value, int digits) { snprintf(buf, len, "%.*g", digits, value); return 0; }
+inline int _fcvt_s(char* buf, int len, double value, int decimals, int* sign, int* digits) { snprintf(buf, len, "%.*f", decimals, value); return 0; (void)sign; (void)digits; }
+
+inline char* CharLowerA(char* s) { if (s) while (*s) { *s = tolower(*s); s++; } return s; }
+inline int LoadString(HINSTANCE hInstance, UINT uID, char* pBuffer, int cchBuffer) { return 0; }
+inline BOOL CharLowerBuff(char* s, DWORD n) { for (DWORD i = 0; i < n && s[i]; i++) s[i] = tolower(s[i]); return TRUE; }
+
+#define OPEN_ALWAYS 4
+#define ERROR_SHARING_VIOLATION 32
+inline BOOL SetEndOfFile(HANDLE hFile) { return TRUE; }
+inline BOOL FlushFileBuffers(HANDLE hFile) { return TRUE; }
+inline unsigned int rand_s(unsigned int* pVal) { *pVal = arc4random(); return 0; }
+
+typedef POINT* LPPOINT;
+inline BOOL ScreenToClient(HWND hWnd, LPPOINT lpPoint) { return TRUE; }
+inline BOOL ClientToScreen(HWND hWnd, LPPOINT lpPoint) { return TRUE; }
+
 #endif
 
 struct SYSTEMTIME
@@ -355,6 +674,11 @@ struct SYSTEMTIME
 	WORD wSecond;
 	WORD wMilliseconds;
 	};
+
+inline void GetLocalTime(SYSTEMTIME* lpSystemTime) { time_t t = time(nullptr); struct tm* tm = localtime(&t); lpSystemTime->wYear = tm->tm_year + 1900; lpSystemTime->wMonth = tm->tm_mon + 1; lpSystemTime->wDayOfWeek = tm->tm_wday; lpSystemTime->wDay = tm->tm_mday; lpSystemTime->wHour = tm->tm_hour; lpSystemTime->wMinute = tm->tm_min; lpSystemTime->wSecond = tm->tm_sec; lpSystemTime->wMilliseconds = 0; }
+inline void GetSystemTime(SYSTEMTIME* lpSystemTime) { time_t t = time(nullptr); struct tm* tm = gmtime(&t); lpSystemTime->wYear = tm->tm_year + 1900; lpSystemTime->wMonth = tm->tm_mon + 1; lpSystemTime->wDayOfWeek = tm->tm_wday; lpSystemTime->wDay = tm->tm_mday; lpSystemTime->wHour = tm->tm_hour; lpSystemTime->wMinute = tm->tm_min; lpSystemTime->wSecond = tm->tm_sec; lpSystemTime->wMilliseconds = 0; }
+struct TIME_ZONE_INFORMATION { LONG Bias; WORD StandardName[32]; SYSTEMTIME StandardDate; LONG StandardBias; WORD DaylightName[32]; SYSTEMTIME DaylightDate; LONG DaylightBias; };
+inline BOOL SystemTimeToTzSpecificLocalTime(TIME_ZONE_INFORMATION* pTzInfo, SYSTEMTIME* pUniversalTime, SYSTEMTIME* pLocalTime) { *pLocalTime = *pUniversalTime; return TRUE; }
 
 struct BITMAPINFOHEADER;
 
@@ -388,6 +712,55 @@ struct CRITICAL_SECTION
 #define CP_ACP 0
 #define CP_UTF8 65001
 #define RT_RCDATA ((const char *)10)
+typedef unsigned short WCHAR;
+typedef WCHAR* LPWSTR;
+typedef const WCHAR* LPCWSTR;
+inline HGLOBAL GlobalAlloc(DWORD flags, SIZE_T size) { return (HGLOBAL)malloc(size); }
+inline void* GlobalLock(HGLOBAL hMem) { return (void*)hMem; }
+inline BOOL GlobalUnlock(HGLOBAL hMem) { (void)hMem; return TRUE; }
+inline HGLOBAL GlobalFree(HGLOBAL hMem) { free((void*)hMem); return NULL; }
+#endif
+#define GMEM_MOVEABLE 0
+#define CF_TEXT 1
+struct GROUP_AFFINITY { KAFFINITY Mask; WORD Group; WORD Reserved[3]; };
+struct PROCESSOR_RELATIONSHIP { BYTE Flags; KAFFINITY ProcessorMask; BYTE GroupCount; WORD Reserved; GROUP_AFFINITY GroupMask[16]; };
+struct GROUP_RELATIONSHIP { BYTE GroupCount; BYTE ActiveGroupCount; WORD MaximumGroupCount; WORD Reserved; GROUP_AFFINITY GroupMask[16]; };
+struct SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX { DWORD Relationship; DWORD Size; union { PROCESSOR_RELATIONSHIP Processor; GROUP_RELATIONSHIP Group; BYTE NumaNode; BYTE Cache; ULONGLONG Reserved[16]; }; };
+typedef SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX;
+#define RelationProcessorCore 0
+#define RelationGroup 5
+#define LTP_PC_SMT 4
+struct SYSTEM_INFO { DWORD dwOemId; DWORD dwPageSize; LPVOID lpMinimumApplicationAddress; LPVOID lpMaximumApplicationAddress; DWORD_PTR dwActiveProcessorMask; DWORD dwNumberOfProcessors; DWORD dwProcessorType; DWORD dwAllocationGranularity; WORD wProcessorLevel; WORD wProcessorRevision; };
+#define RelationAll 0
+inline BOOL GetLogicalProcessorInformationEx(DWORD Type, void* pBuffer, DWORD* pLength) { (void)Type; (void)pBuffer; if (pLength) *pLength = 0; return FALSE; }
+inline void GetSystemInfo(SYSTEM_INFO* pInfo) { memset(pInfo, 0, sizeof(SYSTEM_INFO)); pInfo->dwNumberOfProcessors = 1; }
+#define SW_SHOWNORMAL 1
+inline BOOL GetUserNameA(char* pName, DWORD* pSize) { return FALSE; }
+#define GetUserName GetUserNameA
+
+#ifndef _WIN32
+typedef unsigned short WORD;
+struct WSAData { int wVersion; int wHighVersion; char szDescription[257]; char szSystemStatus[129]; int iMaxSockets; int iMaxUdpDg; char* lpVendorInfo; };
+inline int WSAStartup(WORD wVersionRequested, WSAData* lpWSAData) { return 0; }
+inline int WSACleanup() { return 0; }
+inline void OutputDebugString(const char* pStr) { }
+inline void _set_se_translator(void* pFunc) { }
+typedef void* LPEXCEPTION_POINTERS;
+inline long InterlockedIncrement(long* p) { return ++(*p); }
+inline long InterlockedDecrement(long* p) { return --(*p); }
+#define _beginthreadex(pSec, stack, start, arg, flags, id) ((HANDLE)0)
+#define QS_ALLINPUT 0x04FF
+inline DWORD GetModuleFileName(HMODULE hModule, char* pFilename, DWORD nSize) { return 0; }
+inline BOOL MoveFile(const char* pSrc, const char* pDst) { return rename(pSrc, pDst) == 0; }
+inline void* ShellExecute(void* hwnd, const char* pOp, const char* pFile, const char* pParams, const char* pDir, int nShow) { return nullptr; }
+inline DWORD GetFileVersionInfoSize(const char* pFilename, void* pHandle) { return 0; }
+inline BOOL GetFileVersionInfo(const char* pFilename, DWORD handle, DWORD len, void* pData) { return FALSE; }
+inline BOOL VerQueryValue(const void* pData, const char* pSubBlock, void** ppBuf, UINT* puLen) { return FALSE; }
+inline int MsgWaitForMultipleObjects(DWORD nCount, HANDLE* pHandles, BOOL bWaitAll, DWORD dwMilliseconds, DWORD dwWakeMask) { return WaitForMultipleObjects(nCount, pHandles, bWaitAll, dwMilliseconds); }
+struct VS_FIXEDFILEINFO { DWORD dwSignature; DWORD dwStrucVersion; DWORD dwFileVersionMS; DWORD dwFileVersionLS; DWORD dwProductVersionMS; DWORD dwProductVersionLS; DWORD dwFileFlagsMask; DWORD dwFileFlags; DWORD dwFileOS; DWORD dwFileType; DWORD dwFileSubtype; DWORD dwFileDateMS; DWORD dwFileDateLS; };
+typedef VS_FIXEDFILEINFO* LPVSFIXEDFILEINFO;
+#define PUINT unsigned int*
+#endif
 
 #define WINAPI
 #define VK_CONTROL 0x11
@@ -420,8 +793,32 @@ inline DWORD GetTickCount (void)
     return (DWORD)((tv.tv_sec * 1000) + (tv.tv_usec / 1000));
 }
 
+#ifndef QueryPerformanceCounter
+inline void QueryPerformanceCounter(LARGE_INTEGER *lpPerformanceCount)
+{
+    mach_timebase_info_data_t timebase;
+    mach_timebase_info(&timebase);
+    uint64_t time = mach_absolute_time();
+    lpPerformanceCount->QuadPart = (LONGLONG)((time * timebase.numer) / timebase.denom);
+}
+#endif
+
+#ifndef QueryPerformanceFrequency
+inline BOOL QueryPerformanceFrequency(LARGE_INTEGER *lpFrequency)
+{
+    mach_timebase_info_data_t timebase;
+    mach_timebase_info(&timebase);
+    lpFrequency->QuadPart = (LONGLONG)((1000000000ULL * timebase.denom) / timebase.numer);
+    return TRUE;
+}
+#endif
+
 #ifndef MAKELONG
 #define MAKELONG(a, b) ((DWORD)(((WORD)(a)) | ((DWORD)((WORD)(b))) << 16))
+#endif
+
+#ifndef MAKEWORD
+#define MAKEWORD(a, b) ((WORD)(((BYTE)((UINT_PTR)(a) & 0xff)) | ((WORD)((BYTE)((UINT_PTR)(b) & 0xff))) << 8))
 #endif
 
 inline BOOL UnionRect (RECT *prcDest, const RECT *prcSrc1, const RECT *prcSrc2)
@@ -496,8 +893,6 @@ inline int MulDiv (int nMultiplicand, int nMultiplier, int nDivisor)
     return (int)result;
 }
 
-#endif
-
 //	For some reason, <kernelspecs.h> defines HIGH_LEVEL, which ends up 
 //	conflicting with a lot of other definitions.
 
@@ -534,6 +929,9 @@ inline void *operator new (size_t, ::placement_new_class, void *p) { return p; }
 extern "C" void *          __cdecl _alloca(size_t);
 
 namespace Kernel {
+
+template <class T> inline T max(T a, T b) { return a > b ? a : b; }
+template <class T> inline T min(T a, T b) { return a < b ? a : b; }
 
 //	Define ASSERT macro, if necessary
 
@@ -1557,7 +1955,7 @@ class CDataFile : public CObject
 			int iEntry;
 			};
 
-		CDataFile (const CString &sFilename);
+		CDataFile (const CString &sFilename = NULL_STR);
 		virtual ~CDataFile (void);
 
 		ALERROR AddEntry (const CString &sData, int *retiEntry);

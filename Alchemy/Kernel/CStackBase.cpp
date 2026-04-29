@@ -5,7 +5,7 @@
 
 #include "PreComp.h"
 
-const int PAGE_SIZE = 4096;
+const int PAGE_SIZE_CONST = 4096;
 
 CStackBase::CStackBase (int iMaxSize) : m_iMaxSize(iMaxSize),
 		m_iCommittedSize(0),
@@ -40,7 +40,7 @@ ALERROR CStackBase::Commit (int iSize)
 	{
 	if (iSize > m_iCommittedSize)
 		{
-		int iAdditionalSize = AlignUp(iSize - m_iCommittedSize, PAGE_SIZE);
+		int iAdditionalSize = AlignUp(iSize - m_iCommittedSize, PAGE_SIZE_CONST);
 
 		//	Figure out if we're over the limit. We cannot rely on VirtualAlloc
 		//	to keep track of our maximum reservation

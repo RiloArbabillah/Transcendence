@@ -168,7 +168,7 @@ ALERROR CIDTable::LoadHandler (CUnarchiver *pUnarchiver)
 			throw CException(ERR_FAIL);
 #endif
 
-		CDictionary::SetEntry(i, iKey, (int)pValue);
+		CDictionary::SetEntry(i, iKey, (intptr_t)pValue);
 		}
 
 	return NOERROR;
@@ -273,7 +273,7 @@ ALERROR CIDTable::ReplaceEntry (int iKey, CObject *pValue, bool bAdd, CObject **
 
 	//	Let the dictionary code do the actual adding
 
-	if (error = CDictionary::ReplaceEntry(iKey, (int)pValue, bAdd, &bAdded, &iOldValue))
+	if (error = CDictionary::ReplaceEntry(iKey, (intptr_t)pValue, bAdd, &bAdded, &iOldValue))
 		return error;
 
 	//	If we added a new object, then there is no old value
@@ -379,5 +379,5 @@ void CIDTable::SetValue (int iEntry, CObject *pValue, CObject **retpOldValue)
 	if (retpOldValue)
 		*retpOldValue = (CObject *)iValue;
 
-	CDictionary::SetEntry(iEntry, iKey, (int)pValue);
+	CDictionary::SetEntry(iEntry, iKey, (intptr_t)pValue);
 	}

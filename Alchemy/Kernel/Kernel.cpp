@@ -4,9 +4,13 @@
 //	Copyright (c) 2019 Kronosaur Productions, LLC. All Rights Reserved.
 
 #include "PreComp.h"
+#ifdef _WIN32
 #include <process.h>
 #include <VersionHelpers.h>
 #include "eh.h"
+#else
+#define EXCEPTION_POINTERS void
+#endif
 
 long g_iGlobalInit = 0;
 DWORD g_dwAPIFlags = 0;
@@ -67,14 +71,18 @@ BOOL Kernel::kernelInit (DWORD dwFlags)
 
 		if (g_dwKernelFlags & KERNEL_FLAG_INTERNETS)
 			{
+#ifdef _WIN32
 			WSADATA wsaData;
 			::WSAStartup(MAKEWORD(1,1), &wsaData);
+#endif
 			}
-		}
+	}
 
 	//	Install a Win32 exception handler
 
+#ifdef _WIN32
 	_set_se_translator(kernelHandleWin32Exception);
+#endif
 
 	//	Initialize random number generator. This is
 	//	done for each thread because we link with the multi-threaded
@@ -137,6 +145,7 @@ void InitAPIFlags (void)
 
 	g_dwAPIFlags |= API_FLAG_WINNT;
 
+#ifdef _WIN32
 	//	DWM runs on Vista and above
 
 	if (::IsWindowsVistaOrGreater())
@@ -163,6 +172,7 @@ void InitAPIFlags (void)
 	DeleteObject(hDestBmp);
 	DeleteObject(hSourceBmp);
 	DeleteObject(hMaskBmp);
+#endif
 	}
 
 void Kernel::kernelClearDebugLog (void)
@@ -406,7 +416,9 @@ DWORD WINAPI kernelThreadProc (LPVOID pData)
 	return dwResult;
 	};
 
+#ifdef _WIN32
 void kernelHandleWin32Exception (unsigned code, EXCEPTION_POINTERS* info)
 	{
 	throw CException(ERR_WIN32_EXCEPTION, code, info);
 	}
+#endif

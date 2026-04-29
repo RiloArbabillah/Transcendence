@@ -160,7 +160,7 @@ template <class BLENDER> class CCloudCirclePainter : public TCirclePainter32<CCl
 
 		CSphericalTextureMapper m_Texture;
 
-		friend TCirclePainter32;
+		template <class, class> friend class TCirclePainter32;
 	};
 
 //	CDiffractionCirclePainter
@@ -211,7 +211,7 @@ template <class BLENDER> class CDiffractionCirclePainter : public TCirclePainter
 
 		const TArray<CG32bitPixel> *m_pColorTable;
 
-		friend TCirclePainter32;
+		template <class, class> friend class TCirclePainter32;
 	};
 
 //	CFireblastCirclePainter

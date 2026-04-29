@@ -767,6 +767,7 @@ class CHumanInterface
         bool HasMouseMoved (int x, int y) const { return m_bMouseMoved; }
 		ALERROR HICommand (const CString &sCmd, void *pData = NULL) { return m_pController->HICommand(sCmd, pData); }
 		void HIPostCommand (const CString &sCmd, void *pData = NULL);
+		void SetController (IHIController *pController) { m_pController = pController; }
 		ALERROR HISessionCommand (const CString &sCmd, void *pData = NULL) { return (m_pCurSession ? m_pCurSession->HICommand(sCmd, pData) : NOERROR); }
         bool IsLButtonDown (void) const { return m_bLButtonDown; }
         bool IsMButtonDown (void) const { return m_bMButtonDown; }

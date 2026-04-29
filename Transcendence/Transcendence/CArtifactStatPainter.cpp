@@ -26,9 +26,9 @@ void CArtifactStatPainter::Paint (CG32bitImage &Dest) const
 	const CG16bitFont &LabelFont = m_VI.GetFont(fontSmall);
 	const CG16bitFont &StatFont = m_VI.GetFont(fontLargeBold);
 
-	CG32bitPixel rgbBack = AA_STYLECOLOR(colorCountermeasureLocusBack);
+	CG32bitPixel rgbBack = CArtifactAwakenVisuals::GetColor(CArtifactAwakenVisuals::colorCountermeasureLocusBack);
 	CG32bitPixel rgbLabel = CG32bitPixel(0x80, 0x80, 0x80);
-	CG32bitPixel rgbStat = AA_STYLECOLOR(colorAICoreFore);
+	CG32bitPixel rgbStat = CArtifactAwakenVisuals::GetColor(CArtifactAwakenVisuals::colorAICoreFore);
 
 	//	Paint the background first
 

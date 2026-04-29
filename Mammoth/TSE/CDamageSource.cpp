@@ -183,7 +183,7 @@ DWORD CDamageSource::GetObjID (void) const
 	//	If we have an object ID, then that's enough
 
 	else if (IsObjID())
-		return (DWORD)m_pSource;
+		return (DWORD)(uintptr_t)m_pSource;
 
 	//	If we have an actual object pointer, then return it.
 

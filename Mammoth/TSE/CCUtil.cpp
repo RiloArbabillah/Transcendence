@@ -117,12 +117,12 @@ ICCItem *CreateDamageSource (CCodeChain &CC, const CDamageSource &Source)
 	ICCItem *pResult = CC.CreateSymbolTable();
 
 	if (Source.GetObj())
-		pResult->SetIntegerAt(CONSTLIT("obj"), (int)Source.GetObj());
+		pResult->SetIntegerAt(CONSTLIT("obj"), (intptr_t)Source.GetObj());
 
 	pResult->SetStringAt(CONSTLIT("cause"), GetDestructionName(Source.GetCause()));
 
 	if (Source.GetSecondaryObj())
-		pResult->SetIntegerAt(CONSTLIT("secondaryObj"), (int)Source.GetSecondaryObj());
+		pResult->SetIntegerAt(CONSTLIT("secondaryObj"), (intptr_t)Source.GetSecondaryObj());
 
 	if (Source.GetObj() == NULL)
 		{
@@ -348,7 +348,7 @@ CSpaceObject *CreateObjFromItem (const ICCItem *pItem, DWORD dwFlags)
 ICCItem *CreateObjPointer (CCodeChain &CC, CSpaceObject *pObj)
 	{
 	if (pObj)
-		return CC.CreateInteger((int)pObj);
+		return CC.CreateInteger((intptr_t)pObj);
 	else
 		return CC.CreateNil();
 	}
@@ -901,7 +901,7 @@ void DefineGlobalSpaceObject (CCodeChain &CC, const CString &sVar, const CSpaceO
 
 	{
 	if (pObj)
-		CC.DefineGlobalInteger(sVar, (int)pObj);
+		CC.DefineGlobalInteger(sVar, (intptr_t)pObj);
 	else
 		CC.DefineGlobal(sVar, CC.GetNil());
 	}

@@ -25,6 +25,7 @@ email: shaneosullivan1@gmail.com
 
 #include "PreComp.h"
 #include "VoronoiGenerator.h"
+using namespace std;
 
 VoronoiDiagramGenerator::VoronoiDiagramGenerator()
 {

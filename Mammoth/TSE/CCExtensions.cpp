@@ -6485,7 +6485,7 @@ ICCItem *fnObjData (CEvalContext *pEvalCtx, ICCItem *pArguments, DWORD dwData)
 			{
 			CSpaceObject *pRef = pObj->GetObjRefData(sAttrib);
 			if (pRef)
-				pResult = pCC->CreateInteger((int)pRef);
+				pResult = pCC->CreateInteger((intptr_t)pRef);
 			else
 				pResult = pCC->CreateNil();
 			pArgs->Discard();
@@ -6995,7 +6995,7 @@ ICCItem *fnObjIDGet (CEvalContext *pEvalCtx, ICCItem *pArgs, DWORD dwData)
 			{
 			CSpaceObject *pObj = pCtx->GetUniverse().FindObject(pArgs->GetElement(0)->GetIntegerValue());
 			if (pObj)
-				return pCC->CreateInteger((int)pObj);
+				return pCC->CreateInteger((intptr_t)pObj);
 			else
 				return pCC->CreateNil();
 			}
@@ -7137,7 +7137,7 @@ ICCItem *fnObjGet (CEvalContext *pEvalCtx, ICCItem *pArgs, DWORD dwData)
 				{
 				CSpaceObject *pTarget = pObj->GetNearestVisibleEnemy();
 				if (pTarget)
-					return pCC->CreateInteger((int)pTarget);
+					return pCC->CreateInteger((intptr_t)pTarget);
 				else
 					return pCC->CreateNil();
 				}
@@ -7167,7 +7167,7 @@ ICCItem *fnObjGet (CEvalContext *pEvalCtx, ICCItem *pArgs, DWORD dwData)
 					}
 
 				if (pBestTarget)
-					return pCC->CreateInteger((int)pBestTarget);
+					return pCC->CreateInteger((intptr_t)pBestTarget);
 				else
 					return pCC->CreateNil();
 				}
@@ -8250,7 +8250,7 @@ ICCItem *fnObjGet (CEvalContext *pEvalCtx, ICCItem *pArgs, DWORD dwData)
 
 			CSpaceObject *pOrderGiver = pObj->GetOrderGiver(iCause);
 			if (pOrderGiver)
-				return pCC->CreateInteger((int)pOrderGiver);
+				return pCC->CreateInteger((intptr_t)pOrderGiver);
 			else
 				return pCC->CreateNil();
 			}
@@ -8599,7 +8599,7 @@ ICCItem *fnObjGetOld (CEvalContext *pEvalCtx, ICCItem *pArguments, DWORD dwData)
 			{
 			CSpaceObject *pTarget = pObj->GetTarget(IShipController::FLAG_ACTUAL_TARGET);
 			if (pTarget)
-				pResult = pCC->CreateInteger((int)pTarget);
+				pResult = pCC->CreateInteger((intptr_t)pTarget);
 			else
 				pResult = pCC->CreateNil();
 			break;
@@ -8637,7 +8637,7 @@ ICCItem *fnObjGetOld (CEvalContext *pEvalCtx, ICCItem *pArguments, DWORD dwData)
 			if (pGate == NULL)
 				pResult = pCC->CreateNil();
 			else
-				pResult = pCC->CreateInteger((int)pGate);
+				pResult = pCC->CreateInteger((intptr_t)pGate);
 			break;
 			}
 
@@ -9103,7 +9103,7 @@ ICCItem *fnObjSet (CEvalContext *pEvalCtx, ICCItem *pArgs, DWORD dwData)
 			CMissile *pReflection;
 
 			pMissile->CreateReflection(vPos, iDirection, &pReflection);
-			return pCC->CreateInteger((int) pReflection);
+			return pCC->CreateInteger((intptr_t) pReflection);
 			}
 		case FN_OBJ_CREDIT:
 			{
@@ -10603,7 +10603,7 @@ ICCItem *fnMission (CEvalContext *pEvalCtx, ICCItem *pArgs, DWORD dwData)
 
 				//	Return the mission object
 
-				return pCC->CreateInteger((int)pMission);
+				return pCC->CreateInteger((intptr_t)pMission);
 				}
 
 			//	Otherwise we expect a mission type.
@@ -10637,7 +10637,7 @@ ICCItem *fnMission (CEvalContext *pEvalCtx, ICCItem *pArgs, DWORD dwData)
 
 				//	Return the mission object
 
-				return pCC->CreateInteger((int)pMission);
+				return pCC->CreateInteger((intptr_t)pMission);
 				}
 			}
 
@@ -10673,7 +10673,7 @@ ICCItem *fnMission (CEvalContext *pEvalCtx, ICCItem *pArgs, DWORD dwData)
 			if (Criteria.ReturnHighestPriority())
 				{
 				CMission *pBestMission = List.FindHighestPriority();
-				return pCC->CreateInteger((int)pBestMission);
+				return pCC->CreateInteger((intptr_t)pBestMission);
 				}
 
 			//	Create a list to return
@@ -10686,7 +10686,7 @@ ICCItem *fnMission (CEvalContext *pEvalCtx, ICCItem *pArgs, DWORD dwData)
 
 				CCLinkedList *pList = (CCLinkedList *)pResult;
 				for (int i = 0; i < List.GetCount(); i++)
-					pList->AppendInteger((int)List.GetMission(i));
+					pList->AppendInteger((intptr_t)List.GetMission(i));
 
 				//	Done
 
@@ -11097,7 +11097,7 @@ ICCItem *fnShipGet (CEvalContext *pEvalCtx, ICCItem *pArgs, DWORD dwData)
 			if (pObj == NULL)
 				return pCC->CreateNil();
 
-			return pCC->CreateInteger((int)pObj);
+			return pCC->CreateInteger((intptr_t)pObj);
 			}
 
 		case FN_SHIP_IS_NAMED_DEVICE:
@@ -11326,7 +11326,7 @@ ICCItem *fnShipGetOld (CEvalContext *pEvalCtx, ICCItem *pArguments, DWORD dwData
 			IShipController::OrderTypes iOrder = OrderDesc.GetOrder();
 
 			if (IShipController::OrderHasTarget(iOrder) && pTarget)
-				pResult = pCC->CreateInteger((int)pTarget);
+				pResult = pCC->CreateInteger((intptr_t)pTarget);
 			else
 				pResult = pCC->CreateNil();
 			break;
@@ -12478,7 +12478,7 @@ ICCItem *fnStationGetOld (CEvalContext *pEvalCtx, ICCItem *pArguments, DWORD dwD
 				CSpaceObject *pShip = pStation->GetShipAtDockingPort(i);
 				if (pShip)
 					{
-					ICCItem *pInt = pCC->CreateInteger((int)pShip);
+					ICCItem *pInt = pCC->CreateInteger((intptr_t)pShip);
 					pList->Append(pInt);
 					pInt->Discard();
 					}
@@ -12502,7 +12502,7 @@ ICCItem *fnStationGetOld (CEvalContext *pEvalCtx, ICCItem *pArguments, DWORD dwD
 				CSpaceObject *pShip = pStation->GetSubordinate(i);
 				if (pShip)
 					{
-					ICCItem *pInt = pCC->CreateInteger((int)pShip);
+					ICCItem *pInt = pCC->CreateInteger((intptr_t)pShip);
 					pList->Append(pInt);
 					pInt->Discard();
 					}
@@ -13245,7 +13245,7 @@ ICCItem *fnSystemCreate (CEvalContext *pEvalCtx, ICCItem *pArgs, DWORD dwData)
 
 			//	Done
 
-			return pCC->CreateInteger((int)pFlotsam);
+			return pCC->CreateInteger((intptr_t)pFlotsam);
 			}
 
 		case FN_SYS_CREATE_HIT_EFFECT:
@@ -13353,7 +13353,7 @@ ICCItem *fnSystemCreate (CEvalContext *pEvalCtx, ICCItem *pArgs, DWORD dwData)
 
 			//	Done
 
-			return pCC->CreateInteger((int)pWreck);
+			return pCC->CreateInteger((intptr_t)pWreck);
 			}
 
 		case FN_SYS_CREATE_TERRITORY:
@@ -13552,7 +13552,7 @@ ICCItem *fnSystemCreate (CEvalContext *pEvalCtx, ICCItem *pArgs, DWORD dwData)
 
 			//	DOne
 
-			return pCC->CreateInteger((int)pObj);
+			return pCC->CreateInteger((intptr_t)pObj);
 			}
 
 		case FN_SYS_PLAY_SOUND:
@@ -13721,7 +13721,7 @@ ICCItem *fnSystemCreateMarker (CEvalContext *pEvalCtx, ICCItem *pArguments, DWOR
 
 	//	Done
 
-	return pCC->CreateInteger((int)pObj);
+	return pCC->CreateInteger((intptr_t)pObj);
 	}
 
 ICCItem *fnSystemCreateShip (CEvalContext *pEvalCtx, ICCItem *pArgs, DWORD dwData)
@@ -13884,7 +13884,7 @@ ICCItem *fnSystemCreateShip (CEvalContext *pEvalCtx, ICCItem *pArgs, DWORD dwDat
 
 		//	Done
 
-		return pCC->CreateInteger((int)pShipCreated);
+		return pCC->CreateInteger((intptr_t)pShipCreated);
 		}
 	}
 
@@ -14080,7 +14080,7 @@ ICCItem *fnSystemCreateStargate (CEvalContext *pEvalCtx, ICCItem *pArgs, DWORD d
 	//	Done
 
 	if (pStation)
-		return pCC->CreateInteger((int)pStation);
+		return pCC->CreateInteger((intptr_t)pStation);
 	else
 		return pCC->CreateNil();
 	}
@@ -14216,7 +14216,7 @@ ICCItem *fnSystemCreateStation (CEvalContext *pEvalCtx, ICCItem *pArgs, DWORD dw
 	//	Done
 
 	if (pStation)
-		return pCC->CreateInteger((int)pStation);
+		return pCC->CreateInteger((intptr_t)pStation);
 	else
 		return pCC->CreateNil();
 	}
@@ -14314,7 +14314,7 @@ ICCItem *fnSystemFind (CEvalContext *pEvalCtx, ICCItem *pArgs, DWORD dwData)
 				&& pObj->MatchesCriteria(Ctx, Criteria))
 			{
 			if (bGenerateOurOwnList)
-				pList->AppendInteger((int)pObj);
+				pList->AppendInteger((intptr_t)pObj);
 			}
 		}
 
@@ -14325,7 +14325,7 @@ ICCItem *fnSystemFind (CEvalContext *pEvalCtx, ICCItem *pArgs, DWORD dwData)
 		//	Return the object
 
 		if (Ctx.pBestObj)
-			return pCC->CreateInteger((int)Ctx.pBestObj);
+			return pCC->CreateInteger((intptr_t)Ctx.pBestObj);
 		else
 			return pCC->CreateNil();
 		}
@@ -14336,7 +14336,7 @@ ICCItem *fnSystemFind (CEvalContext *pEvalCtx, ICCItem *pArgs, DWORD dwData)
 	else if (!bGenerateOurOwnList)
 		{
 		for (i = 0; i < Ctx.DistSort.GetCount(); i++)
-			pList->AppendInteger((int)Ctx.DistSort[i]);
+			pList->AppendInteger((intptr_t)Ctx.DistSort[i]);
 
 		return pResult;
 		}
@@ -14566,7 +14566,7 @@ ICCItem *fnSystemGet (CEvalContext *pEvalCtx, ICCItem *pArgs, DWORD dwData)
 			if (!pSystem->DescendObject(dwObjID, vPos, &pObj))
 				return pCC->CreateError(strPatternSubst(CONSTLIT("Unable to descend object ID: %d"), dwObjID), pArgs->GetElement(0));
 
-			return pCC->CreateInteger((int)pObj);
+			return pCC->CreateInteger((intptr_t)pObj);
 			}
 
 		case FN_SYS_ENVIRONMENT:
@@ -15883,7 +15883,7 @@ ICCItem *fnSystemGetObjectByName (CEvalContext *pEvalCtx, ICCItem *pArgs, DWORD 
 	if (pObj == NULL)
 		return pCC->CreateNil();
 	else
-		return pCC->CreateInteger((int)pObj);
+		return pCC->CreateInteger((intptr_t)pObj);
 	}
 
 ICCItem *fnSystemMisc (CEvalContext *pEvalCtx, ICCItem *pArgs, DWORD dwData)

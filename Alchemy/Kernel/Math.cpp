@@ -259,14 +259,7 @@ int Kernel::mathRound (double x)
 		sar i, 1
 		}
 #else
-	//i = floor(x + round_to_nearest); //fallback alternative
-	__asm__ __volatile__ (
-		"fadd %%st\n\t"
-		"fadd %%st(1)\n\t"
-		"fistpl %0\n\t"
-		"sarl $1, %0\n"
-		: "=m"(i) : "u"(round_to_nearest), "t"(x) : "st"
-        );
+	i = (int)floor(x + round_to_nearest);
 #endif
 	return (i);
 	}

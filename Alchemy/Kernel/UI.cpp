@@ -4,6 +4,7 @@
 //	Copyright (c) 2019 Kronosaur Productions, LLC. All Rights Reserved.
 
 #include "PreComp.h"
+#include "DirectXUtilCompat.h"
 
 ALERROR Kernel::uiCopyTextToClipboard (HWND hWnd, const CString &sText)
 

@@ -312,7 +312,7 @@ CString CItem::CalcSortKey (void) const
 	if (pType->AreChargesAmmo())
 		sCharges = strPatternSubst(CONSTLIT("-%08d"), GetCharges());
 
-	return strPatternSubst(CONSTLIT("%s%s%s%s%d"), sInstalled, sCat, sName, sCharges, ((DWORD)(int)this) % 0x10000);
+	return strPatternSubst(CONSTLIT("%s%s%s%s%d"), sInstalled, sCat, sName, sCharges, ((DWORD)(uintptr_t)this) % 0x10000);
 	}
 
 bool CItem::CanBeUsed (CString *retsUseKey) const

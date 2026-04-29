@@ -67,8 +67,8 @@ void CDaimonButtonPainter::PaintMainStyle (CG32bitImage &Dest, EStates iState) c
 	{
 	int i;
 
-	CG32bitPixel rgbStyleBack = STYLECOLOR(colorDeployDaimonBack);
-	CG32bitPixel rgbStyleFore = STYLECOLOR(colorDeployDaimonFore);
+	CG32bitPixel rgbStyleBack = CArtifactAwakenVisuals::GetColor(CArtifactAwakenVisuals::colorDeployDaimonBack);
+	CG32bitPixel rgbStyleFore = CArtifactAwakenVisuals::GetColor(CArtifactAwakenVisuals::colorDeployDaimonFore);
 
 	//	Brighten the background if we're hovering.
 

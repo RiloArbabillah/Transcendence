@@ -151,6 +151,6 @@ void CCPrimitive::SetProc (PRIMITIVEPROCDEF *pDef, IPrimitiveImpl *pImpl)
 		m_dwFlags |= PPFLAG_METHOD_INVOKE;
 		}
 	else
-		m_pfFunction = pDef->pfFunction;
+		m_pfFunction = (void*)(uintptr_t)pDef->pfFunction;
 	}
 

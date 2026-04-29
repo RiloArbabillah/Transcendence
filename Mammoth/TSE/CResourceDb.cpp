@@ -1260,7 +1260,7 @@ ALERROR CResourceDb::OpenDb (void)
 				{
 				SResourceEntry *pEntry = m_ResourceMap.Insert(pTable->GetKey(i));
 				pEntry->sFilename = pTable->GetKey(i);
-				pEntry->iEntryID = (int)pTable->GetValue(i);
+				pEntry->iEntryID = (intptr_t)pTable->GetValue(i);
 				pEntry->dwFlags = 0;
 				}
 

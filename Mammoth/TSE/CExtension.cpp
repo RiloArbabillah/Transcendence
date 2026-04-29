@@ -876,7 +876,7 @@ void CExtension::DebugDump (CExtension *pExtension, bool bFull)
 
 	try
 		{
-		::kernelDebugLogPattern("%08x %s [%08x]", pExtension->m_dwUNID, pExtension->m_sFilespec, (DWORD)pExtension);
+		::kernelDebugLogPattern("%08x %s [%08x]", pExtension->m_dwUNID, pExtension->m_sFilespec, (DWORD)(uintptr_t)pExtension);
 		if (bFull)
 			{
 			if (pExtension->m_bDeleted)

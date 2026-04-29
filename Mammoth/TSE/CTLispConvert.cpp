@@ -282,7 +282,7 @@ ICCItemPtr CTLispConvert::CreateObject (const CSpaceObject *pObj)
 
 	{
 	if (pObj)
-		return ICCItemPtr((int)pObj);
+		return ICCItemPtr((int)(uintptr_t)pObj);
 	else
 		return ICCItemPtr::Nil();
 	}

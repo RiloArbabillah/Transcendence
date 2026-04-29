@@ -30,29 +30,30 @@ email: shaneosullivan1@gmail.com
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <iostream>
 
 //#define DEF_PLOT
 
-#define DEF_LOG					/##/
-#define GET_FILE_LOG			/##/
-#define ENTRYEXIT_LOG_ON		/##/
-#define ENTRYEXIT_LOG_OFF		/##/
-#define LOGGING_OFF				/##/
-#define GET_SCREEN_LOG			/##/
-#define GET_FILE_LOG_GLOBAL		/##/
-#define GET_SCREEN_LOG_GLOBAL   /##/
-#define LOGGING_OFF_GLOBAL		/##/
-#define LOG						/##/
-#define LOGTIME					/##/
-#define LOGENTRY(a)				/##/
-#define LOGEXIT(a)				/##/
-#define LOGCODE					/##/
-#define LOGCODEEND				*##/
-#define LOGCODESTART			/##*
+#define DEF_LOG
+#define GET_FILE_LOG
+#define ENTRYEXIT_LOG_ON
+#define ENTRYEXIT_LOG_OFF
+#define LOGGING_OFF
+#define GET_SCREEN_LOG
+#define GET_FILE_LOG_GLOBAL
+#define GET_SCREEN_LOG_GLOBAL
+#define LOGGING_OFF_GLOBAL
+#define LOGCODE
+#define LOGCODEEND
+#define LOGCODESTART
 
 #ifndef NULL
 #define NULL 0
 #endif
+
+class NullStream { public: template<typename T> NullStream& operator<<(const T&) { return *this; } NullStream& operator<<(std::ostream& (*)(std::ostream&)) { return *this; } };
+static NullStream g_NullStream;
+#define LOG g_NullStream
 
 typedef double VFLOAT;
 

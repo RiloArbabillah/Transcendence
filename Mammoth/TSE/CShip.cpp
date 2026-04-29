@@ -2025,7 +2025,7 @@ CString CShip::DebugCrashInfo (void) const
 		}
 	catch (...)
 		{
-		sResult.Append(strPatternSubst(CONSTLIT("Invalid controller: %x\r\n"), (DWORD)m_pController));
+		sResult.Append(strPatternSubst(CONSTLIT("Invalid controller: %x\r\n"), (DWORD)(uintptr_t)m_pController));
 		}
 
 	sResult.Append(m_Overlays.DebugCrashInfo());
