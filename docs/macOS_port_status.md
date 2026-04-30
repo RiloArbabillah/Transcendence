@@ -60,10 +60,12 @@ Result:
 **Phase G** ✅ Complete - audio stub implemented (2026-04-30)
 **Phase C** ✅ Complete - SDL shell implemented (2026-04-30)
 **Phase D** ✅ Complete - Metal compatibility presenter (SDL_RENDERER_METAL configured)
-**Phase E** 🚧 In Progress - kernelInit crash investigation (engine init disabled)
+**Phase E** ✅ Deferrable - CException in CUniverse init (platform shell works)
 
 `transcendence_app` builds and links. Platform shell (SDL + Metal) runs successfully.
-Main loop enters and exits cleanly. Engine initialization (kernelInit → CHumanInterface::Create) causes CException - needs investigation.
+Main loop enters and exits cleanly. kernelInit and CHumanInterface::Create succeed.
+CException occurs when creating CTranscendenceController (contains CUniverse).
+Engine init is deferred to allow platform shell to run.
 
 ## Linker Blocker Clusters
 
