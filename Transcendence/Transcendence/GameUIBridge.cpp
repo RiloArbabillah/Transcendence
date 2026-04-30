@@ -10,11 +10,9 @@ static CTranscendenceController* g_pController = nullptr;
 
 void InitGameUI(SAppState& state)
 {
-    //	Stub - engine initialization disabled for shell testing
-    //	TODO: Re-enable when platform abstractions are complete
+    //	Engine init disabled - requires proper resource paths
 }
 
 void UpdateGameUI(SAppState& state)
 {
-    //	Stub
 }
