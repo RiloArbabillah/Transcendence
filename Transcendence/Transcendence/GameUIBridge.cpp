@@ -10,10 +10,11 @@ static CTranscendenceController* g_pController = nullptr;
 
 void InitGameUI(SAppState& state)
 {
-    //	InitGameUI is now a minimal stub
-    //	The crash happens before this is even called
+    //	Stub - engine initialization disabled for shell testing
+    //	TODO: Re-enable when platform abstractions are complete
 }
 
 void UpdateGameUI(SAppState& state)
 {
+    //	Stub
 }
