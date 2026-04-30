@@ -1,216 +1,256 @@
-# Transcendence macOS Port - Documentation
+# Transcendence macOS Port - Current Status
 
 ## Overview
 
-This document describes the current state and remaining work required to build and run Transcendence on macOS (Apple Silicon).
+This document records the current state of the native macOS Apple Silicon port and the audited path needed to finish it. The port strategy remains compatibility-first: keep existing engine/gameplay logic, keep software frame generation, replace Win32 shell/presentation/resource/audio boundaries with native macOS equivalents.
 
 ## Build Status
 
-**Current State:** Partial compilation - links fail at final link stage with ~50 missing symbol groups.
+**Current State:** core and engine static libraries build on macOS; the final app target compiles but fails at link due to missing implementation files and unfinished platform/backend seams.
 
-**Last Working Commit:** `e7e576e1` - fix: continue macOS port - add more source files and stubs
+**Validated Locally:** 2026-04-30
+
+```sh
+cmake --preset macos-debug
+cmake --build --preset macos-debug --target alchemy_kernel
+cmake --build --preset macos-debug --target alchemy_codechain alchemy_xmlutil alchemy_jpeg alchemy_graphics mammoth_tse
+cmake --build --preset macos-debug --target mammoth_tsui
+cmake --build --preset macos-debug --target transcendence_app
+```
+
+Result:
+
+- configure succeeds
+- `alchemy_kernel` builds
+- `alchemy_codechain`, `alchemy_xmlutil`, `alchemy_jpeg`, `alchemy_graphics`, and `mammoth_tse` build
+- `mammoth_tsui` builds
+- `transcendence_app` reaches final link and fails on unresolved symbols
 
 ## What Works
 
-### Compilation Phase
-- Alchemy/Kernel library compiles with extensive Windows API stubs
-- Alchemy/CodeChain library compiles
-- Alchemy/XMLUtil library compiles (partially)
-- Alchemy/Graphics library compiles (partially - Windows GDI files excluded)
-- Mammoth/TSE library compiles (partially)
-- Mammoth/TSUI library compiles (partially)
-- Transcendence app compiles (partially)
+### Build Graph
 
-### Libraries Successfully Built
-- `libalchemy_kernel.a`
-- `libalchemy_codechain.a`
-- `libalchemy_xmlutil.a`
-- `libalchemy_jpeg.a`
-- `libalchemy_graphics.a` (partial)
-- `libmammoth_tse.a` (partial)
-- `libmammoth_tsui.a` (partial)
+- Root `CMakeLists.txt` and `CMakePresets.json` exist.
+- The macOS target graph configures under `macos-debug`.
+- The following static library targets build:
+  - `libalchemy_kernel.a`
+  - `libalchemy_codechain.a`
+  - `libalchemy_xmlutil.a`
+  - `libalchemy_jpeg.a`
+  - `libalchemy_graphics.a`
+  - `libmammoth_tse.a`
+  - `libmammoth_tsui.a`
+  - `libplatform_sdl.a`
 
-### Key Fixes Applied
-1. Windows API stubs in `Kernel.h` (socket, registry, file I/O, memory, threading)
-2. CString operator== for const char* comparisons
-3. CCItemPool template explicit instantiations
-4. VoronoiGenerator.h LOG macros fixed
-5. CHTML.h header created
-6. DIBSDL.cpp stub for dibLoadFromBlock
-7. CGDrawStub.cpp partial stub implementations
-8. lodepng library integration
+### Portability Progress
 
-## What Doesn't Work
+- The previous `Alchemy/Include/Kernel.h` arm64 pointer-cast blocker no longer prevents `alchemy_kernel` from building.
+- The previous Win32 file-mapping blockers in `CFileReadBlock.cpp` / `CFileReadStream.cpp` no longer block `alchemy_kernel` compilation.
+- File-based resource lookup and neutral image-loading work exists for title/menu-critical callers.
+- `CMake` failure quality is now useful: failures are mostly at final link instead of early global compile blockers.
 
-### Linking Errors
-The final link step fails with ~50 missing symbol groups:
+## Current Blocker
 
-#### 1. GUI/Area Classes (Critical)
+The active blocker is final app linking, not core compilation.
+
+`transcendence_app` currently fails with unresolved symbols in several clusters. Most are not truly missing from the repository; they are implementation files that are absent from the CMake source lists or platform-specific backends that still need stubs/replacements.
+
+## Linker Blocker Clusters
+
+### 1. Source Files Present but Not Linked
+
+These should be added to the appropriate CMake targets first. They are the cheapest wins and should reduce linker noise before any new code is written.
+
+| Missing symbols | Source file found | Target owner |
+|---|---|---|
+| `CIconLabelBlock::*` | `Alchemy/DirectXUtil/CIconLabelBlock.cpp` | `alchemy_graphics` |
+| `CNoiseGenerator::*` | `Alchemy/DirectXUtil/CNoiseGenerator.cpp` | `alchemy_graphics` |
+| `AGArea::*` | `Alchemy/DirectXUtil/AGArea.cpp` | `alchemy_graphics` |
+| `AGScreen::*` | `Alchemy/DirectXUtil/AGScreen.cpp` | `alchemy_graphics` |
+| `Kernel::CDictionary::*` | `Alchemy/Kernel/CDictionary.cpp` | `alchemy_kernel` |
+| `Kernel::CAtomizer::*` | `Alchemy/Kernel/CAtomizer.cpp` | `alchemy_kernel` |
+| `Kernel::CException::GetErrorMessage` | `Alchemy/Kernel/CException.cpp` | `alchemy_kernel` |
+| `Kernel::CFileDirectory::*` | `Alchemy/Kernel/CFileDirectory.cpp` | `alchemy_kernel` |
+| `CExtensionListMap::*` | `Mammoth/TSUI/CExtensionListMap.cpp` | `mammoth_tsui` |
+| `quickhull::QuickHull<double>::*` | `Alchemy/Kernel/quickhull/QuickHull.cpp` | `alchemy_kernel` |
+
+### 2. CGDraw / Filter / Fractal Implementation Gap
+
+Representative missing symbols:
+
+- `CGDraw::LineBroken`, `LineDotted`, `LineGradient`, `LineHD`, `LineBresenham`, `LineBresenhamTrans`
+- `CGDraw::Circle`, `CircleImage`, `CircleGradient`, `CircleOutline`
+- `CGDraw::RoundedRect`, `RoundedRectOutline`, `RoundedRectBottom`, `RectOutline`, `RectGradient`, `RectOutlineDotted`
+- `CGDraw::Arc`, `ArcQuadrilateral`, `TriangleCorner`, `MaskRoundedRect`, `Region`, `Fill`, `ParseBlendMode`
+- `CGFilter::Blur`, `CGFilter::Threshold`
+- `CGFractal::*`
+- `CGRunList::*`
+
+Plan:
+
+- Prefer compiling existing implementation files such as `DrawLine.cpp`, `DrawRect.cpp`, `DrawCircle.cpp`, `DrawFill.cpp`, `DrawRegion.cpp`, `BlendModes.cpp`, `FilterBlur.cpp`, `FilterThreshold.cpp`, `DrawClouds.cpp`, and related rasterizer/run-list files after fixing Clang template issues.
+- Only create stubs when a function is not required for the current milestone path or when a full implementation would pull in Windows-only dependencies.
+- Do not move this work to Metal yet; these are CPU/software drawing primitives used before frame presentation.
+
+### 3. HUD and Gameplay UI Classes
+
+Missing constructors include:
+
+- `CShieldHUDDefault::CShieldHUDDefault()`
+- `CWeaponHUDCircular::CWeaponHUDCircular()`
+- `CReactorHUDCircular::CReactorHUDCircular()`
+
+Plan:
+
+- Locate and add the corresponding source files if present.
+- If they are not present or depend on excluded Windows-only draw code, add minimal milestone stubs only after CGDraw coverage is improved.
+- Treat these as first-playable blockers, not menu-only blockers, unless `IHUDPainter::Create` is linked into the menu path.
+
+### 4. Audio Backend Still Windows-Coupled
+
+Missing symbols are currently from `CMCIMixer::*`, referenced by `CSoundtrackManager`.
+
+Plan:
+
+- For the main-menu milestone, provide a macOS no-audio or SDL/AVFoundation-backed stub behind the same high-level `CSoundtrackManager` contract.
+- For first playable/runtime parity, replace MCI behavior with a native backend that supports play, fade, pause/resume, current-track position, volume, and shutdown semantics.
+
+### 5. Geometry / Utility Gaps
+
+Missing symbols include several `CGeometry::*` helpers and `CAniSolidLine` vtable coverage.
+
+Plan:
+
+- Add the existing implementation files if present.
+- If unavailable, classify each as menu, gameplay, or effects-only before writing code.
+
+## Audited Path to Completion
+
+### Phase A - Collapse Linker Noise
+
+Goal: make final link failures small and meaningful.
+
+1. Add present-but-omitted implementation files to CMake targets.
+2. Build each owner target before relinking the app.
+3. Re-run `transcendence_app` link and record the remaining unresolved groups.
+
+Exit gate:
+
+- no unresolved symbols remain from source files that already exist and compile cleanly.
+
+### Phase B - Restore Software Drawing Coverage
+
+Goal: compile enough CPU draw primitives for menu and first gameplay rendering.
+
+1. Fix Clang template/friend declaration issues in excluded draw files.
+2. Add draw/filter/fractal files incrementally to `alchemy_graphics`.
+3. Keep DirectX presentation files excluded; include CPU raster/draw utilities only.
+
+Exit gate:
+
+- app link is no longer dominated by `CGDraw`, `CGFilter`, `CGFractal`, or `CGRunList` unresolved symbols.
+
+### Phase C - Ship a Real SDL Shell
+
+Goal: replace the Win32 message-loop path in the active macOS app.
+
+1. Keep shared engine/session code free of SDL headers.
+2. Replace or bypass `WinMain`, Win32 window creation, `WM_*` dispatch, and `PostMessage` command delivery.
+3. Route SDL close, focus, resize, keyboard, mouse, wheel, text, and timer events into existing HI/session entry points.
+
+Exit gate:
+
+- the app opens a native SDL window, pumps events, and exits cleanly without the Win32 message loop.
+
+### Phase D - Add Metal Compatibility Presenter
+
+Goal: present the existing `CG32bitImage` software framebuffer in a native macOS window.
+
+1. Implement the screen-manager/presenter seam used by `CHumanInterface`.
+2. Present a deterministic test frame first.
+3. Present the real loading/title/menu framebuffer next.
+4. Validate pixel order, alpha, resize, and Retina coordinate mapping.
+
+Exit gate:
+
+- a real title/menu frame appears through Metal.
+
+### Phase E - Make Main Menu Usable
+
+Goal: turn visible menu into an operable menu.
+
+1. Complete keyboard command mapping.
+2. Separate SDL text input from command-key handling.
+3. Complete mouse movement, click, wheel, and high-DPI coordinate handling.
+4. Verify required menu fonts/images load from filesystem or bundle paths.
+
+Exit gate:
+
+- title/main menu is visible, readable, and operable with keyboard and mouse; one text-entry flow works.
+
+### Phase F - First Playable
+
+Goal: start a game and sustain a short gameplay loop.
+
+1. Add gameplay-heavy UI/HUD sources only after menu is stable.
+2. Resolve HUD, dock, map, and effects draw gaps.
+3. Implement macOS save/settings paths before treating gameplay as complete.
+
+Exit gate:
+
+- user can start a new game, move/interact, view HUD/dock/map surfaces, and play briefly without critical crashes.
+
+### Phase G - Native Runtime Parity
+
+Goal: remove remaining debug-port shortcuts.
+
+1. Replace the music/SFX backend with native macOS-compatible playback.
+2. Ensure resources resolve from a `.app` bundle and from local debug runs.
+3. Ensure saves/settings write to user-writable macOS locations.
+
+Exit gate:
+
+- save/load, resource lookup, SFX, and music work without Windows-only APIs.
+
+### Phase H - Packaging and Stabilization
+
+Goal: produce a stable native `.app`.
+
+1. Add `.app` bundle target and package resources/assets.
+2. Validate Finder launch, terminal launch, focus, minimize, resize, fullscreen, and repeated relaunch.
+3. Profile before optimizing; keep the compatibility renderer until data proves a bottleneck.
+
+Exit gate:
+
+- bundled app launches outside the terminal and performs acceptably on Apple Silicon.
+
+## Immediate Next Commands
+
+After adding each missing implementation group, use this loop:
+
+```sh
+cmake --build --preset macos-debug --target alchemy_kernel
+cmake --build --preset macos-debug --target alchemy_graphics
+cmake --build --preset macos-debug --target mammoth_tsui
+cmake --build --preset macos-debug --target transcendence_app
 ```
-AGArea::SignalAction(unsigned int)              - MISSING
-AGArea::AddShadowEffect()                      - MISSING
-AGArea::Init(AGScreen*, IAreaContainer*, ...)  - MISSING
-AGArea::SetRect(RECT const&)                  - MISSING
-AGArea::ShowHide(bool)                         - MISSING
-AGArea::AGArea()                               - MISSING
-```
-**Status:** AGArea files exist but excluded from build due to compilation issues.
 
-#### 2. CGDraw Functions (Critical)
-```
-CGDraw::LineBroken(...)          - MISSING
-CGDraw::LineDotted(...)          - MISSING
-CGDraw::CircleImage(...)        - MISSING
-CGDraw::RectOutline(...)        - MISSING
-CGDraw::RingGlowing(...)        - MISSING
-CGDraw::RoundedRect(...)        - MISSING
-CGDraw::LineGradient(...)      - MISSING
-CGDraw::CircleOutline(...)      - MISSING
-```
-**Status:** DrawLine.cpp excluded due to template friend declaration bugs.
+Use the first failing command as the active blocker. Do not broaden into SDL/Metal runtime work until the app link is reduced to platform/presenter/audio seams rather than missing existing source files.
 
-#### 3. HUD Classes (High Priority)
-```
-CShieldHUDDefault::CShieldHUDDefault()        - MISSING
-CWeaponHUDCircular::CWeaponHUDCircular()      - MISSING
-CReactorHUDCircular::CReactorHUDCircular()    - MISSING
-```
-**Status:** These are game-specific UI components.
+## Current Risks
 
-#### 4. CIconLabelBlock (Medium Priority)
-```
-CIconLabelBlock::Add(SLabelDesc const&)        - MISSING
-CIconLabelBlock::Format(int)                   - MISSING
-```
-**Status:** File not found in codebase.
+- The CMake source lists have grown beyond the original bounded menu-only scope; this helps expose real blockers but can pull gameplay/audio/effects dependencies into the menu link.
+- `Kernel.h` still carries duplicated Win32 compatibility definitions (`INADDR_NONE`, `INVALID_HANDLE_VALUE`, `WINAPI`) that generate warnings and should eventually be cleaned behind a single portability boundary.
+- Some `DWORD`/`int` pointer-storage assumptions still appear in warnings and may become runtime correctness bugs on arm64 even when they do not block compilation.
+- Hardcoded Homebrew paths in `CMakeLists.txt` should be replaced with proper package discovery before the build is considered reproducible.
 
-#### 5. CNoiseGenerator (Medium Priority)
-```
-CNoiseGenerator::CNoiseGenerator(int)         - MISSING
-CNoiseGenerator::~CNoiseGenerator()            - MISSING
-```
-**Status:** File not found in codebase.
+## Completion Definition
 
-#### 6. CExtensionListMap (Low Priority)
-```
-CExtensionListMap::WriteAsXML(...)            - MISSING
-CExtensionListMap::ReadFromXML(...)           - MISSING
-```
-**Status:** File not found in codebase.
+The macOS port is complete enough for the first native release when:
 
-## Root Causes
-
-### 1. Windows GDI/DirectX Dependencies
-Many graphics files have deep dependencies on:
-- DirectDraw/Direct3D interfaces
-- GDI (Graphics Device Interface) functions
-- Win32k.sys calls
-
-### 2. C++ Template Friend Declaration Bugs
-Files like `DrawLine.cpp`, `DrawRegion.cpp`, `BlendModes.cpp` have template friend declarations that fail on modern Clang:
-
-```cpp
-// BROKEN - compiler error
-friend TRegionPainter32;  // Should be friend TRegionPainter32<TFillRegionSolid<BLENDER>>;
-
-// ACTUAL CODE IN DrawRegionImpl.h:20
-friend TRegionPainter32;  // ERROR: use of class template requires template arguments
-```
-
-### 3. Missing Source Files
-Some referenced classes don't exist in the codebase at all:
-- `CIconLabelBlock`
-- `CNoiseGenerator`
-- `CExtensionListMap`
-- Various HUD classes
-
-### 4. Incomplete SDL Port
-The SDL-based graphics backend is incomplete. Files like `CScreenMgrSDL.cpp` exist but many drawing operations aren't implemented.
-
-## What's Needed to Complete
-
-### Option 1: Extensive Stub Implementation (Easier but Limited)
-1. Create stub implementations for all 50+ missing symbols
-2. Disable or stub out complex graphics features
-3. Focus on getting a minimal game that can launch
-
-**Effort:** ~1-2 weeks of work
-**Outcome:** Limited functionality - game UI won't render properly
-
-### Option 2: Complete SDL Graphics Port (Recommended)
-1. Implement SDL2-based equivalents for all graphics functions
-2. Fix template friend declaration bugs in source files
-3. Create proper CGDraw implementations using SDL2 rendering
-4. Implement AGArea/GUI system using SDL2
-
-**Effort:** ~2-3 months of work
-**Outcome:** Fully functional game UI on macOS
-
-### Option 3: Hybrid Approach
-1. Add missing files incrementally
-2. Focus on core game functionality first
-3. Defer advanced graphics until later
-
-**Effort:** ~1 month initial, ongoing
-**Outcome:** Playable game with basic graphics
-
-## File Exclusions (Windows GDI)
-
-The following files are currently excluded from the build due to Windows GDI dependencies:
-
-```
-Alchemy/Graphics/CGBitmap.cpp      - GDI dependent
-Alchemy/Graphics/CGFont.cpp        - GDI dependent
-Alchemy/Graphics/CGResourceFile.cpp - GDI dependent
-Alchemy/Graphics/DIB.cpp           - GDI dependent (replaced with DIBSDL.cpp stub)
-Alchemy/Graphics/GDI.cpp           - GDI dependent
-Alchemy/Graphics/Regions.cpp       - GDI dependent
-Alchemy/DirectXUtil/DrawLine.cpp  - Template bugs
-Alchemy/DirectXUtil/DrawRegion.cpp - Template bugs
-Alchemy/DirectXUtil/BlendModes.cpp - Template bugs
-Alchemy/DirectXUtil/DrawClouds.cpp  - Template bugs
-Alchemy/DirectXUtil/DrawFill.cpp    - Template bugs
-Alchemy/DirectXUtil/DrawRect.cpp    - Template bugs
-Alchemy/DirectXUtil/DrawCircle.cpp  - Template bugs
-Alchemy/DirectXUtil/CG16bitFont.cpp - GDI dependent
-```
-
-## Build Commands
-
-```bash
-# Configure and build
-cd build
-cmake ..
-make -j4
-
-# Check specific errors
-make 2>&1 | grep "error:"
-
-# Check linker errors
-make 2>&1 | grep "referenced from"
-```
-
-## Key Files Modified
-
-| File | Change |
-|------|--------|
-| `Alchemy/Include/Kernel.h` | Windows API stubs for sockets, registry, file I/O, memory, threading |
-| `Alchemy/Include/KernelString.h` | CString operator== for const char* |
-| `Alchemy/CodeChain/CCItemPool.cpp` | Template explicit instantiation order |
-| `Alchemy/Include/CHTML.h` | New header for HTML entity translation |
-| `Alchemy/Graphics/DIBSDL.cpp` | Stub for dibLoadFromBlock |
-| `Alchemy/DirectXUtil/CGDrawStub.cpp` | Stub implementations for CGDraw |
-| `CMakeLists.txt` | Added many source files |
-
-## Next Steps
-
-1. **Immediate:** Fix CGDraw functions by uncommenting and fixing DrawLine.cpp
-2. **Short-term:** Add missing AGArea implementation
-3. **Medium-term:** Implement SDL-based CGDraw functions
-4. **Long-term:** Complete GUI system port
-
-## References
-
-- Original Windows build: Visual Studio 2022, `Transcendence.sln`
-- SDL2 port guide: See project documentation
-- Graphics subsystem: Alchemy/DirectXUtil and Alchemy/Graphics directories
+- `cmake --preset macos-debug` and release-oriented presets configure reproducibly
+- app target builds and links without Windows SDK, DirectX, GDI, MCI, or Win32 message-loop dependencies in the active macOS path
+- menu and first gameplay loop are usable
+- resources, saves/settings, and audio behave natively
+- `.app` bundle launches from Finder with packaged assets
+- resize, focus, minimize, fullscreen, and a representative longer play session are stable

@@ -2,8 +2,8 @@
 
 ## Document Status
 
-- Version: v1.0
-- Last Updated: 2026-04-14
+- Version: v1.1
+- Last Updated: 2026-04-30
 - Derived From: `PRD.md`
 - Companion Docs: `roadmap.md`, `task-backlog.md`, `dependency-matrix.md`, `architecture.md`, `milestone-1-plan.md`, `cmake-build-plan.md`, `decision-log.md`
 - Project: Native macOS Apple Silicon port of `kronosaur/TranscendenceDev`
@@ -46,6 +46,7 @@ The matrix is intentionally milestone-driven, not feature-complete. Each milesto
 |---|---|---|
 | M0 | Architecture baseline | planning correctness, dependency classification, boundary clarity |
 | M1 | Core build on macOS | configure/build success, target graph correctness, portability blockers identified |
+| M1.5 | Executable link closure | app target links or remaining unresolved symbols are classified by seam owner |
 | M2 | SDL native shell | app launch, window lifecycle, event pump, resize/focus behavior |
 | M3 | Metal compatibility presenter | first frame correctness, color/alpha validation, resize and DPI correctness |
 | M4 | Main menu usable | menu visibility, keyboard/mouse input, text-entry viability, required resources |
@@ -114,7 +115,38 @@ Validate that the portable core can be configured and built in a macOS `CMake` f
 
 - milestone passes when the macOS build path is real and the blocking compile issues are localized and understood
 
+## M1.5 - Executable Link Closure
+
+### Objective
+
+Validate that the build has advanced from static-library success to an executable link path.
+
+### Required Checks
+
+#### Link Closure
+
+- `transcendence_app` compiles its app object
+- unresolved symbols from existing-but-omitted files are eliminated
+- software drawing unresolved groups are either implemented or explicitly deferred outside the menu path
+- audio unresolved groups are handled by a milestone no-audio/native-audio seam if required
+
+#### Failure Quality
+
+- remaining unresolved symbols are grouped by owner: platform shell, presenter, audio, software drawing, gameplay UI, or deferred feature
+- each remaining group has a next action in `task-backlog.md` or `../macOS_port_status.md`
+
+### Recommended Checks
+
+- capture one linker output after each major source-list expansion and update the blocker list
+- avoid introducing SDL/Metal runtime behavior until link failures are small and classified
+
+### Exit Rule
+
+- milestone passes when `cmake --build --preset macos-debug --target transcendence_app` links, or when the only remaining unresolved symbols are explicit platform/backend seams with owners
+
 ## M2 - SDL Native Shell
+
+Before starting this milestone, M1.5 should be complete enough that the app link is not dominated by omitted implementation files or software drawing gaps.
 
 ### Objective
 

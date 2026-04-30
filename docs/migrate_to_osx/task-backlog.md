@@ -2,8 +2,8 @@
 
 ## Document Status
 
-- Version: v1.1
-- Last Updated: 2026-04-25
+- Version: v1.2
+- Last Updated: 2026-04-30
 - Derived From: `PRD.md`
 - Companion Document: `roadmap.md`
 
@@ -123,13 +123,13 @@ This backlog converts the roadmap into actionable engineering work. Tasks are gr
 ### B-004 Fix Apple Clang compatibility issues
 
 - Priority: `P0`
-- Status: `in_progress`
+- Status: `done`
 - Goal: resolve compile blockers due to compiler differences, case-sensitive includes, and old platform assumptions
 - Depends on:
   - B-003
 - Acceptance criteria:
   - core targets compile under Apple Clang on arm64
-- Immediate blocker: `Alchemy/Include/Kernel.h:743` pointer-to-`int` cast blocks `alchemy_kernel` on arm64
+- Current validation: core and engine static library targets build through `mammoth_tsui`; remaining warnings are not treated as milestone blockers unless they become runtime bugs
 
 ### B-005 Audit x86-only and asm-sensitive paths
 
@@ -146,41 +146,38 @@ This backlog converts the roadmap into actionable engineering work. Tasks are gr
 ### C-001 Build `Alchemy/Kernel`
 
 - Priority: `P0`
-- Status: `in_progress`
+- Status: `done`
 - Depends on:
   - B-003
 
-Fastest next tasks:
-
-- fix the global `Kernel.h:743` arm64 pointer storage blocker first
-- then handle or defer the Win32 memory-mapped file implementations in `CFileReadBlock.cpp` and `CFileReadStream.cpp`
-- verify with `cmake --build --preset macos-debug --target alchemy_kernel`
+- Current validation: `cmake --build --preset macos-debug --target alchemy_kernel` builds locally
 
 ### C-002 Build `Alchemy/CodeChain`
 
 - Priority: `P0`
-- Status: `todo`
+- Status: `done`
 - Depends on:
   - C-001
 
 ### C-003 Build `Alchemy/XMLUtil`
 
 - Priority: `P0`
-- Status: `todo`
+- Status: `done`
 - Depends on:
   - C-001
 
 ### C-004 Build `Alchemy/Graphics`
 
 - Priority: `P0`
-- Status: `todo`
+- Status: `in_progress`
 - Depends on:
   - C-001
+- Current validation: target builds, but app link shows missing `CGDraw`, `CGFilter`, `CGFractal`, `CGRunList`, `AGArea`, `AGScreen`, `CIconLabelBlock`, and `CNoiseGenerator` coverage
 
 ### C-005 Build `Mammoth/TSE`
 
 - Priority: `P0`
-- Status: `todo`
+- Status: `done`
 - Depends on:
   - C-002
   - C-003
@@ -189,9 +186,64 @@ Fastest next tasks:
 ### C-006 Build `Mammoth/TSUI`
 
 - Priority: `P0`
-- Status: `todo`
+- Status: `done`
 - Depends on:
   - C-005
+- Current validation: `cmake --build --preset macos-debug --target mammoth_tsui` builds locally; app link still needs omitted TSUI support files such as `CExtensionListMap.cpp`
+
+### C-008 Close `transcendence_app` link gaps from omitted source files
+
+- Priority: `P0`
+- Status: `todo`
+- Goal: add existing implementation files that currently satisfy unresolved final-link symbols before writing new stubs
+- Depends on:
+  - C-006
+- First source candidates:
+  - `Alchemy/Kernel/CDictionary.cpp`
+  - `Alchemy/Kernel/CAtomizer.cpp`
+  - `Alchemy/Kernel/CException.cpp`
+  - `Alchemy/Kernel/CFileDirectory.cpp`
+  - `Alchemy/Kernel/quickhull/QuickHull.cpp`
+  - `Alchemy/DirectXUtil/CIconLabelBlock.cpp`
+  - `Alchemy/DirectXUtil/CNoiseGenerator.cpp`
+  - `Alchemy/DirectXUtil/AGArea.cpp`
+  - `Alchemy/DirectXUtil/AGScreen.cpp`
+  - `Mammoth/TSUI/CExtensionListMap.cpp`
+- Acceptance criteria:
+  - app link no longer reports unresolved symbols for implementation files that already exist and compile cleanly
+- Verification:
+  - `cmake --build --preset macos-debug --target transcendence_app`
+
+### C-009 Restore CPU software drawing implementation coverage
+
+- Priority: `P0`
+- Status: `todo`
+- Goal: compile enough existing software draw/filter/fractal code for menu and first gameplay rendering without using DirectX presentation
+- Depends on:
+  - C-008
+- Likely source areas:
+  - `Alchemy/DirectXUtil/DrawLine.cpp`
+  - `Alchemy/DirectXUtil/DrawRect.cpp`
+  - `Alchemy/DirectXUtil/DrawCircle.cpp`
+  - `Alchemy/DirectXUtil/DrawFill.cpp`
+  - `Alchemy/DirectXUtil/DrawRegion.cpp`
+  - `Alchemy/DirectXUtil/BlendModes.cpp`
+  - `Alchemy/DirectXUtil/FilterBlur.cpp`
+  - `Alchemy/DirectXUtil/FilterThreshold.cpp`
+  - `Alchemy/DirectXUtil/DrawClouds.cpp`
+- Acceptance criteria:
+  - final app link is not dominated by `CGDraw`, `CGFilter`, `CGFractal`, or `CGRunList` unresolved symbols
+
+### C-010 Add macOS app-link smoke gate
+
+- Priority: `P0`
+- Status: `todo`
+- Goal: make final link success a first-class milestone gate before runtime bring-up work expands
+- Depends on:
+  - C-008
+  - C-009
+- Acceptance criteria:
+  - `transcendence_app` links or remaining unresolved symbols are explicitly classified as platform shell, presenter, audio, or deferred gameplay seams
 
 ### C-007 Add core smoke-test target
 
@@ -452,6 +504,17 @@ Fastest next tasks:
 
 ## Epic J - Audio Replacement
 
+### J-000 Add milestone no-audio backend seam
+
+- Priority: `P0`
+- Status: `todo`
+- Goal: stop Windows MCI symbols from blocking menu bring-up while preserving the high-level soundtrack manager contract
+- Depends on:
+  - C-010
+- Acceptance criteria:
+  - `CMCIMixer` unresolved symbols no longer block `transcendence_app` for the menu milestone
+- Note: this is allowed to be silent/no-op for M4; full playback remains J-002 through J-004
+
 ### J-001 Audit actual audio format and playback requirements
 
 - Priority: `P1`
@@ -596,19 +659,17 @@ Fastest next tasks:
 
 ## Critical Path Summary
 
-The shortest path to a native main menu is:
+The shortest path to a native main menu from the current 2026-04-30 state is:
 
-1. A-001
-2. A-002
-3. B-001
-4. B-003
-5. B-004
-6. C-001 through C-006
-7. D-001
-8. D-002
-9. E-001 through E-003
-10. F-001 through F-004
-11. G-001
+1. C-008 close app-link gaps from omitted source files
+2. C-009 restore CPU software drawing coverage
+3. C-010 make app link success or a small classified blocker list the gate
+4. J-000 add a no-audio/native-audio seam if MCI symbols still block link
+5. D-001 create macOS SDL app entry
+6. D-002 add SDL window abstraction
+7. F-001 through F-004 implement presenter boundary and Metal test/real frame path
+8. E-001 through E-003 wire keyboard, text, and mouse input
+9. G-001 bring up intro and main menu sessions
 
 The shortest path to a first playable build is:
 
@@ -622,9 +683,9 @@ The shortest path to a first playable build is:
 
 ## Recommended Next Execution Slice
 
-- A-001 Inventory Windows-only dependencies
-- A-002 Define subsystem boundaries
-- B-001 Add root `CMakeLists.txt`
-- B-003 Define core library targets
+- C-008 Close `transcendence_app` link gaps from omitted source files
+- C-009 Restore CPU software drawing implementation coverage
+- C-010 Add macOS app-link smoke gate
+- J-000 Add milestone no-audio backend seam if `CMCIMixer` remains in the link path
 
-These tasks unlock the rest of the roadmap and should be completed before touching renderer optimization or packaging work.
+These tasks turn the current static-library build success into an executable link path and should be completed before expanding runtime SDL/Metal behavior or packaging work.

@@ -2,8 +2,8 @@
 
 ## Document Status
 
-- Version: v1.3
-- Last Updated: 2026-04-25
+- Version: v1.4
+- Last Updated: 2026-04-30
 - Purpose: define the fastest next implementation focus for turning the existing macOS CMake scaffold into a compiling target sequence
 
 ## Why this document exists
@@ -20,29 +20,34 @@ The repository now contains:
 
 - root `CMakeLists.txt`
 - `CMakePresets.json`
-- six bounded concrete library targets in the scaffold:
+- concrete library targets for:
   - `alchemy_kernel`
   - `alchemy_codechain`
   - `alchemy_xmlutil`
   - `alchemy_jpeg`
-  - bounded `alchemy_graphics`
-  - bounded `mammoth_tse`
+  - `alchemy_graphics`
+  - `mammoth_tse`
+  - `mammoth_tsui`
+  - `platform_sdl`
+- app target `transcendence_app`
 
-The current blocker is no longer planning ambiguity or missing tools.
+The current blocker is no longer planning ambiguity, missing tools, or `alchemy_kernel` compilation.
 
-As of 2026-04-25, local validation shows:
+As of 2026-04-30, local validation shows:
 
-- `cmake --version` succeeds with CMake 4.3.2
-- `ninja --version` succeeds with Ninja 1.13.2
 - `cmake --preset macos-debug` configures successfully
-- `cmake --build --preset macos-debug --target alchemy_kernel` reaches compilation and fails in `alchemy_kernel`
+- `cmake --build --preset macos-debug --target alchemy_kernel` builds
+- `cmake --build --preset macos-debug --target alchemy_codechain alchemy_xmlutil alchemy_jpeg alchemy_graphics mammoth_tse` builds
+- `cmake --build --preset macos-debug --target mammoth_tsui` builds
+- `cmake --build --preset macos-debug --target transcendence_app` reaches final link and fails on unresolved symbols
 
-This means the fastest path is compile-driven kernel bring-up, not more source-audit work.
+This means the fastest path is app-link closure, not more kernel-only bring-up.
 
-First observed blockers:
+First app-link blocker classes:
 
-- `Alchemy/Include/Kernel.h:743` casts `CObject *` to `int`, which fails on arm64 before most translation units can compile
-- `Alchemy/Kernel/CFileReadBlock.cpp` and `Alchemy/Kernel/CFileReadStream.cpp` still call Win32 file mapping APIs such as `UnmapViewOfFile`, `GENERIC_READ`, `CreateFile`-style constants, `PAGE_READONLY`, `FILE_MAP_READ`, and `GetFileSize`
+- source files that exist but are not in CMake: `CDictionary.cpp`, `CAtomizer.cpp`, `CException.cpp`, `CFileDirectory.cpp`, `CIconLabelBlock.cpp`, `CNoiseGenerator.cpp`, `AGArea.cpp`, `AGScreen.cpp`, `CExtensionListMap.cpp`, `quickhull/QuickHull.cpp`
+- software draw/filter/fractal primitives that are declared and referenced but not compiled into `alchemy_graphics`
+- audio symbols from `CMCIMixer`, which should become a no-audio/native-audio backend seam rather than keeping Windows MCI in the macOS path
 
 ## What is considered done enough
 
@@ -68,31 +73,25 @@ These are not the best next targets because they do not directly block the first
 
 ## Immediate recommendation
 
-Do not broaden the graph further. The current scaffold configures, so the next fastest path is to make the existing concrete targets compile in order.
+Do not start broad SDL or Metal runtime work yet. The current scaffold already builds the static libraries, so the fastest path is to reduce final app-link failures in order.
 
 In particular:
 
-- do not make `mammoth_tsui_core` concrete yet
-- do not pull in broader `Mammoth/TSE/*` files by guesswork
-- do not start SDL or Metal implementation until `alchemy_kernel` compiles
-- treat `alchemy_kernel` as the active critical path target
+- first add implementation files that already exist and match unresolved symbols
+- then fix and include CPU software drawing files before inventing Metal replacements for draw primitives
+- keep DirectX presentation files excluded; the goal is CPU draw coverage plus native presentation, not DirectX revival
+- treat `transcendence_app` link closure as the active critical path target
 
 Fastest command loop:
 
 ```sh
-cmake --preset macos-debug
 cmake --build --preset macos-debug --target alchemy_kernel
-```
-
-Only after `alchemy_kernel` builds should the loop move to:
-
-```sh
-cmake --build --preset macos-debug --target alchemy_codechain
-cmake --build --preset macos-debug --target alchemy_xmlutil
 cmake --build --preset macos-debug --target alchemy_graphics
-cmake --build --preset macos-debug --target alchemy_jpeg
-cmake --build --preset macos-debug --target mammoth_tse
+cmake --build --preset macos-debug --target mammoth_tsui
+cmake --build --preset macos-debug --target transcendence_app
 ```
+
+Use the first failing command as the active blocker and update `../macOS_port_status.md` if the blocker class changes.
 
 ## 1. Define the milestone-1 source subset
 
@@ -274,23 +273,24 @@ Practical interpretation:
 
 ## Recommended order
 
-1. keep the current source subset frozen -> verify: `cmake --preset macos-debug` still configures
-2. fix the header-level arm64 blocker in `Alchemy/Include/Kernel.h` -> verify: the pointer-to-`int` error no longer stops every `alchemy_kernel` compile unit
-3. add the smallest non-Windows path for `CFileReadBlock.cpp` and `CFileReadStream.cpp` or remove those files from the first portable target if they are not needed yet -> verify: `alchemy_kernel` reaches the next distinct blocker
-4. continue compile-driven fixes only inside `alchemy_kernel` -> verify: `alchemy_kernel` builds before touching higher targets
-5. then build the remaining concrete targets one at a time in dependency order
+1. add present-but-omitted source files to the owning CMake targets -> verify: `transcendence_app` link no longer reports those classes
+2. restore CPU drawing coverage in `alchemy_graphics` by fixing Clang blockers in excluded draw/filter/fractal files -> verify: `CGDraw`/`CGFilter`/`CGFractal` unresolved groups shrink materially
+3. decide the milestone audio seam -> verify: `CMCIMixer` unresolved symbols are either removed from the menu link path or satisfied by a native/no-audio macOS backend
+4. keep the app link moving until remaining failures are platform/presenter semantics rather than missing existing implementation files -> verify: unresolved symbols are few enough to map to explicit seams
+5. only then implement SDL shell and Metal compatibility presenter runtime behavior
 
-## Why not broaden the graph right now
+## Why not broaden the runtime right now
 
-The graph already configures and the first target already exposes actionable compile fallout. Broadening now would mix kernel portability, engine dependencies, shell replacement, and presenter work into one noisy failure set.
+The graph already configures and the static libraries build. The app link now exposes actionable missing implementation groups. Starting SDL/Metal runtime behavior before link closure would mix missing CPU draw code, omitted source files, audio backend decisions, and platform presentation design into one noisy failure set.
 
-The fastest path is to keep one active target, clear its global blockers, and only advance when the target builds.
+The fastest path is to close link gaps first, then implement the runtime seams against a build that links.
 
 ## Success criteria for this focus
 
 This focus is successful when:
 
-- the next agent can name the exact milestone-1 source subset
-- the shell replacement responsibilities are concrete enough to implement
-- the presentation seam is concrete enough to support a first framebuffer path
-- the existing bounded `CMake` target set advances from configure-success to `alchemy_kernel` compile-success
+- present-but-omitted implementation files are included or explicitly deferred with reasons
+- `transcendence_app` link failures are reduced to known platform, presenter, drawing, audio, or gameplay seams
+- the shell replacement responsibilities remain concrete enough to implement
+- the presentation seam remains concrete enough to support a first framebuffer path
+- the build advances from static-library success to app-link success or a small documented final blocker list

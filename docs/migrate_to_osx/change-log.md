@@ -2,8 +2,8 @@
 
 ## Document Status
 
-- Version: v1.2
-- Last Updated: 2026-04-15
+- Version: v1.3
+- Last Updated: 2026-04-30
 - Scope: documentation-only changes for the macOS port planning set
 
 ## Purpose
@@ -415,6 +415,12 @@ Summary:
 - Document: `cmake-build-plan.md`, `next-implementation-focus.md`, `milestone-1-source-subset.md`, `task-backlog.md`, `index.md`
 - Change Type: updated
 - Summary: validated that CMake and Ninja are available, confirmed `cmake --preset macos-debug` configures successfully, recorded the current `alchemy_kernel` compile blockers, and shifted the plan to the fastest target-by-target build loop starting with `alchemy_kernel`
+
+### 2026-04-30
+
+- Document: `../macOS_port_status.md`, `index.md`, `next-implementation-focus.md`, `task-backlog.md`, `roadmap.md`, `qa-test-matrix.md`, `cmake-build-plan.md`
+- Change Type: updated
+- Summary: audited the live macOS build state, confirmed static library targets build through `mammoth_tsui`, recorded `transcendence_app` final-link blocker clusters, and shifted the completion plan from kernel compile bring-up to app-link closure, software drawing coverage, audio seam selection, SDL shell, Metal presenter, playable gameplay, native runtime parity, and packaging
 
 ## Maintenance Notes
 

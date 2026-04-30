@@ -2,8 +2,8 @@
 
 ## Document Status
 
-- Version: v1.1
-- Last Updated: 2026-04-25
+- Version: v1.2
+- Last Updated: 2026-04-30
 - Derived From: `PRD.md`
 - Companion Docs: `roadmap.md`, `task-backlog.md`, `dependency-matrix.md`, `architecture.md`, `milestone-1-plan.md`
 - Project: Native macOS Apple Silicon port of `kronosaur/TranscendenceDev`
@@ -32,24 +32,27 @@ The goal is to create a practical, low-risk path to a working macOS build withou
 
 ## Current Fastest Build Path
 
-The repository now has a top-level `CMakeLists.txt` and `CMakePresets.json`. Local validation on 2026-04-25 shows that the build system configures successfully with:
+The repository now has a top-level `CMakeLists.txt` and `CMakePresets.json`. Local validation on 2026-04-30 shows that the build system configures successfully with:
 
 ```sh
 cmake --preset macos-debug
 ```
 
-The fastest path to a useful build is therefore target-by-target compile bring-up, starting with the first concrete dependency:
+The fastest path to a useful build is therefore app-link closure, because static library targets now build through `mammoth_tsui`:
 
 ```sh
 cmake --build --preset macos-debug --target alchemy_kernel
+cmake --build --preset macos-debug --target alchemy_codechain alchemy_xmlutil alchemy_jpeg alchemy_graphics mammoth_tse mammoth_tsui
+cmake --build --preset macos-debug --target transcendence_app
 ```
 
-Current first blockers are inside `alchemy_kernel`:
+Current first blockers are at final link:
 
-- `Alchemy/Include/Kernel.h:743` casts `CObject *` to `int`, which fails on arm64
-- `Alchemy/Kernel/CFileReadBlock.cpp` and `Alchemy/Kernel/CFileReadStream.cpp` still depend on Win32 memory-mapped file APIs
+- source files that exist but are not included in CMake source lists, including `CDictionary.cpp`, `CAtomizer.cpp`, `CException.cpp`, `CFileDirectory.cpp`, `CIconLabelBlock.cpp`, `CNoiseGenerator.cpp`, `AGArea.cpp`, `AGScreen.cpp`, `CExtensionListMap.cpp`, and `quickhull/QuickHull.cpp`
+- CPU software drawing/filter/fractal implementation gaps in `alchemy_graphics`
+- a temporary or native audio seam for `CMCIMixer` symbols
 
-Until `alchemy_kernel` builds, do not broaden the graph into SDL, Metal, app shell, or additional Mammoth sources. Each fix should be followed by the same `alchemy_kernel` build command so blockers stay attributable to one target.
+Until the app link is reduced to explicit platform/presenter/audio seams, do not broaden runtime SDL or Metal behavior. Each source-list or draw-coverage fix should be followed by the `transcendence_app` build command so remaining blockers stay attributable.
 
 ## Build Goals
 
@@ -510,10 +513,12 @@ Exit criteria:
 - define `transcendence_app`
 - connect milestone path sources only as needed
 - link platform and renderer targets
+- close unresolved symbols from omitted existing implementation files before writing stubs
+- restore CPU drawing implementation coverage before starting GPU-native rendering work
 
 Exit criteria:
 
-- app target links and can be debugged even if not yet fully functional
+- app target links and can be debugged even if not yet fully functional, or remaining unresolved symbols are a small classified platform/backend seam list
 
 ### Stage 6 - Add Tool and Smoke Targets
 

@@ -2,8 +2,8 @@
 
 ## Document Status
 
-- Version: v1.0
-- Last Updated: 2026-04-14
+- Version: v1.1
+- Last Updated: 2026-04-30
 - Derived From: `PRD.md`
 - Project: Native macOS Apple Silicon port of `kronosaur/TranscendenceDev`
 - Technical Direction: `SDL2 + Metal`
@@ -145,6 +145,34 @@ Exit criteria:
 - portable core builds on macOS arm64
 - no mandatory dependency on DirectX for core build success
 
+Current status:
+
+- static library targets now build through `mammoth_tsui`
+- M1 is not fully closed until app-link smoke coverage is added, because the current final executable still exposes omitted implementation files and software drawing gaps
+
+### M1.5 - Executable Link Closure
+
+Objectives:
+
+- turn static-library success into a linkable macOS executable target
+- add implementation files that already exist but are missing from CMake source lists
+- restore software drawing coverage without pulling in DirectX presentation
+- classify remaining unresolved symbols as platform shell, presenter, audio, or deferred gameplay seams
+
+Primary outputs:
+
+- `transcendence_app` link succeeds, or fails only on a small documented seam list
+- CMake source lists include existing support files needed by the active app path
+- no unresolved-symbol noise from already-present implementation files
+
+Depends on:
+
+- M1
+
+Exit criteria:
+
+- `cmake --build --preset macos-debug --target transcendence_app` links, or every remaining unresolved symbol maps to an explicit implementation seam with an owner
+
 ### M2 - SDL Native Shell
 
 Objectives:
@@ -161,6 +189,7 @@ Primary outputs:
 Depends on:
 
 - M1
+- M1.5
 
 Exit criteria:
 
@@ -376,14 +405,16 @@ Recommended build and integration order:
 6. `Alchemy/Graphics`
 7. `Mammoth/TSE`
 8. `Mammoth/TSUI`
-9. SDL platform shell
-10. input translation layer
-11. Metal presenter
-12. title/menu integration
-13. gameplay integration
-14. resource and save path migration
-15. audio replacement
-16. packaging and optimization
+9. executable link closure for omitted support files and CPU draw primitives
+10. milestone no-audio/native-audio seam if MCI symbols block the link
+11. SDL platform shell
+12. input translation layer
+13. Metal presenter
+14. title/menu integration
+15. gameplay integration
+16. resource and save path migration
+17. audio replacement
+18. packaging and optimization
 
 ## Major Risks and Roadmap Responses
 
@@ -435,9 +466,10 @@ Recommended build and integration order:
 
 ## Immediate Next Steps
 
-- finalize the implementation backlog from `PRD.md`
-- create the initial macOS port scaffold
-- begin with M0 and M1 work only
+- close the `transcendence_app` link by adding present-but-omitted implementation files to CMake
+- restore CPU draw/filter/fractal coverage before starting a GPU-native rewrite
+- add a milestone no-audio/native-audio seam if `CMCIMixer` keeps the app from linking
+- then proceed to SDL shell and Metal presenter runtime behavior
 
 ## Deferred Until Later
 

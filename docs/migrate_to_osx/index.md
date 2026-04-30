@@ -2,8 +2,8 @@
 
 ## Document Status
 
-- Version: v1.1
-- Last Updated: 2026-04-25
+- Version: v1.2
+- Last Updated: 2026-04-30
 - Project: Native macOS Apple Silicon port of `kronosaur/TranscendenceDev`
 - Purpose: central navigation portal for planning and implementation documentation
 
@@ -194,8 +194,10 @@ Use this file as the primary entry point for the documentation set.
 - planning documents for architecture, milestone execution, build setup, validation, and decision tracking exist
 - root `CMakeLists.txt` and `CMakePresets.json` exist
 - `cmake --preset macos-debug` configures successfully locally
-- the current critical path is `alchemy_kernel` compile bring-up, starting with `Alchemy/Include/Kernel.h:743` and Win32 file-mapping fallout in `CFileReadBlock.cpp` / `CFileReadStream.cpp`
-- the next practical step is not more graph expansion; it is `cmake --build --preset macos-debug --target alchemy_kernel` after each bounded kernel fix
+- core and engine static library targets now build through `mammoth_tsui`
+- `transcendence_app` compiles but fails at final link due to omitted implementation files and unfinished platform/backend seams
+- the current critical path is app-link closure: first add source files that already exist but are absent from CMake, then fix software draw coverage, then implement SDL shell and Metal presenter seams
+- use `../macOS_port_status.md` as the current audited status and completion plan when deciding the next implementation slice
 
 ## Related Files in This Folder
 
