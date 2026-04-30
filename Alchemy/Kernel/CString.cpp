@@ -1415,7 +1415,7 @@ bool Kernel::strEquals (const CString &sString1, const CString &sString2)
 	//	Compare by commonality
 
 	for (i = 0; i < iLen; i++)
-		if (CharLower((LPTSTR)(BYTE)(pPos1[i])) != CharLower((LPTSTR)(BYTE)(pPos2[i])))
+		if (tolower((unsigned char)pPos1[i]) != tolower((unsigned char)pPos2[i]))
 			return false;
 
 	return true;

@@ -60,12 +60,16 @@ Result:
 **Phase G** ✅ Complete - audio stub implemented (2026-04-30)
 **Phase C** ✅ Complete - SDL shell implemented (2026-04-30)
 **Phase D** ✅ Complete - Metal compatibility presenter (SDL_RENDERER_METAL configured)
-**Phase E** ✅ Deferrable - CException in CUniverse init (platform shell works)
+**Phase E** ✅ Complete - VirtualAlloc fix for macOS
 
-`transcendence_app` builds and links. Platform shell (SDL + Metal) runs successfully.
-Main loop enters and exits cleanly. kernelInit and CHumanInterface::Create succeed.
-CException occurs when creating CTranscendenceController (contains CUniverse).
-Engine init is deferred to allow platform shell to run.
+`transcendence_app` builds and links. Platform shell runs successfully.
+Main loop enters and exits cleanly.
+
+**Root cause**: VirtualAlloc stubbed to return nullptr on macOS.
+CString::AllocStore uses VirtualAlloc(MEM_RESERVE) to reserve 64MB pool.
+When nullptr returned, CString constructor throws CException(ERR_MEMORY).
+
+**Fix**: Implemented VirtualAlloc using malloc/free for now.
 
 ## Linker Blocker Clusters
 
