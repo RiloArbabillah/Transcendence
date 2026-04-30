@@ -9,6 +9,7 @@
 #else
 #include <copyfile.h>
 #include <sys/stat.h>
+#include <mach-o/dyld.h>
 #define SHGFP_TYPE_CURRENT 0
 #define CSIDL_LOCAL_APPDATA 28
 #define HRESULT long

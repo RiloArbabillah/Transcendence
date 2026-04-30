@@ -13,18 +13,43 @@
 constexpr int DEFAULT_WIDTH = 1024;
 constexpr int DEFAULT_HEIGHT = 768;
 
+static FILE* g_Log = nullptr;
+
+static void log_msg(const char* pMsg) {
+    if (!g_Log) {
+        g_Log = fopen("/tmp/trans_app.log", "w");
+    }
+    if (g_Log) {
+        fprintf(g_Log, "%s\n", pMsg);
+        fflush(g_Log);
+    }
+    fprintf(stderr, "%s\n", pMsg);
+    fflush(stderr);
+}
+
 SAppState g_AppState;
 
 int App_Init(void)
 {
+    log_msg("App_Init: start");
+
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) < 0)
     {
-        fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
+        log_msg("App_Init: SDL_Init failed");
         return 0;
     }
 
+    log_msg("App_Init: SDL_Init OK");
+
     g_AppState.cxWidth = DEFAULT_WIDTH;
     g_AppState.cyHeight = DEFAULT_HEIGHT;
+
+    SDL_SetHint(SDL_HINT_RENDER_DRIVER, "metal");
+    SDL_SetHint(SDL_HINT_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK, "1");
+
+    char buf[256];
+    snprintf(buf, sizeof(buf), "App_Init: create window %dx%d", g_AppState.cxWidth, g_AppState.cyHeight);
+    log_msg(buf);
 
     g_AppState.pWindow = SDL_CreateWindow(
         "Transcendence",
@@ -37,13 +62,12 @@ int App_Init(void)
 
     if (!g_AppState.pWindow)
     {
-        fprintf(stderr, "SDL_CreateWindow failed: %s\n", SDL_GetError());
+        log_msg("App_Init: CreateWindow failed");
         SDL_Quit();
         return 0;
     }
 
-    //	Use Metal renderer for hardware acceleration
-    SDL_SetHint(SDL_HINT_RENDER_DRIVER, "metal");
+    log_msg("App_Init: window created");
 
     g_AppState.pRenderer = SDL_CreateRenderer(
         g_AppState.pWindow,
@@ -53,18 +77,17 @@ int App_Init(void)
 
     if (!g_AppState.pRenderer)
     {
-        fprintf(stderr, "SDL_CreateRenderer failed: %s\n", SDL_GetError());
+        log_msg("App_Init: CreateRenderer failed");
         SDL_DestroyWindow(g_AppState.pWindow);
         SDL_Quit();
         return 0;
     }
 
-    //	Verify Metal is being used
     void* pMetalLayer = SDL_RenderGetMetalLayer(g_AppState.pRenderer);
     if (pMetalLayer)
-        printf("AppCore: Metal layer acquired successfully\n");
+        log_msg("App_Init: Metal layer OK");
     else
-        fprintf(stderr, "AppCore: Warning - Metal layer not available\n");
+        log_msg("App_Init: No Metal layer");
 
     g_AppState.pTexture = SDL_CreateTexture(
         g_AppState.pRenderer,
@@ -76,7 +99,7 @@ int App_Init(void)
 
     if (!g_AppState.pTexture)
     {
-        fprintf(stderr, "SDL_CreateTexture failed: %s\n", SDL_GetError());
+        log_msg("App_Init: CreateTexture failed");
         SDL_DestroyRenderer(g_AppState.pRenderer);
         SDL_DestroyWindow(g_AppState.pWindow);
         SDL_Quit();
@@ -92,7 +115,8 @@ int App_Init(void)
     g_AppState.fps = 0;
     g_AppState.bRunning = true;
 
-    printf("AppCore: Initialized %dx%d\n", g_AppState.cxWidth, g_AppState.cyHeight);
+    snprintf(buf, sizeof(buf), "App_Init: done %dx%d", g_AppState.cxWidth, g_AppState.cyHeight);
+    log_msg(buf);
     return 1;
 }
 
@@ -101,32 +125,13 @@ void App_Shutdown(void)
     while (!g_AppState.msgQueue.empty())
         g_AppState.msgQueue.pop();
 
-    if (g_AppState.pFrameBuffer)
-    {
-        delete[] g_AppState.pFrameBuffer;
-        g_AppState.pFrameBuffer = nullptr;
-    }
-
-    if (g_AppState.pTexture)
-    {
-        SDL_DestroyTexture(g_AppState.pTexture);
-        g_AppState.pTexture = nullptr;
-    }
-
-    if (g_AppState.pRenderer)
-    {
-        SDL_DestroyRenderer(g_AppState.pRenderer);
-        g_AppState.pRenderer = nullptr;
-    }
-
-    if (g_AppState.pWindow)
-    {
-        SDL_DestroyWindow(g_AppState.pWindow);
-        g_AppState.pWindow = nullptr;
-    }
+    if (g_AppState.pFrameBuffer) { delete[] g_AppState.pFrameBuffer; g_AppState.pFrameBuffer = nullptr; }
+    if (g_AppState.pTexture) { SDL_DestroyTexture(g_AppState.pTexture); g_AppState.pTexture = nullptr; }
+    if (g_AppState.pRenderer) { SDL_DestroyRenderer(g_AppState.pRenderer); g_AppState.pRenderer = nullptr; }
+    if (g_AppState.pWindow) { SDL_DestroyWindow(g_AppState.pWindow); g_AppState.pWindow = nullptr; }
 
     SDL_Quit();
-    printf("AppCore: Shutdown complete\n");
+    log_msg("App_Shutdown: done");
 }
 
 int App_PumpEvents(void)
@@ -134,74 +139,18 @@ int App_PumpEvents(void)
     SDL_Event event;
     while (SDL_PollEvent(&event))
     {
-        switch (event.type)
-        {
-        case SDL_QUIT:
-            g_AppState.bRunning = false;
-            return 0;
-
-        case SDL_KEYDOWN:
-            break;
-
-        case SDL_KEYUP:
-            break;
-
-        case SDL_MOUSEBUTTONDOWN:
-            break;
-
-        case SDL_MOUSEBUTTONUP:
-            break;
-
-        case SDL_MOUSEMOTION:
-            break;
-
-        case SDL_WINDOWEVENT:
-            if (event.window.event == SDL_WINDOWEVENT_RESIZED)
-            {
-                g_AppState.cxWidth = event.window.data1;
-                g_AppState.cyHeight = event.window.data2;
-            }
-            else if (event.window.event == SDL_WINDOWEVENT_MINIMIZED)
-            {
-            }
-            else if (event.window.event == SDL_WINDOWEVENT_RESTORED)
-            {
-            }
-            break;
-        }
+        if (event.type == SDL_QUIT) { g_AppState.bRunning = false; return 0; }
     }
     return 1;
 }
 
-struct SFrameBufferInfo App_GetFrameBufferInfo(void)
-{
-    SFrameBufferInfo info;
-    info.pPixels = g_AppState.pFrameBuffer;
-    info.cxWidth = g_AppState.cxWidth;
-    info.cyHeight = g_AppState.cyHeight;
-    info.cbPitch = g_AppState.cxWidth * (int)sizeof(uint32_t);
-    return info;
-}
-
 void App_PresentFrameBuffer(void)
 {
-    if (!g_AppState.pTexture || !g_AppState.pFrameBuffer)
-        return;
+    if (!g_AppState.pTexture || !g_AppState.pFrameBuffer) return;
 
-    //	Use Metal rendering path
-    //	SDL_RenderPresent uses CAMetalLayer when renderer is Metal-backed
-
-    SDL_UpdateTexture(
-        g_AppState.pTexture,
-        nullptr,
-        g_AppState.pFrameBuffer,
-        g_AppState.cxWidth * sizeof(uint32_t)
-    );
-
+    SDL_UpdateTexture(g_AppState.pTexture, nullptr, g_AppState.pFrameBuffer, g_AppState.cxWidth * sizeof(uint32_t));
     SDL_RenderClear(g_AppState.pRenderer);
     SDL_RenderCopy(g_AppState.pRenderer, g_AppState.pTexture, nullptr, nullptr);
-
-    //	Metal presents via SDL_RenderPresent - no extra work needed
     SDL_RenderPresent(g_AppState.pRenderer);
 
     g_AppState.frameCount++;
@@ -211,122 +160,40 @@ void App_PresentFrameBuffer(void)
         g_AppState.fps = g_AppState.frameCount;
         g_AppState.frameCount = 0;
         g_AppState.fpsTick = currentTick;
-        printf("AppCore: %d FPS (Metal-backed SDL renderer)\n", g_AppState.fps);
     }
 }
 
-struct SPlatformScreenInfo PlatformGetScreenInfo(void)
-{
-    SPlatformScreenInfo info;
-    info.pPixels = g_AppState.pFrameBuffer;
-    info.cxWidth = g_AppState.cxWidth;
-    info.cyHeight = g_AppState.cyHeight;
-    info.cbPitch = g_AppState.cxWidth * (int)sizeof(uint32_t);
-    return info;
-}
-
-void PlatformPresentScreen(void)
-{
-    App_PresentFrameBuffer();
-}
-
-int App_IsRunning(void)
-{
-    return g_AppState.bRunning ? 1 : 0;
-}
-
-void App_SetRunning(int bRunning)
-{
-    g_AppState.bRunning = (bRunning != 0);
-}
-
-void App_SetTitle(const char* pTitle)
-{
-    if (g_AppState.pWindow)
-        SDL_SetWindowTitle(g_AppState.pWindow, pTitle);
-}
-
-void App_GetWindowSize(int* pcxWidth, int* pcyHeight)
-{
-    if (pcxWidth) *pcxWidth = g_AppState.cxWidth;
-    if (pcyHeight) *pcyHeight = g_AppState.cyHeight;
-}
-
-int PlatformAddTimer(int dwMilliseconds, TimerCallback callback, void* userData)
-{
-    return 0;
-}
-
-void PlatformRemoveTimer(int timerID)
-{
-}
-
-void PlatformPostMessage(int msg, int wParam, void* lParam)
-{
-    SPlatformMessage platformMsg;
-    platformMsg.msg = msg;
-    platformMsg.wParam = wParam;
-    platformMsg.lParam = lParam;
-    g_AppState.msgQueue.push(platformMsg);
-}
-
-int PlatformPeekMessage(int* pMsg, int* pWParam, void** ppLParam)
-{
-    if (g_AppState.msgQueue.empty())
-        return 0;
-
-    SPlatformMessage msg = g_AppState.msgQueue.front();
-    g_AppState.msgQueue.pop();
-
-    if (pMsg) *pMsg = msg.msg;
-    if (pWParam) *pWParam = msg.wParam;
-    if (ppLParam) *ppLParam = msg.lParam;
-
-    return 1;
-}
-
-static void RenderTestPattern(void)
-{
-    for (int y = 0; y < g_AppState.cyHeight; y++)
-    {
-        for (int x = 0; x < g_AppState.cxWidth; x++)
-        {
-            int idx = y * g_AppState.cxWidth + x;
-            uint8_t r = (x * 255) / g_AppState.cxWidth;
-            uint8_t g = (y * 255) / g_AppState.cyHeight;
-            uint8_t b = 128;
-            g_AppState.pFrameBuffer[idx] = (r << 16) | (g << 8) | b | 0xFF000000;
-        }
-    }
-}
-
+struct SPlatformScreenInfo PlatformGetScreenInfo(void) { return { g_AppState.pFrameBuffer, g_AppState.cxWidth, g_AppState.cyHeight, g_AppState.cxWidth * (int)sizeof(uint32_t) }; }
+void PlatformPresentScreen(void) { App_PresentFrameBuffer(); }
 uint32_t* App_GetFrameBuffer(void) { return g_AppState.pFrameBuffer; }
 int App_GetFrameBufferWidth(void) { return g_AppState.cxWidth; }
 int App_GetFrameBufferHeight(void) { return g_AppState.cyHeight; }
 
 int App_Run(void)
 {
+    log_msg("App_Run: start");
+
     if (!App_Init())
     {
+        log_msg("App_Run: App_Init failed");
         App_Shutdown();
         return 1;
     }
 
+    log_msg("App_Run: App_Init OK, calling InitGameUI");
     InitGameUI(g_AppState);
+    log_msg("App_Run: InitGameUI returned");
 
-    printf("AppCore: Entering main loop\n");
-
+    log_msg("App_Run: entering main loop");
     while (g_AppState.bRunning)
     {
-        if (!App_PumpEvents())
-            break;
-
+        if (!App_PumpEvents()) break;
         UpdateGameUI(g_AppState);
         App_PresentFrameBuffer();
         SDL_Delay(16);
     }
 
-    printf("AppCore: Exiting main loop\n");
+    log_msg("App_Run: exit main loop");
     App_Shutdown();
     return 0;
 }
