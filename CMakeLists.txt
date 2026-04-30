@@ -894,6 +894,7 @@ add_library(platform_common INTERFACE)
 add_library(platform_sdl STATIC
     "${CMAKE_CURRENT_SOURCE_DIR}/Transcendence/Transcendence/Platform/AppCore.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/Transcendence/Transcendence/Platform/CPlatformTimerSystem.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Transcendence/Transcendence/Platform/MetalRenderer.cpp"
 )
 target_include_directories(platform_sdl PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/Alchemy/Include"

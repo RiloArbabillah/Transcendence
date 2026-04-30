@@ -42,10 +42,13 @@ int App_Init(void)
         return 0;
     }
 
+    //	Use Metal renderer for hardware acceleration
+    SDL_SetHint(SDL_HINT_RENDER_DRIVER, "metal");
+
     g_AppState.pRenderer = SDL_CreateRenderer(
         g_AppState.pWindow,
         -1,
-        SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
+        SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_TARGETTEXTURE
     );
 
     if (!g_AppState.pRenderer)
@@ -55,6 +58,13 @@ int App_Init(void)
         SDL_Quit();
         return 0;
     }
+
+    //	Verify Metal is being used
+    void* pMetalLayer = SDL_RenderGetMetalLayer(g_AppState.pRenderer);
+    if (pMetalLayer)
+        printf("AppCore: Metal layer acquired successfully\n");
+    else
+        fprintf(stderr, "AppCore: Warning - Metal layer not available\n");
 
     g_AppState.pTexture = SDL_CreateTexture(
         g_AppState.pRenderer,
@@ -178,6 +188,9 @@ void App_PresentFrameBuffer(void)
     if (!g_AppState.pTexture || !g_AppState.pFrameBuffer)
         return;
 
+    //	Use Metal rendering path
+    //	SDL_RenderPresent uses CAMetalLayer when renderer is Metal-backed
+
     SDL_UpdateTexture(
         g_AppState.pTexture,
         nullptr,
@@ -187,6 +200,8 @@ void App_PresentFrameBuffer(void)
 
     SDL_RenderClear(g_AppState.pRenderer);
     SDL_RenderCopy(g_AppState.pRenderer, g_AppState.pTexture, nullptr, nullptr);
+
+    //	Metal presents via SDL_RenderPresent - no extra work needed
     SDL_RenderPresent(g_AppState.pRenderer);
 
     g_AppState.frameCount++;
@@ -196,7 +211,7 @@ void App_PresentFrameBuffer(void)
         g_AppState.fps = g_AppState.frameCount;
         g_AppState.frameCount = 0;
         g_AppState.fpsTick = currentTick;
-        printf("AppCore: %d FPS\n", g_AppState.fps);
+        printf("AppCore: %d FPS (Metal-backed SDL renderer)\n", g_AppState.fps);
     }
 }
 
