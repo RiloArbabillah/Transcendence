@@ -59,9 +59,11 @@ Result:
 **Phase B** ✅ Complete - software drawing coverage restored (2026-04-30)
 **Phase G** ✅ Complete - audio stub implemented (2026-04-30)
 **Phase C** ✅ Complete - SDL shell implemented (2026-04-30)
-**Phase D** 🚧 In Progress - Metal compatibility presenter
+**Phase D** ✅ Complete - Metal compatibility presenter (SDL_RENDERER_METAL configured)
+**Phase E** 🚧 In Progress - kernelInit crash investigation (engine init disabled)
 
-`transcendence_app` builds and links. SDL window opens and event loop runs. Runtime crash in HIBoot will be fixed in Phase E.
+`transcendence_app` builds and links. Platform shell (SDL + Metal) runs successfully.
+Main loop enters and exits cleanly. Engine initialization (kernelInit → CHumanInterface::Create) causes CException - needs investigation.
 
 ## Linker Blocker Clusters
 
