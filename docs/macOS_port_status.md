@@ -60,16 +60,16 @@ Result:
 **Phase G** ✅ Complete - audio stub implemented (2026-04-30)
 **Phase C** ✅ Complete - SDL shell implemented (2026-04-30)
 **Phase D** ✅ Complete - Metal compatibility presenter (SDL_RENDERER_METAL configured)
-**Phase E** ✅ Complete - VirtualAlloc fix for macOS
+**Phase F** ✅ Complete - minimal engine init (deferred OnBoot/OnInit)
 
-`transcendence_app` builds and links. Platform shell runs successfully.
-Main loop enters and exits cleanly.
+`transcendence_app` builds and runs. Platform shell (SDL + Metal) works.
+Main loop enters and exits cleanly. UpdateGameUI ticks 60+ per run.
 
-**Root cause**: VirtualAlloc stubbed to return nullptr on macOS.
-CString::AllocStore uses VirtualAlloc(MEM_RESERVE) to reserve 64MB pool.
-When nullptr returned, CString constructor throws CException(ERR_MEMORY).
+**OnBoot hangs**: kernelSetDebugLog calls LogOutput which crashes in
+strPatternSubst when formatting "Start logging session". Deferring for now.
 
-**Fix**: Implemented VirtualAlloc using malloc/free for now.
+**Minimal InitGameUI**: Creates CTranscendenceController, sets on HI, skips
+OnBoot/OnInit to avoid hang. Engine init deferred but platform works.
 
 ## Linker Blocker Clusters
 
