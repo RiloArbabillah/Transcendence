@@ -6,8 +6,7 @@
 #include "Transcendence.h"
 #include "Platform/AppCore.h"
 
-int g_cxScreen = 1024;
-int g_cyScreen = 768;
+//	g_cxScreen and g_cyScreen are defined in CTranscendenceWnd.cpp
 
 static CTranscendenceController* g_pController = nullptr;
 

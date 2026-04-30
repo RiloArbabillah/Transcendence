@@ -371,9 +371,9 @@ template <class BLENDER> class TLinePainterSolid : public TLinePainter32<TLinePa
                 m_rgbColor = CG32bitPixel::PreMult(rgbColor);
             }
 
-    private:
         CG32bitPixel GetPixel (Metric rV, Metric rW) const { return m_rgbColor; }
 
+    private:
         CG32bitPixel m_rgbColor;
     };
 

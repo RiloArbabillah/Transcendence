@@ -5,6 +5,8 @@
 
 #include "stdafx.h"
 
+#include "TSUISettings.h"
+
 #define DEFAULT_TAG							CONSTLIT("Default")
 #define DISABLED_TAG						CONSTLIT("Disabled")
 #define ENABLED_TAG							CONSTLIT("Enabled")

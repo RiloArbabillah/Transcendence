@@ -19,10 +19,26 @@ int mathRound(double x) { return (int)(x >= 0 ? x + 0.5 : x - 0.5); }
 int strCompareAbsolute(const Kernel::CString &s1, const Kernel::CString &s2, bool bCaseSensitive) { return 0; }
 
 CString pathAddComponent(const CString &sPath, const CString &sComponent) { CString result = sPath; if (!sPath.IsBlank()) result.Append("/", 1); result.Append(sComponent.GetPointer(), sComponent.GetLength()); return result; }
-CString pathGetExtension(const CString &sPath) { return CString(); }
+CString pathGetExtension(const CString &sPath) { int i = 0; for (int n = sPath.GetLength() - 1; n >= 0; n--) { if (sPath.GetPointer()[n] == '.') { i = n + 1; break; } if (sPath.GetPointer()[n] == '/' || sPath.GetPointer()[n] == '\\') break; } return CString(sPath.GetPointer() + i, sPath.GetLength() - i); }
 CString pathGetFilename(const CString &sPath) { return sPath; }
 
 int mathRandom(int iMin, int iMax) { return iMin + (rand() % (iMax - iMin + 1)); }
+
+CString strFromInt(int iInteger, bool bSigned) { char buffer[32]; snprintf(buffer, sizeof(buffer), bSigned ? "%d" : "%u", iInteger); return CString(buffer); }
+
+CString strProcess(const CString &sValue, DWORD dwFlags) { return sValue; }
+CString strToLower(const CString &sString) { return sString; }
+CString strToUpper(const CString &sString) { return sString; }
+CString strCapitalize(const CString &sString, int iOffset) { return sString; }
+CString strFromDouble(double rValue, int iDecimals) { char buffer[64]; snprintf(buffer, sizeof(buffer), "%.*f", iDecimals, rValue); return CString(buffer); }
+CString strSubString(const CString &sString, int iOffset, int iLength) { if (iOffset >= sString.GetLength()) return CString(); int len = (iLength < 0) ? sString.GetLength() - iOffset : iLength; len = Min(len, sString.GetLength() - iOffset); return CString(sString.GetPointer() + iOffset, len); }
+CString strToXMLText(const CString &sString, bool bInBody) { return sString; }
+double strToDouble(const CString &sString, double rFailResult, bool *retbFailed) { if (retbFailed) *retbFailed = false; return rFailResult; }
+int strParseInt(const char *pStart, int iNullResult, DWORD dwFlags, const char **retpEnd, bool *retbNullValue) { if (retpEnd) *retpEnd = pStart; if (retbNullValue) *retbNullValue = false; return iNullResult; }
+ALERROR strDelimitEx(const CString &sString, char cDelim, DWORD dwFlags, int iMinParts, TArray<CString> *retList) { if (retList) retList->DeleteAll(); return NOERROR; }
+int strFindCount(const CString &sString, const CString &sStringToFind, bool bCaseSensitive) { return 0; }
+CString strDelimitGet(const CString &sString, char cDelim, DWORD dwFlags, int iIndex) { return CString(); }
+bool strEqualsCase(const CString &sString1, const CString &sString2) { return sString1 == sString2; }
 
 void utlMemCopy(const char *pSource, char *pDest, unsigned int dwCount) { memcpy(pDest, pSource, dwCount); }
 void utlMemSet(void *pDest, unsigned int dwCount, unsigned char byValue) { memset(pDest, byValue, dwCount); }
