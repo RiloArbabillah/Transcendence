@@ -5,12 +5,13 @@
 #include "TSUI.h"
 #include "Transcendence.h"
 #include "Platform/AppCore.h"
-
-static CTranscendenceController* g_pController = nullptr;
+#include <cstdio>
 
 void InitGameUI(SAppState& state)
 {
-    //	Engine init disabled - requires proper resource paths
+    kernelInit(0);
+    CHumanInterface::Create();
+    g_pHI->GetScreenMgr().Init(state.cxWidth, state.cyHeight, nullptr);
 }
 
 void UpdateGameUI(SAppState& state)
