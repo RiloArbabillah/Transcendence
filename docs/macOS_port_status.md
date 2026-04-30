@@ -194,9 +194,17 @@ Goal: present the existing `CG32bitImage` software framebuffer in a native macOS
 3. Present the real loading/title/menu framebuffer next.
 4. Validate pixel order, alpha, resize, and Retina coordinate mapping.
 
-Exit gate:
+**Status: INFRASTRUCTURE COMPLETE (2026-04-30)**
 
-- a real title/menu frame appears through Metal.
+- Added `MetalRenderer.cpp/h` with C API for Metal layer access
+- App_Init() now uses `SDL_SetHint(SDL_HINT_RENDER_DRIVER, "metal")`
+- SDL_CreateRenderer configured with `SDL_RENDERER_METAL` hint
+- Added `SDL_RenderGetMetalLayer()` verification after renderer creation
+- `App_PresentFrameBuffer()` uses SDL_RenderPresent which routes through CAMetalLayer
+
+Exit gate: a real title/menu frame appears through Metal.
+
+Note: Frame rendering is blocked by HIBoot crash (Phase E territory). SDL-Metal bridge is in place.
 
 ### Phase E - Make Main Menu Usable
 
