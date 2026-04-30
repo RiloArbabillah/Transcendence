@@ -12,6 +12,7 @@
 #include <cstring>
 
 static int g_logFd = -1;
+static CTranscendenceController* g_pController = nullptr;
 
 static void log_msg(const char* msg) {
     if (g_logFd >= 0) {
@@ -45,33 +46,12 @@ void InitGameUI(SAppState& state)
     g_pHI->GetScreenMgr().Init(state.cxWidth, state.cyHeight, nullptr);
 
     log_msg("IG: 4 new CTranscendenceController");
-    CTranscendenceController* pController = new CTranscendenceController();
+    g_pController = new CTranscendenceController();
 
-    log_msg("IG: 5 HIBoot start");
+    log_msg("IG: 5 SetController (skip OnBoot/OnInit)");
+    g_pHI->SetController(g_pController);
 
-    SHIOptions Options;
-    memset(&Options, 0, sizeof(Options));
-    CString sError;
-
-    log_msg("IG: 5b calling OnBoot");
-    ALERROR error = pController->OnBoot(NULL, &Options, &sError);
-    log_msg("IG: 5c OnBoot returned");
-
-    log_va("IG: OnBoot error=%d", error);
-
-    if (error != NOERROR)
-    {
-        log_msg("IG: OnBoot failed");
-        return;
-    }
-
-    log_msg("IG: 6 SetController");
-    g_pHI->SetController(pController);
-
-    log_msg("IG: 7 OnInit");
-    pController->OnInit(&sError);
-
-    log_msg("IG: 8 done");
+    log_msg("IG: 6 done (engine deferred)");
 }
 
 void UpdateGameUI(SAppState& state)
@@ -79,8 +59,8 @@ void UpdateGameUI(SAppState& state)
     static int tick = 0;
     tick++;
     if (tick % 60 == 0) {
-        char buf[64];
-        snprintf(buf, sizeof(buf), "UG: tick %d\n", tick);
-        write(g_logFd >= 0 ? g_logFd : 2, buf, strlen(buf));
+        log_va("UG: tick %d", tick);
     }
+    if (g_pController && tick < 600)
+        g_pController->HIUpdate();
 }

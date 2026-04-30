@@ -766,7 +766,23 @@ inline long InterlockedIncrement(long* p) { return ++(*p); }
 inline long InterlockedDecrement(long* p) { return --(*p); }
 #define _beginthreadex(pSec, stack, start, arg, flags, id) ((HANDLE)0)
 #define QS_ALLINPUT 0x04FF
+#ifndef _WIN32
+#include <mach-o/dyld.h>
+#include <cstdio>
+#include <cstring>
+inline DWORD GetModuleFileName(HMODULE hModule, char* pFilename, DWORD nSize) {
+    (void)hModule;
+    uint32_t size = nSize;
+    int result = _NSGetExecutablePath(pFilename, &size);
+    if (result == 0) {
+        size = strlen(pFilename);
+        return size;
+    }
+    return 0;
+}
+#else
 inline DWORD GetModuleFileName(HMODULE hModule, char* pFilename, DWORD nSize) { return 0; }
+#endif
 inline BOOL MoveFile(const char* pSrc, const char* pDst) { return rename(pSrc, pDst) == 0; }
 inline void* ShellExecute(void* hwnd, const char* pOp, const char* pFile, const char* pParams, const char* pDir, int nShow) { return nullptr; }
 inline DWORD GetFileVersionInfoSize(const char* pFilename, void* pHandle) { return 0; }

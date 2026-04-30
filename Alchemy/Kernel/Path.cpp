@@ -43,7 +43,18 @@ inline BOOL FindClose(void* hFind) { return TRUE; }
 inline BOOL GetFileTime(HANDLE hFile, FILETIME* pCreation, FILETIME* pLastAccess, FILETIME* pLastWrite) { return TRUE; }
 inline BOOL FileTimeToSystemTime(FILETIME* pFileTime, SYSTEMTIME* pSystemTime) { return TRUE; }
 inline DWORD GetTempPath(DWORD nBufferLength, char* lpBuffer) { strcpy(lpBuffer, "/tmp"); return strlen(lpBuffer); }
-inline DWORD GetFileAttributes(const char* lpFileName) { return FILE_ATTRIBUTE_NORMAL; }
+inline DWORD GetFileAttributes(const char* lpFileName) {
+#ifndef _WIN32
+    struct stat st;
+    if (stat(lpFileName, &st) == 0) {
+        if (S_ISDIR(st.st_mode)) return FILE_ATTRIBUTE_DIRECTORY;
+        return FILE_ATTRIBUTE_NORMAL;
+    }
+    return 0xffffffff;
+#else
+    return FILE_ATTRIBUTE_NORMAL;
+#endif
+}
 inline BOOL CreateDirectory(const char* lpPathName, void* lpSecurityAttributes) { return mkdir(lpPathName, 0755) == 0; }
 inline BOOL RemoveDirectory(const char* lpPathName) { return rmdir(lpPathName) == 0; }
 inline void* CoTaskMemAlloc(DWORD cb) { return malloc(cb); }
@@ -696,7 +707,19 @@ CString Kernel::pathGetSpecialFolder (ESpecialFolders iFolder)
 	char *pDest = sPath.GetWritePointer(MAX_PATH);
 	HRESULT hr = ::SHGetFolderPath(NULL, iCSIDL, NULL, SHGFP_TYPE_CURRENT, pDest);
 	if (hr != S_OK)
+		{
+#ifndef _WIN32
+		const char* home = getenv("HOME");
+		if (home) {
+			strncpy(pDest, home, MAX_PATH - 1);
+			pDest[MAX_PATH - 1] = '\0';
+		} else {
+			pDest[0] = '\0';
+		}
+#else
 		return NULL_STR;
+#endif
+		}
 
 	//	Truncate to the correct size
 
