@@ -153,12 +153,28 @@ typedef void* HGLOBAL;
 #define PAGE_NOACCESS 0x01
 #define MEM_RESERVE 0x2000
 #define MEM_RELEASE 0x8000
+#define MEM_COMMIT 0x1000
 inline HRSRC FindResource(HMODULE hModule, const char* pName, const char* pType) { return nullptr; }
 inline HGLOBAL LoadResource(HMODULE hModule, HRSRC hResInfo) { return nullptr; }
 inline void* LockResource(HGLOBAL hResData) { return nullptr; }
-inline BOOL VirtualFree(void* lpAddress, SIZE_T dwSize, DWORD dwFreeType) { return TRUE; }
+#ifndef _WIN32
+#include <sys/mman.h>
+#include <stdlib.h>
+inline void* VirtualAlloc(void* lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect) {
+    (void)lpAddress;
+    (void)flProtect;
+    (void)flAllocationType;
+    return malloc(dwSize);
+}
+inline BOOL VirtualFree(void* lpAddress, SIZE_T dwSize, DWORD dwFreeType) {
+    (void)dwFreeType;
+    free(lpAddress);
+    return TRUE;
+}
+#else
 inline void* VirtualAlloc(void* lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect) { return nullptr; }
-#define MEM_COMMIT 0x1000
+inline BOOL VirtualFree(void* lpAddress, SIZE_T dwSize, DWORD dwFreeType) { return TRUE; }
+#endif
 inline DWORD SizeofResource(HMODULE hModule, HRSRC hResInfo) { return 0; }
 
 typedef void* HKEY;
