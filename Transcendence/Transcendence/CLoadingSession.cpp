@@ -42,6 +42,40 @@ static void ApplyAlphaMask (CG32bitImage &Dest, const SBMPImageLoad &Mask)
 	Dest.SetAlphaType(CG32bitImage::alpha1);
 	}
 
+static void BltAlpha1Frame (CG32bitImage &Dest, int xDest, int yDest, const CG32bitImage &Source, int xSrc, int ySrc, int cxWidth, int cyHeight, const CG32bitImage &Background)
+	{
+	if (xDest < 0 || yDest < 0 || xSrc < 0 || ySrc < 0)
+		return;
+
+	if ((xDest + cxWidth) > Dest.GetWidth() || (yDest + cyHeight) > Dest.GetHeight())
+		return;
+
+	if ((xSrc + cxWidth) > Source.GetWidth() || (ySrc + cyHeight) > Source.GetHeight())
+		return;
+
+	if (Background.GetWidth() != cxWidth || Background.GetHeight() != cyHeight)
+		return;
+
+	for (int y = 0; y < cyHeight; y++)
+		{
+		CG32bitPixel *pDest = Dest.GetPixelPos(xDest, yDest + y);
+		const CG32bitPixel *pSrc = Source.GetPixelPos(xSrc, ySrc + y);
+		const CG32bitPixel *pBackground = Background.GetPixelPos(0, y);
+
+		for (int x = 0; x < cxWidth; x++)
+			{
+			if (pSrc->GetAlpha() != 0x00)
+				*pDest = *pSrc;
+			else
+				*pDest = *pBackground;
+
+			pDest++;
+			pSrc++;
+			pBackground++;
+			}
+		}
+	}
+
 ALERROR CLoadingSession::OnInit (CString *retsError)
 
 //	OnInit
@@ -151,14 +185,25 @@ void CLoadingSession::OnPaint (CG32bitImage &Screen, const RECT &rcInvalid)
 
 	//	Paint the stargate
 
-	Screen.Blt(STARGATE_WIDTH * (m_iTick % 48),
+	CG32bitImage StargateBackground;
+	StargateBackground.Create(STARGATE_WIDTH, STARGATE_HEIGHT, CG32bitImage::alphaNone);
+	StargateBackground.Copy(0,
 			0,
 			STARGATE_WIDTH,
 			STARGATE_HEIGHT,
-			255,
-			m_StargateImage,
+			Screen,
 			m_rcStargate.left,
 			m_rcStargate.top);
+
+	BltAlpha1Frame(Screen,
+			m_rcStargate.left,
+			m_rcStargate.top,
+			m_StargateImage,
+			STARGATE_WIDTH * (m_iTick % 48),
+			0,
+			STARGATE_WIDTH,
+			STARGATE_HEIGHT,
+			StargateBackground);
 	}
 
 void CLoadingSession::OnReportHardCrash (CString *retsMessage)

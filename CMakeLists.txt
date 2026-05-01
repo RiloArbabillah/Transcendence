@@ -253,6 +253,7 @@ set(MAMMOTH_TSUI_SOURCES
     "Mammoth/TSUI/IHIController.cpp"
     "Mammoth/TSUI/TSUICodeChain.cpp"
     "Mammoth/TSUI/CBackgroundProcessor.cpp"
+    "Mammoth/TSUI/CHumanInterfaceMac.cpp"
     "Mammoth/TSUI/HardCrash.cpp"
     "Mammoth/TSUI/CHexarcServiceStub.cpp"
     "Mammoth/TSUI/CCloudService.cpp"

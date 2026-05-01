@@ -517,17 +517,21 @@ inline HWND CreateWindowEx(DWORD dwExStyle, LPCSTR lpClassName, LPCSTR lpWindowN
 inline HWND GetCapture() { return nullptr; }
 inline HWND SetFocus(HWND hWnd) { return nullptr; }
 inline LRESULT SendMessage(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) { return 0; }
-inline bool PostMessage(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) { return true; }
+bool PlatformPostMessage(int msg, int wParam, void* lParam);
+inline bool PostMessage(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) { PlatformPostMessage((int)Msg, (int)wParam, (void*)lParam); return true; }
 inline bool PostQuitMessage(int nExitCode) { return true; }
 inline HDC BeginPaint(HWND hWnd, void* pPaintStruct) { return nullptr; }
 inline bool EndPaint(HWND hWnd, const void* pPaintStruct) { return true; }
 inline bool InvalidateRect(HWND hWnd, const RECT* pRect, bool bErase) { return true; }
 inline bool GetClientRect(HWND hWnd, RECT* pRect) { if (pRect) { pRect->left = pRect->top = 0; pRect->right = 1024; pRect->bottom = 768; } return true; }
-#define SetTimer(hwnd, id, elapse, callback) (0)
-#define KillTimer(hwnd, id) (0)
+unsigned int PlatformSetTimerCompat(void* hWnd, unsigned int timerID, unsigned int elapse, void* callback);
+int PlatformKillTimerCompat(void* hWnd, unsigned int timerID);
+#define SetTimer(hwnd, id, elapse, callback) PlatformSetTimerCompat((void*)(hwnd), (unsigned int)(id), (unsigned int)(elapse), (void*)(callback))
+#define KillTimer(hwnd, id) PlatformKillTimerCompat((void*)(hwnd), (unsigned int)(id))
 inline int LoadCursor(HINSTANCE hInstance, LPCSTR lpCursorName) { return 0; }
 inline int SetCursor(int hCursor) { return 0; }
-inline bool PeekMessage(void* pMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg) { return false; }
+int PlatformPeekMessage(int* pMsg, int* pWParam, void** ppLParam);
+inline bool PeekMessage(void* pMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg) { struct SMsgCompat { void* hwnd; UINT message; WPARAM wParam; LPARAM lParam; DWORD time; POINT pt; }; SMsgCompat* p = (SMsgCompat*)pMsg; int msg; int wParam; void* lParam; if (!PlatformPeekMessage(&msg, &wParam, &lParam)) return false; p->message = (UINT)msg; p->wParam = (WPARAM)wParam; p->lParam = (LPARAM)lParam; return true; }
 inline bool TranslateMessage(const void* pMsg) { return false; }
 inline LRESULT DispatchMessage(const void* pMsg) { return 0; }
 

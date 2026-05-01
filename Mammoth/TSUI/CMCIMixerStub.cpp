@@ -15,6 +15,7 @@ static bool g_bInitialized = false;
 static bool g_bMusicPlaying = false;
 static Mix_Music* g_pCurrentMusic = nullptr;
 static int g_iVolume = 1000;
+static bool g_bOwnsAudio = false;
 
 CMCIMixer::CMCIMixer(int iChannels) :
 		m_iDefaultVolume(1000),
@@ -25,22 +26,21 @@ CMCIMixer::CMCIMixer(int iChannels) :
 	{
 	if (!g_bInitialized)
 		{
-		if (Mix_Init(MIX_INIT_OGG | MIX_INIT_MP3) != 0)
-			{
-			int flags = MIX_INIT_OGG | MIX_INIT_MP3;
-			int initted = Mix_Init(flags);
-			if ((initted & flags) != flags)
-				{
-				Mix_CloseAudio();
-				return;
-				}
-			}
+		int flags = MIX_INIT_OGG | MIX_INIT_MP3 | MIX_INIT_FLAC;
+		Mix_Init(flags);
 
-		if (Mix_OpenAudio(44100, AUDIO_S16SYS, 2, 1024) != 0)
+		int iFreq;
+		Uint16 iFormat;
+		int iChannels;
+		if (Mix_QuerySpec(&iFreq, &iFormat, &iChannels) == 0)
 			{
-			Mix_CloseAudio();
-			return;
+			if (Mix_OpenAudio(44100, AUDIO_S16SYS, 2, 1024) != 0)
+				return;
+
+			g_bOwnsAudio = true;
 			}
+		else
+			g_bOwnsAudio = false;
 
 		g_bInitialized = true;
 		}
@@ -55,9 +55,11 @@ CMCIMixer::~CMCIMixer(void)
 			Mix_HaltMusic();
 			g_bMusicPlaying = false;
 			}
-		Mix_CloseAudio();
+		if (g_bOwnsAudio)
+			Mix_CloseAudio();
 		Mix_Quit();
 		g_bInitialized = false;
+		g_bOwnsAudio = false;
 		}
 	}
 

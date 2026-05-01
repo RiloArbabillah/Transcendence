@@ -77,8 +77,10 @@ void PlatformRemoveTimer(int timerID);
 #define PLATFORM_MSG_COMMAND       2
 #define PLATFORM_MSG_TASK_COMPLETE 3
 
-void PlatformPostMessage(int msg, int wParam, void* lParam);
+bool PlatformPostMessage(int msg, int wParam, void* lParam);
 int PlatformPeekMessage(int* pMsg, int* pWParam, void** ppLParam);
+unsigned int PlatformSetTimerCompat(void* hWnd, unsigned int timerID, unsigned int elapse, void* callback);
+int PlatformKillTimerCompat(void* hWnd, unsigned int timerID);
 
 uint32_t* App_GetFrameBuffer(void);
 int App_GetFrameBufferWidth(void);

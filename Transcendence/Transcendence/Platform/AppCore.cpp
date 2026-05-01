@@ -9,6 +9,40 @@
 #include <cstdlib>
 #include <cstring>
 #include <queue>
+#include <map>
+#include <mutex>
+#include <sys/stat.h>
+
+static const char* GetAppLogPath()
+{
+    static char sPath[1024];
+    static bool bInit = false;
+
+    if (!bInit)
+    {
+        const char* pHome = getenv("HOME");
+        if (pHome && *pHome)
+        {
+            char basePath[1024];
+            snprintf(basePath, sizeof(basePath), "%s/Library/Application Support", pHome);
+            mkdir(basePath, 0755);
+
+            snprintf(basePath, sizeof(basePath), "%s/Library/Application Support/Kronosaur", pHome);
+            mkdir(basePath, 0755);
+
+            snprintf(basePath, sizeof(basePath), "%s/Library/Application Support/Kronosaur/Transcendence", pHome);
+            mkdir(basePath, 0755);
+
+            snprintf(sPath, sizeof(sPath), "%s/trans_app.log", basePath);
+        }
+        else
+            snprintf(sPath, sizeof(sPath), "%s", "/tmp/trans_app.log");
+
+        bInit = true;
+    }
+
+    return sPath;
+}
 
 constexpr int DEFAULT_WIDTH = 1024;
 constexpr int DEFAULT_HEIGHT = 768;
@@ -17,7 +51,7 @@ static FILE* g_Log = nullptr;
 
 static void log_msg(const char* pMsg) {
     if (!g_Log) {
-        g_Log = fopen("/tmp/trans_app.log", "w");
+        g_Log = fopen(GetAppLogPath(), "w");
     }
     if (g_Log) {
         fprintf(g_Log, "%s\n", pMsg);
@@ -28,12 +62,23 @@ static void log_msg(const char* pMsg) {
 }
 
 SAppState g_AppState;
+static std::mutex g_MessageQueueCS;
+static std::mutex g_TimerCS;
+static std::map<unsigned int, SDL_TimerID> g_Timers;
+static const int PLATFORM_WM_TIMER = 0x0113;
+
+static Uint32 TimerThunk(Uint32 interval, void *param)
+{
+    const unsigned int dwTimerID = (unsigned int)(uintptr_t)param;
+    PlatformPostMessage(PLATFORM_WM_TIMER, (int)dwTimerID, nullptr);
+    return interval;
+}
 
 int App_Init(void)
 {
     log_msg("App_Init: start");
 
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) < 0)
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO) < 0)
     {
         log_msg("App_Init: SDL_Init failed");
         return 0;
@@ -122,6 +167,13 @@ int App_Init(void)
 
 void App_Shutdown(void)
 {
+    {
+        std::lock_guard<std::mutex> lock(g_TimerCS);
+        for (auto &entry : g_Timers)
+            SDL_RemoveTimer(entry.second);
+        g_Timers.clear();
+    }
+
     while (!g_AppState.msgQueue.empty())
         g_AppState.msgQueue.pop();
 
@@ -169,6 +221,74 @@ uint32_t* App_GetFrameBuffer(void) { return g_AppState.pFrameBuffer; }
 int App_GetFrameBufferWidth(void) { return g_AppState.cxWidth; }
 int App_GetFrameBufferHeight(void) { return g_AppState.cyHeight; }
 
+bool PlatformPostMessage(int msg, int wParam, void* lParam)
+{
+    std::lock_guard<std::mutex> lock(g_MessageQueueCS);
+
+    SPlatformMessage message;
+    message.msg = msg;
+    message.wParam = wParam;
+    message.lParam = lParam;
+    g_AppState.msgQueue.push(message);
+    return true;
+}
+
+int PlatformPeekMessage(int* pMsg, int* pWParam, void** ppLParam)
+{
+    std::lock_guard<std::mutex> lock(g_MessageQueueCS);
+
+    if (g_AppState.msgQueue.empty())
+        return 0;
+
+    const SPlatformMessage& message = g_AppState.msgQueue.front();
+    if (pMsg) *pMsg = message.msg;
+    if (pWParam) *pWParam = message.wParam;
+    if (ppLParam) *ppLParam = message.lParam;
+    g_AppState.msgQueue.pop();
+
+    return 1;
+}
+
+unsigned int PlatformSetTimerCompat(void* hWnd, unsigned int timerID, unsigned int elapse, void* callback)
+{
+    (void)hWnd;
+    (void)callback;
+
+    if (elapse == 0)
+        return 0;
+
+    std::lock_guard<std::mutex> lock(g_TimerCS);
+
+    auto it = g_Timers.find(timerID);
+    if (it != g_Timers.end())
+        {
+        SDL_RemoveTimer(it->second);
+        g_Timers.erase(it);
+        }
+
+    SDL_TimerID id = SDL_AddTimer(elapse, TimerThunk, (void *)(uintptr_t)timerID);
+    if (id == 0)
+        return 0;
+
+    g_Timers.insert({ timerID, id });
+    return timerID;
+}
+
+int PlatformKillTimerCompat(void* hWnd, unsigned int timerID)
+{
+    (void)hWnd;
+
+    std::lock_guard<std::mutex> lock(g_TimerCS);
+
+    auto it = g_Timers.find(timerID);
+    if (it == g_Timers.end())
+        return 0;
+
+    SDL_RemoveTimer(it->second);
+    g_Timers.erase(it);
+    return 1;
+}
+
 int App_Run(void)
 {
     log_msg("App_Run: start");
@@ -189,7 +309,13 @@ int App_Run(void)
     {
         if (!App_PumpEvents()) break;
         UpdateGameUI(g_AppState);
+        static int sPresentTick = 0;
+        sPresentTick++;
+        if (sPresentTick <= 5)
+            log_msg("App_Run: before App_PresentFrameBuffer");
         App_PresentFrameBuffer();
+        if (sPresentTick <= 5)
+            log_msg("App_Run: after App_PresentFrameBuffer");
         SDL_Delay(16);
     }
 

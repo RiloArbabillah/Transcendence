@@ -710,12 +710,42 @@ CString Kernel::pathGetSpecialFolder (ESpecialFolders iFolder)
 		{
 #ifndef _WIN32
 		const char* home = getenv("HOME");
-		if (home) {
-			strncpy(pDest, home, MAX_PATH - 1);
-			pDest[MAX_PATH - 1] = '\0';
-		} else {
+		if (home)
+			{
+			switch (iFolder)
+				{
+				case folderAppData:
+					strncpy(pDest, home, MAX_PATH - 1);
+					pDest[MAX_PATH - 1] = '\0';
+					strncat(pDest, "/Library/Application Support", MAX_PATH - strlen(pDest) - 1);
+					break;
+
+				case folderDocuments:
+					strncpy(pDest, home, MAX_PATH - 1);
+					pDest[MAX_PATH - 1] = '\0';
+					strncat(pDest, "/Documents", MAX_PATH - strlen(pDest) - 1);
+					break;
+
+				case folderPictures:
+					strncpy(pDest, home, MAX_PATH - 1);
+					pDest[MAX_PATH - 1] = '\0';
+					strncat(pDest, "/Pictures", MAX_PATH - strlen(pDest) - 1);
+					break;
+
+				case folderMusic:
+					strncpy(pDest, home, MAX_PATH - 1);
+					pDest[MAX_PATH - 1] = '\0';
+					strncat(pDest, "/Music", MAX_PATH - strlen(pDest) - 1);
+					break;
+
+				default:
+					strncpy(pDest, home, MAX_PATH - 1);
+					pDest[MAX_PATH - 1] = '\0';
+					break;
+				}
+			}
+		else
 			pDest[0] = '\0';
-		}
 #else
 		return NULL_STR;
 #endif

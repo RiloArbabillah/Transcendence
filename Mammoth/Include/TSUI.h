@@ -790,6 +790,7 @@ class CHumanInterface
 		void OnAnimate (void);
 		void OnPostCommand (LPARAM pData);
 		void OnTaskComplete (DWORD dwID, LPARAM pData);
+		LONG OnTimer (DWORD dwID);
 
 		//	Private, used by other HI classes
 		void BeginSessionPaint (CG32bitImage &Screen);

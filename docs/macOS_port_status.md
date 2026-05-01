@@ -55,21 +55,23 @@ Result:
 
 ## Current Status
 
-**Phase A** ✅ Complete - source files added to CMakeLists.txt
-**Phase B** ✅ Complete - software drawing coverage restored (2026-04-30)
-**Phase G** ✅ Complete - audio stub implemented (2026-04-30)
-**Phase C** ✅ Complete - SDL shell implemented (2026-04-30)
-**Phase D** ✅ Complete - Metal compatibility presenter (SDL_RENDERER_METAL configured)
-**Phase F** ✅ Complete - minimal engine init (deferred OnBoot/OnInit)
+**Build/runtime baseline (2026-05-01):**
 
-`transcendence_app` builds and runs. Platform shell (SDL + Metal) works.
-Main loop enters and exits cleanly. UpdateGameUI ticks 60+ per run.
+- `transcendence_app` builds and runs on macOS from CMake build tree.
+- SDL shell + Metal-backed present path are active.
+- OnBoot/OnInit path is active in `GameUIBridge.cpp` (no longer skipped).
+- Resource path and JPEG color channel issues are corrected for loading background/title.
 
-**OnBoot hangs**: kernelSetDebugLog calls LogOutput which crashes in
-strPatternSubst when formatting "Start logging session". Deferring for now.
+**Known active blocker for release readiness:**
 
-**Minimal InitGameUI**: Creates CTranscendenceController, sets on HI, skips
-OnBoot/OnInit to avoid hang. Engine init deferred but platform works.
+- Loading stargate animation still shows a shadow/trail artifact on macOS.
+- Multiple mask/blit fixes have reduced corruption, but visual parity is not yet complete.
+
+**Release readiness gaps still open:**
+
+- Native audio parity (current implementation is still stub-level behavior).
+- Save/settings/resource path parity validation for packaged `.app` runtime.
+- Finder-launch packaging and full milestone QA gate execution.
 
 ## Linker Blocker Clusters
 
@@ -265,32 +267,20 @@ Exit gate:
 
 ## Immediate Next Commands
 
-**Phase A is complete.** The build now fails at final link with Phase B (software drawing) and Phase G (audio) unresolved symbols.
+Use these as current execution baseline:
 
 ```sh
-cmake --build --preset macos-debug --target alchemy_kernel
-cmake --build --preset macos-debug --target alchemy_graphics
-cmake --build --preset macos-debug --target mammoth_tsui
-cmake --build --preset macos-debug --target transcendence_app
+cmake --build "build" -j8
+./build/Transcendence
 ```
 
-### Next: Phase B - Restore Software Drawing Coverage
+### Next Focus (Release-Ready Path)
 
-The following commented-out files in `ALCHEMY_GRAPHICS_SOURCES` need to be uncommented and fixed for Clang:
-
-- `DrawLine.cpp` → provides `CGDraw::LineBroken`, `LineDotted`, `LineGradient`, etc.
-- `DrawRect.cpp` → provides `CGDraw::RoundedRect`, `RectOutline`, etc.
-- `DrawCircle.cpp` → provides `CGDraw::Circle`, `CircleGradient`, etc.
-- `DrawFill.cpp` → provides `CGDraw::Fill`, etc.
-- `DrawRegion.cpp` → provides `CGDraw::Region`
-- `BlendModes.cpp` → provides `CGDraw::ParseBlendMode`
-- `FilterBlur.cpp` → provides `CGFilter::Blur`
-- `FilterThreshold.cpp` → provides `CGFilter::Threshold`
-- `DrawClouds.cpp` → provides `CGFractal::*`
-- `8bitDrawGradient.cpp` → provides gradient drawing
-- `8bitNoise.cpp` → provides noise functions
-
-Do not broaden into SDL/Metal runtime work until the app link is reduced to platform/presenter/audio seams rather than missing existing source files.
+1. Close loading stargate shadow/trail visual parity issue.
+2. Execute Stage 2 menu/input validation checklist (keyboard, mouse, text, Retina mapping).
+3. Implement native audio backend parity and verify soundtrack/SFX behavior.
+4. Validate save/settings/resource paths in both repo-run and bundled `.app` run.
+5. Complete packaging + Finder launch and run M2-M7 required QA gates.
 
 ## Current Risks
 

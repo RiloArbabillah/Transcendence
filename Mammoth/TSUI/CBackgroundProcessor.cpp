@@ -5,6 +5,10 @@
 
 #include "stdafx.h"
 
+#ifdef TARGET_PLATFORM_MACOS
+#include <thread>
+#endif
+
 void CBackgroundProcessor::AddTask (IHITask *pTask, IHICommand *pListener, const CString &sCmd)
 
 //	AddTask
@@ -13,6 +17,70 @@ void CBackgroundProcessor::AddTask (IHITask *pTask, IHICommand *pListener, const
 //	This is called on the foreground thread.
 
 	{
+#ifdef TARGET_PLATFORM_MACOS
+	ASSERT(IsInitialized());
+
+	CString sError;
+	if (pTask->HIInit(&sError) != NOERROR)
+		return;
+
+	STask theTask;
+	theTask.iStatus = statusProcessing;
+	theTask.pTask = pTask;
+	theTask.pListener = pListener;
+	theTask.sCmd = (sCmd.IsBlank() ? CONSTLIT("cmdTaskDone") : sCmd);
+
+	{
+		CSmartLock Lock(m_cs);
+		STask *pNewTask = m_Tasks.Insert();
+		*pNewTask = theTask;
+	}
+
+	std::thread([this, pTask]()
+		{
+		//	Keep a stable copy of listener/cmd because m_Tasks may mutate on UI thread
+		IHICommand *pListener = NULL;
+		CString sCmd;
+		{
+			CSmartLock Lock(m_cs);
+			for (int i = 0; i < m_Tasks.GetCount(); i++)
+				if (m_Tasks[i].pTask == pTask)
+					{
+					pListener = m_Tasks[i].pListener;
+					sCmd = m_Tasks[i].sCmd;
+					break;
+					}
+		}
+
+		m_bExecuting = true;
+		SetProgress(CONSTLIT("Running"), 0);
+
+		CString sResult;
+		ALERROR error;
+		try
+			{
+			error = pTask->HIExecute(this, &sResult);
+			}
+		catch (...)
+			{
+			sResult = CONSTLIT("Crash executing task.");
+			error = ERR_FAIL;
+			}
+
+		SetProgress(NULL_STR, -1);
+		SetResult(error, (sResult.IsBlank() ? CONSTLIT("Done") : sResult));
+		m_bExecuting = false;
+
+		STaskCompleteMsg *pMsg = new STaskCompleteMsg;
+		pMsg->pTask = pTask;
+		pMsg->pListener = pListener;
+		pMsg->sCmd = sCmd;
+		::PostMessage(m_hWnd, WM_HI_TASK_COMPLETE, m_dwID, (LPARAM)pMsg);
+		PostOnAllTasksComplete();
+		}).detach();
+
+	return;
+#else
 	CSmartLock Lock(m_cs);
 
 	ASSERT(IsInitialized());
@@ -28,6 +96,7 @@ void CBackgroundProcessor::AddTask (IHITask *pTask, IHICommand *pListener, const
 	pNewTask->sCmd = (sCmd.IsBlank() ? CONSTLIT("cmdTaskDone") : sCmd);
 
 	::SetEvent(m_hWorkAvailableEvent);
+#endif
 	}
 
 void CBackgroundProcessor::CleanUp (void)

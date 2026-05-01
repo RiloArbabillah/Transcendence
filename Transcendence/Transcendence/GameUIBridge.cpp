@@ -11,9 +11,41 @@
 #include <unistd.h>
 #include <cstring>
 #include <signal.h>
+#include <sys/stat.h>
 
 static int g_logFd = -1;
 static CTranscendenceController* g_pController = nullptr;
+
+static const char* GetGameUILogPath()
+{
+    static char sPath[1024];
+    static bool bInit = false;
+
+    if (!bInit)
+    {
+        const char* pHome = getenv("HOME");
+        if (pHome && *pHome)
+        {
+            char basePath[1024];
+            snprintf(basePath, sizeof(basePath), "%s/Library/Application Support", pHome);
+            mkdir(basePath, 0755);
+
+            snprintf(basePath, sizeof(basePath), "%s/Library/Application Support/Kronosaur", pHome);
+            mkdir(basePath, 0755);
+
+            snprintf(basePath, sizeof(basePath), "%s/Library/Application Support/Kronosaur/Transcendence", pHome);
+            mkdir(basePath, 0755);
+
+            snprintf(sPath, sizeof(sPath), "%s/trans_gameui.log", basePath);
+        }
+        else
+            snprintf(sPath, sizeof(sPath), "%s", "/tmp/trans_gameui.log");
+
+        bInit = true;
+    }
+
+    return sPath;
+}
 
 static void log_msg(const char* msg) {
     if (g_logFd >= 0) {
@@ -41,9 +73,11 @@ static void sig_handler(int sig) {
     _exit(1);
 }
 
+
+
 void InitGameUI(SAppState& state)
 {
-    g_logFd = open("/tmp/trans_gameui.log", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    g_logFd = open(GetGameUILogPath(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
 
     log_msg("IG: 1 kernelInit");
     kernelInit(0);
@@ -65,7 +99,8 @@ void InitGameUI(SAppState& state)
     Options.m_bWindowedMode = true;
     Options.m_bNoGPUAcceleration = false;
     CString sError;
-    ALERROR error = g_pController->OnBoot("", &Options, &sError);
+    char szCmdLine[1] = { '\0' };
+    ALERROR error = g_pController->OnBoot(szCmdLine, &Options, &sError);
     log_va("IG: 6 OnBoot result: %d (error: %s)", error, sError.GetASCIIZPointer());
 
     log_msg("IG: 7 calling OnInit (testing)");
@@ -79,6 +114,23 @@ void UpdateGameUI(SAppState& state)
 {
     static int tick = 0;
     tick++;
+
+    int msg;
+    int wParam;
+    void* lParam;
+    while (PlatformPeekMessage(&msg, &wParam, &lParam))
+    {
+        if (!g_pHI)
+            break;
+
+        if (msg == WM_HI_COMMAND)
+            g_pHI->OnPostCommand((LPARAM)lParam);
+        else if (msg == WM_HI_TASK_COMPLETE)
+            g_pHI->OnTaskComplete((DWORD)wParam, (LPARAM)lParam);
+        else if (msg == WM_TIMER)
+            g_pHI->OnTimer((DWORD)wParam);
+    }
+
     if (tick % 60 == 0) {
         log_va("UG: tick %d", tick);
     }
@@ -86,6 +138,10 @@ void UpdateGameUI(SAppState& state)
         IHISession* pSession = g_pHI->GetSession();
         if (tick <= 5)
             log_va("UG: tick %d GetSession = %p", tick, (void*)pSession);
+        if (tick <= 5)
+            log_va("UG: tick %d before OnAnimate", tick);
         g_pHI->OnAnimate();
+        if (tick <= 5)
+            log_va("UG: tick %d after OnAnimate", tick);
     }
 }
