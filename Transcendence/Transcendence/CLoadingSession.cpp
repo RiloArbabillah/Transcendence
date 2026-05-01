@@ -28,7 +28,10 @@ static void ApplyAlphaMask (CG32bitImage &Dest, const SBMPImageLoad &Mask)
 			if (Mask.iType == bitmapMonochrome)
 				byAlpha = (pMask->GetGreen() ? 0xff : 0x00);
 			else
-				byAlpha = pMask->GetGreen();
+				byAlpha = (pMask->GetGreen() >= 0x80 ? 0xff : 0x00);
+
+			if (byAlpha == 0x00)
+				*pDest = CG32bitPixel(0, 0, 0, 0);
 
 			pDest->SetAlpha(byAlpha);
 			pDest++;
@@ -36,7 +39,7 @@ static void ApplyAlphaMask (CG32bitImage &Dest, const SBMPImageLoad &Mask)
 			}
 		}
 
-	Dest.SetAlphaType((Mask.iType == bitmapMonochrome ? CG32bitImage::alpha1 : CG32bitImage::alpha8));
+	Dest.SetAlphaType(CG32bitImage::alpha1);
 	}
 
 ALERROR CLoadingSession::OnInit (CString *retsError)

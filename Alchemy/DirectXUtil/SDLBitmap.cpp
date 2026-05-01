@@ -153,9 +153,66 @@ ALERROR dibLoadToBufferFromFile(Kernel::CString sFilespec, SBMPImageLoad* retIma
         return ERR_FAIL;
     }
 
-    retImage->cxWidth = pBitmap->cxWidth;
-    retImage->cyHeight = pBitmap->cyHeight;
-    retImage->iPitch = pBitmap->iStride;
+    SDL_Surface* pSurface = pBitmap->surface;
+    SDL_Surface* pConverted = nullptr;
+    if (!pSurface || !pSurface->pixels) {
+        retImage->cxWidth = 0;
+        retImage->cyHeight = 0;
+        retImage->iPitch = 0;
+        retImage->iType = bitmapNone;
+        retImage->Pixels = "";
+        SDLBitmapDestroy(pBitmap);
+        return ERR_FAIL;
+    }
+
+    if (pSurface->format->format != SDL_PIXELFORMAT_BGRA32) {
+        pConverted = SDL_ConvertSurfaceFormat(pSurface, SDL_PIXELFORMAT_BGRA32, 0);
+        if (!pConverted) {
+            retImage->cxWidth = 0;
+            retImage->cyHeight = 0;
+            retImage->iPitch = 0;
+            retImage->iType = bitmapNone;
+            retImage->Pixels = "";
+            SDLBitmapDestroy(pBitmap);
+            return ERR_FAIL;
+        }
+
+        pSurface = pConverted;
+    }
+
+    retImage->cxWidth = pSurface->w;
+    retImage->cyHeight = pSurface->h;
+    retImage->iPitch = pSurface->pitch;
+
+    const int iDataSize = retImage->iPitch * retImage->cyHeight;
+    retImage->Pixels = CString((const char*)pSurface->pixels, iDataSize);
+
+    if (retImage->iType == bitmapRGB) {
+        bool bMonochrome = true;
+        const BYTE* pRow = (const BYTE*)pSurface->pixels;
+        for (int y = 0; y < retImage->cyHeight && bMonochrome; y++) {
+            const BYTE* pPixel = pRow;
+            for (int x = 0; x < retImage->cxWidth; x++) {
+                const BYTE b = pPixel[0];
+                const BYTE g = pPixel[1];
+                const BYTE r = pPixel[2];
+                if (!((r == 0x00 && g == 0x00 && b == 0x00) || (r == 0xff && g == 0xff && b == 0xff))) {
+                    bMonochrome = false;
+                    break;
+                }
+
+                pPixel += 4;
+            }
+
+            pRow += retImage->iPitch;
+        }
+
+        if (bMonochrome)
+            retImage->iType = bitmapMonochrome;
+    }
+
+    if (pConverted)
+        SDL_FreeSurface(pConverted);
 
     SDLBitmapDestroy(pBitmap);
     return NOERROR;

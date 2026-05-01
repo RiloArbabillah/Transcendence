@@ -200,7 +200,7 @@ ALERROR JPEGLoadToRGBAFromFile (CString sFilename, SJPEGLoadInfo *retImage)
 		8,
 		retImage->iPitch,
 		colorSpace,
-		(CGBitmapInfo)(kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big)
+		(CGBitmapInfo)(kCGImageAlphaNoneSkipFirst | kCGBitmapByteOrder32Little)
 	);
 	CGColorSpaceRelease(colorSpace);
 
@@ -217,14 +217,6 @@ ALERROR JPEGLoadToRGBAFromFile (CString sFilename, SJPEGLoadInfo *retImage)
 
 	retImage->Pixels = CString(pixels, dataSize);
 	delete[] pixels;
-
-	char* p = retImage->Pixels.GetPointer();
-	for (size_t i = 0; i < dataSize; i += 4)
-		{
-		char temp = p[i];
-		p[i] = p[i + 2];
-		p[i + 2] = temp;
-		}
 
 	return NOERROR;
 #endif
@@ -353,7 +345,7 @@ ALERROR JPEGLoadToRGBAFromMemory (char *pImage, int iSize, SJPEGLoadInfo *retIma
 		8,
 		retImage->iPitch,
 		colorSpace,
-		(CGBitmapInfo)(kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big)
+		(CGBitmapInfo)(kCGImageAlphaNoneSkipFirst | kCGBitmapByteOrder32Little)
 	);
 	CGColorSpaceRelease(colorSpace);
 
@@ -370,14 +362,6 @@ ALERROR JPEGLoadToRGBAFromMemory (char *pImage, int iSize, SJPEGLoadInfo *retIma
 
 	retImage->Pixels = CString(pixels, dataSize);
 	delete[] pixels;
-
-	char* p = retImage->Pixels.GetPointer();
-	for (size_t i = 0; i < dataSize; i += 4)
-		{
-		char temp = p[i];
-		p[i] = p[i + 2];
-		p[i + 2] = temp;
-		}
 
 	return NOERROR;
 #endif

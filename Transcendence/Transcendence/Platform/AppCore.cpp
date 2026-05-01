@@ -89,13 +89,13 @@ int App_Init(void)
     else
         log_msg("App_Init: No Metal layer");
 
-    g_AppState.pTexture = SDL_CreateTexture(
-        g_AppState.pRenderer,
-        SDL_PIXELFORMAT_RGBA32,
-        SDL_TEXTUREACCESS_STREAMING,
-        g_AppState.cxWidth,
-        g_AppState.cyHeight
-    );
+	g_AppState.pTexture = SDL_CreateTexture(
+		g_AppState.pRenderer,
+		SDL_PIXELFORMAT_BGRA32,
+		SDL_TEXTUREACCESS_STREAMING,
+		g_AppState.cxWidth,
+		g_AppState.cyHeight
+	);
 
     if (!g_AppState.pTexture)
     {
