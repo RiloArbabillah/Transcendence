@@ -19,14 +19,16 @@ void ILog::LogOutput (DWORD dwFlags, const CString &sLine) const
 		SYSTEMTIME time;
 
 		GetLocalTime(&time);
-		Print(strPatternSubst(CONSTLIT("%04d-%02d-%02d %02d:%02d:%02d\t%s"),
-				time.wYear,
-				time.wMonth,
-				time.wDay,
-				time.wHour,
-				time.wMinute,
-				time.wSecond,
-				sLine));
+
+		// Build timestamp string manually instead of using strPatternSubst with %s
+		char szTime[64];
+		snprintf(szTime, sizeof(szTime), "%04d-%02d-%02d %02d:%02d:%02d\t",
+				time.wYear, time.wMonth, time.wDay,
+				time.wHour, time.wMinute, time.wSecond);
+
+		CString sOutput(szTime);
+		sOutput.Append(sLine);
+		Print(sOutput);
 		}
 	else
 		Print(sLine);

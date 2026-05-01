@@ -341,11 +341,10 @@ CString Kernel::strPattern (const CString &sPattern, LPVOID *pArgs)
 CString Kernel::strPatternSubst (CString sLine, ...)
 
 	{
-	// Use va_list since &sLine + sizeof(CString) gives wrong result on macOS ARM64
-	// Verified: va_list gives correct args (10, 20, 43) vs old method gives (0, 0, 329706...)
 	va_list args;
 	va_start(args, sLine);
 	char *pArgs = (char *)args;
+
 	CString sParsedLine = strPattern(sLine, (void **)pArgs);
 	va_end(args);
 	return sParsedLine;
