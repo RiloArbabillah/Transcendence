@@ -48,7 +48,7 @@ void InitGameUI(SAppState& state)
     log_msg("IG: 4 new CTranscendenceController");
     g_pController = new CTranscendenceController();
 
-    log_msg("IG: 5 SetController (skip OnBoot/OnInit)");
+    log_msg("IG: 5 SetController (skip OnBoot/OnInit - deferred)");
     g_pHI->SetController(g_pController);
 
     log_msg("IG: 6 done (engine deferred)");

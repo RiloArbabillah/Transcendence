@@ -276,8 +276,11 @@ void Kernel::kernelDebugLogPattern (const char *pszLine, ...)
 		{
 		CString sParsedLine;
 
-		char *pArgs = (char *)&pszLine + sizeof(pszLine);
+		va_list args;
+		va_start(args, pszLine);
+		char *pArgs = (char *)args;
 		sParsedLine = strPattern(CString(pszLine, ::strlen(pszLine), TRUE), (void **)pArgs);
+		va_end(args);
 
 		g_pDebugLog->LogOutput(ILOG_FLAG_TIMEDATE, sParsedLine);
 		}

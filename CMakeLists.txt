@@ -8,8 +8,9 @@ endif()
 
 find_package(SDL2 REQUIRED)
 find_package(SDL2_image REQUIRED)
+find_package(SDL2_mixer REQUIRED)
 
-include_directories(${SDL2_INCLUDE_DIRS} ${SDL2_IMAGE_INCLUDE_DIRS})
+include_directories(${SDL2_INCLUDE_DIRS} ${SDL2_IMAGE_INCLUDE_DIRS} ${SDL2_MIXER_INCLUDE_DIRS})
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -952,6 +953,8 @@ target_link_libraries(transcendence_app PRIVATE
     platform_sdl
     render_common
     render_metal
+    SDL2_mixer::SDL2_mixer
+    SDL2::SDL2
     "-framework CoreGraphics"
     "-framework ApplicationServices"
 )
