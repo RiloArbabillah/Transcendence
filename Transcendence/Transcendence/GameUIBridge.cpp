@@ -48,10 +48,16 @@ void InitGameUI(SAppState& state)
     log_msg("IG: 4 new CTranscendenceController");
     g_pController = new CTranscendenceController();
 
-    log_msg("IG: 5 SetController (skip OnBoot/OnInit - deferred)");
+    log_msg("IG: 5 SetController (with OnBoot)");
     g_pHI->SetController(g_pController);
 
-    log_msg("IG: 6 done (engine deferred)");
+    log_msg("IG: 6 calling OnBoot");
+    SHIOptions Options;
+    CString sError;
+    ALERROR error = g_pController->OnBoot("", &Options, &sError);
+    log_va("IG: 6 OnBoot result: %d (error: %s)", error, sError.GetASCIIZPointer());
+
+    log_msg("IG: 7 done (OnInit deferred)");
 }
 
 void UpdateGameUI(SAppState& state)
