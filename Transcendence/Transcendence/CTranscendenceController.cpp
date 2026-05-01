@@ -2145,7 +2145,8 @@ ALERROR CTranscendenceController::OnInit (CString *retsError)
 
 	//	Show the loading screen
 
-	m_HI.ShowSession(new CLoadingSession(m_HI, m_Model.GetCopyright(), m_Settings));
+	CLoadingSession* pSession = new CLoadingSession(m_HI, m_Model.GetCopyright(), m_Settings);
+	ALERROR error2 = m_HI.ShowSession(pSession);
 	m_iState = stateLoading;
 
 	//	Play Intro Music

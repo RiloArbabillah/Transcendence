@@ -60,7 +60,11 @@ static bool FindResourceEntry (const SResourceEntry *pTable, int iCount, const C
 CString CResourcePathResolver::GetResourcesRoot (void)
 
 	{
-	return CONSTLIT("Transcendence/Transcendence/Resources");
+#ifdef __APPLE__
+	return "/Users/macbook/Experiment/transcendece/Transcendence/Transcendence/Resources/";
+#else
+	return "Transcendence/Transcendence/Resources";
+#endif
 	}
 
 bool CResourcePathResolver::FindBitmapResource (const CString &sName, CString *retsFilespec)

@@ -705,8 +705,15 @@ LONG CTranscendenceWnd::WMCreate (CString *retsError)
 
 	{
 	SFileVersionInfo VerInfo;
-	fileGetVersionInfo(NULL_STR, &VerInfo);
-	m_sVersion = strPatternSubst(CONSTLIT("%s %s"), VerInfo.sProductName, VerInfo.sProductVersion);
+	if (fileGetVersionInfo(NULL_STR, &VerInfo) != NOERROR)
+		{
+		VerInfo.sProductName = CONSTLIT("Transcendence");
+		VerInfo.sProductVersion = CONSTLIT("1.0");
+		VerInfo.sCopyright = CONSTLIT("Copyright");
+		}
+	char szVersion[256];
+	snprintf(szVersion, sizeof(szVersion), "%s %s", VerInfo.sProductName.GetASCIIZPointer(), VerInfo.sProductVersion.GetASCIIZPointer());
+	m_sVersion = CString(szVersion);
 	m_sCopyright = VerInfo.sCopyright;
 	kernelDebugLogString(m_sVersion);
 	}

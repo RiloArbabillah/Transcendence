@@ -10,6 +10,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <cstring>
+#include <signal.h>
 
 static int g_logFd = -1;
 static CTranscendenceController* g_pController = nullptr;
@@ -32,6 +33,14 @@ static void log_va(const char* fmt, ...) {
     log_msg(buf);
 }
 
+static void sig_handler(int sig) {
+    log_msg("SIGSEGV caught!");
+    char buf[128];
+    snprintf(buf, sizeof(buf), "Signal %d at tick %d", sig, 0);
+    log_msg(buf);
+    _exit(1);
+}
+
 void InitGameUI(SAppState& state)
 {
     g_logFd = open("/tmp/trans_gameui.log", O_WRONLY | O_CREAT | O_TRUNC, 0644);
@@ -51,13 +60,19 @@ void InitGameUI(SAppState& state)
     log_msg("IG: 5 SetController (with OnBoot)");
     g_pHI->SetController(g_pController);
 
-    log_msg("IG: 6 calling OnBoot");
+    log_msg("IG: 6 calling OnBoot (skip for SDL2-only)");
     SHIOptions Options;
+    Options.m_bWindowedMode = true;
+    Options.m_bNoGPUAcceleration = false;
     CString sError;
     ALERROR error = g_pController->OnBoot("", &Options, &sError);
     log_va("IG: 6 OnBoot result: %d (error: %s)", error, sError.GetASCIIZPointer());
 
-    log_msg("IG: 7 done (OnInit deferred)");
+    log_msg("IG: 7 calling OnInit (testing)");
+    error = g_pController->OnInit(&sError);
+    log_va("IG: 7 OnInit result: %d (error: %s)", error, sError.GetASCIIZPointer());
+
+    log_msg("IG: 8 done");
 }
 
 void UpdateGameUI(SAppState& state)
@@ -67,6 +82,10 @@ void UpdateGameUI(SAppState& state)
     if (tick % 60 == 0) {
         log_va("UG: tick %d", tick);
     }
-    if (g_pController && tick < 600)
-        g_pController->HIUpdate();
+    if (g_pHI) {
+        IHISession* pSession = g_pHI->GetSession();
+        if (tick <= 5)
+            log_va("UG: tick %d GetSession = %p", tick, (void*)pSession);
+        g_pHI->OnAnimate();
+    }
 }
