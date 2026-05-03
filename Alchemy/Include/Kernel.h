@@ -160,11 +160,15 @@ inline void* LockResource(HGLOBAL hResData) { return nullptr; }
 #ifndef _WIN32
 #include <sys/mman.h>
 #include <stdlib.h>
+#include <cstring>
 inline void* VirtualAlloc(void* lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect) {
     (void)lpAddress;
     (void)flProtect;
     (void)flAllocationType;
-    return malloc(dwSize);
+    void* pMem = malloc(dwSize);
+    if (pMem && (flAllocationType & MEM_COMMIT))
+        memset(pMem, 0, dwSize);
+    return pMem;
 }
 inline BOOL VirtualFree(void* lpAddress, SIZE_T dwSize, DWORD dwFreeType) {
     (void)dwFreeType;
