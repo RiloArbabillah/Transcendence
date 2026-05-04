@@ -600,6 +600,14 @@ char *CString::GetPointer (void) const
 //	access elements beyond the length of the string
 
 	{
+#ifdef TARGET_PLATFORM_MACOS
+	if (m_pStore == (void*)0x5b20d0e0)
+		{
+		kernelDebugLogPattern("CString::GetPointer: CAUGHT invalid this=%p m_pStore=0x5b20d0e0", this);
+		}
+	if (m_pStore == NULL || (m_pStore != (void*)0x5b20d0e0 && m_pStore->iRefCount <= 0))
+		return const_cast<char *>("");
+#endif
 	if (m_pStore)
 		return m_pStore->pString;
 	else
