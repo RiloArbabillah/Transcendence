@@ -87,11 +87,6 @@ ALERROR CSymbolTable::AddEntry (const CString &sKey, CObject *pValue)
 	if (psKey == NULL)
 		return ERR_MEMORY;
 
-#ifdef TARGET_PLATFORM_MACOS
-	kernelDebugLogPattern("CSymbolTable::AddEntry: created key ptr=%p str='%s'",
-		(void*)psKey, sKey.GetASCIIZPointer());
-#endif
-
 	//	Add key and value
 
 	if (error = CDictionary::AddEntry((intptr_t)psKey, (intptr_t)pValue))
@@ -112,12 +107,7 @@ int CSymbolTable::Compare (int iKey1, int iKey2) const
 	{
 	CString *pKey1 = (CString *)iKey1;
 	CString *pKey2 = (CString *)iKey2;
-#ifdef TARGET_PLATFORM_MACOS
-	if (pKey1 == NULL || pKey1 == (CString*)0x5b20d0e0 || pKey2 == NULL || pKey2 == (CString*)0x5b20d0e0)
-		{
-		kernelDebugLogPattern("CSymbolTable::Compare: CAUGHT bad key pKey1=%p pKey2=%p", (void*)pKey1, (void*)pKey2);
-		}
-#endif
+
 	return strCompareAbsolute(*pKey1, *pKey2);
 	}
 
