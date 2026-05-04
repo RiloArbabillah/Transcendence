@@ -75,35 +75,41 @@ static void sig_handler(int sig) {
 
 
 
+#include <signal.h>
+
+static void sigsegv_handler(int sig) {
+    write(STDOUT_FILENO, "!!! SIGSEGV received !!!\n", 25);
+    _exit(1);
+}
+
+static void sigabrt_handler(int sig) {
+    write(STDOUT_FILENO, "!!! SIGABRT received !!!\n", 24);
+    _exit(1);
+}
+
 void InitGameUI(SAppState& state)
 {
-    g_logFd = open(GetGameUILogPath(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    signal(SIGSEGV, sigsegv_handler);
+    signal(SIGABRT, sigabrt_handler);
 
-    log_msg("IG: 1 kernelInit");
-    kernelInit(0);
-
-    log_msg("IG: 2 CHumanInterface::Create");
-    CHumanInterface::Create();
-
-    log_msg("IG: 3 GetScreenMgr().Init");
-    g_pHI->GetScreenMgr().Init(state.cxWidth, state.cyHeight, nullptr);
-
-    log_msg("IG: 3b about to init visuals");
-    {
-    CString sError2;
-    log_msg("IG: 3b1 got sError2");
-    CVisualPalette &Visuals = const_cast<CVisualPalette &>(g_pHI->GetVisuals());
-    log_msg("IG: 3b2 got Visuals");
-    ALERROR initResult = Visuals.Init(NULL, &sError2);
-    log_va("IG: 3b3 Init returned: %d", initResult);
-    }
-    log_msg("IG: 3b done");
-
-    log_msg("IG: 4 new CTranscendenceController");
-    g_pController = new CTranscendenceController();
+    fprintf(stderr, "GameUIBridge: InitGameUI starting\n");
+    fflush(stderr);
+    fprintf(stderr, "IG: 4a BEFORE new CTranscendenceController\n");
+    fflush(stderr);
+    CTranscendenceController* pTemp = new CTranscendenceController();
+    fprintf(stderr, "IG: 4b AFTER new, pTemp=%p\n", (void*)pTemp);
+    fflush(stderr);
+    g_pController = pTemp;
+    fprintf(stderr, "IG: 4c AFTER assignment\n");
+    fflush(stderr);
 
     log_msg("IG: 5 SetController (with OnBoot)");
+    log_msg("IG: 5a calling SetController");
+    fflush(nullptr);
     g_pHI->SetController(g_pController);
+    fflush(nullptr);
+    log_msg("IG: 5b SetController returned");
+    fflush(nullptr);
 
     log_msg("IG: 6 calling OnBoot (skip for SDL2-only)");
     SHIOptions Options;
