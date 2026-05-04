@@ -59,31 +59,102 @@ namespace Kernel
 static char s_EmptyString = 0;
 
 CString::CString(void) : m_pStore(NULL) { }
-CString::~CString(void) { if (m_pStore) { if (--m_pStore->iRefCount == 0) { free(m_pStore->pString); free(m_pStore); } m_pStore = NULL; } }
+
+CString::~CString(void)
+{
+    if (m_pStore)
+    {
+        if (--m_pStore->iRefCount == 0)
+        {
+            if (m_pStore->pString)
+                free(m_pStore->pString);
+            free(m_pStore);
+        }
+        m_pStore = NULL;
+    }
+}
+
 CString::CString(const char *pString) : m_pStore(NULL) { if (pString) Transcribe(pString, -1); }
 CString::CString(Kernel::CString::CharacterSets iCharSet, const char *pString) : m_pStore(NULL) { if (pString) Transcribe(pString, -1); }
 CString::CString(const char *pString, int iLength) : m_pStore(NULL) { if (pString) Transcribe(pString, iLength); }
 CString::CString(const char *pString, int iLength, BOOL bExternal) : m_pStore(NULL) {
     if (pString) {
-        if (bExternal) { if (iLength == -1) iLength = strlen(pString); GrowToFit(iLength); if (m_pStore) { memcpy(m_pStore->pString, pString, iLength); m_pStore->iLength = iLength; m_pStore->pString[iLength] = '\0'; } }
+        if (bExternal) {
+            if (iLength == -1) iLength = strlen(pString);
+            GrowToFit(iLength);
+            if (m_pStore) { memcpy(m_pStore->pString, pString, iLength); m_pStore->iLength = iLength; m_pStore->pString[iLength] = '\0'; }
+        }
         else Transcribe(pString, iLength);
     }
 }
 CString::CString(const Kernel::SConstString &String) : m_pStore(NULL) { if (String.pszString) Transcribe(String.pszString, String.iLen); }
-CString::CString(const Kernel::CString &pString) : m_pStore(NULL) { m_pStore = pString.m_pStore; if (m_pStore) m_pStore->iRefCount++; }
-Kernel::CString &Kernel::CString::operator=(const Kernel::CString &pString) { if (this != &pString) { if (m_pStore) { if (--m_pStore->iRefCount == 0) { free(m_pStore->pString); free(m_pStore); } } m_pStore = pString.m_pStore; if (m_pStore) m_pStore->iRefCount++; } return *this; }
+CString::CString(const Kernel::CString &pString) : m_pStore(NULL) { if (pString.m_pStore) { m_pStore = pString.m_pStore; m_pStore->iRefCount++; } }
+
+Kernel::CString &Kernel::CString::operator=(const Kernel::CString &pString)
+{
+    if (this == &pString) return *this;
+
+    if (m_pStore)
+    {
+        if (--m_pStore->iRefCount == 0)
+        {
+            if (m_pStore->pString)
+                free(m_pStore->pString);
+            free(m_pStore);
+        }
+        m_pStore = NULL;
+    }
+
+    if (pString.m_pStore)
+    {
+        m_pStore = pString.m_pStore;
+        m_pStore->iRefCount++;
+    }
+
+    return *this;
+}
+
 bool Kernel::CString::operator==(const Kernel::CString &sValue) const { if (GetLength() != sValue.GetLength()) return false; if (IsBlank() && sValue.IsBlank()) return true; return strcmp(GetPointer(), sValue.GetPointer()) == 0; }
 bool Kernel::CString::operator!=(const Kernel::CString &sValue) const { return !(*this == sValue); }
-void Kernel::CString::Append(LPCSTR pString, int iLength, DWORD dwFlags) { if (!pString) return; if (iLength == -1) iLength = strlen(pString); if (iLength == 0) return; int iOldLen = GetLength(); GrowToFit(iOldLen + iLength); memcpy(m_pStore->pString + iOldLen, pString, iLength); m_pStore->iLength = iOldLen + iLength; m_pStore->pString[m_pStore->iLength] = '\0'; }
+void Kernel::CString::Append(LPCSTR pString, int iLength, DWORD dwFlags) { if (!pString) return; if (iLength == -1) iLength = strlen(pString); if (iLength == 0) return; int iOldLen = GetLength(); GrowToFit(iOldLen + iLength); if (m_pStore) { memcpy(m_pStore->pString + iOldLen, pString, iLength); m_pStore->iLength = iOldLen + iLength; m_pStore->pString[m_pStore->iLength] = '\0'; } }
 void Kernel::CString::Capitalize(Kernel::CString::CapitalizeOptions iOption) { }
 char *Kernel::CString::GetASCIIZPointer(void) const { return m_pStore ? m_pStore->pString : &s_EmptyString; }
 int Kernel::CString::GetLength(void) const { return m_pStore ? m_pStore->iLength : 0; }
 int Kernel::CString::GetMemoryUsage(void) const { return m_pStore ? sizeof(Kernel::CString::STORESTRUCT) + m_pStore->iLength + 1 : 0; }
 char *Kernel::CString::GetPointer(void) const { return (!m_pStore || m_pStore->iLength == 0) ? &s_EmptyString : m_pStore->pString; }
 char *Kernel::CString::GetWritePointer(int iLength) { GrowToFit(iLength); return m_pStore ? m_pStore->pString : &s_EmptyString; }
-void Kernel::CString::GrowToFit(int iLength) { if (m_pStore && m_pStore->iAllocSize >= iLength + 1) return; int iNewAlloc = ((iLength + 256) / 256) * 256; PSTORESTRUCT pNewStore = (PSTORESTRUCT)malloc(sizeof(STORESTRUCT) + iNewAlloc); if (!pNewStore) return; pNewStore->iRefCount = 1; pNewStore->iAllocSize = iNewAlloc; pNewStore->iLength = m_pStore ? m_pStore->iLength : 0; pNewStore->pString = (char *)(pNewStore + 1); if (m_pStore && m_pStore->iLength > 0) { memcpy(pNewStore->pString, m_pStore->pString, m_pStore->iLength); pNewStore->pString[pNewStore->iLength] = '\0'; } if (m_pStore) { if (--m_pStore->iRefCount == 0) { free(m_pStore->pString); free(m_pStore); } } m_pStore = pNewStore; }
+void Kernel::CString::GrowToFit(int iLength)
+{
+    if (m_pStore && m_pStore->iAllocSize >= iLength + 1) return;
+    int iNewAlloc = ((iLength + 256) / 256) * 256;
+    PSTORESTRUCT pNewStore = (PSTORESTRUCT)malloc(sizeof(STORESTRUCT) + iNewAlloc);
+    if (!pNewStore) return;
+    pNewStore->iRefCount = 1;
+    pNewStore->iAllocSize = iNewAlloc;
+    pNewStore->iLength = (m_pStore && m_pStore->iLength > 0) ? m_pStore->iLength : 0;
+    pNewStore->pString = (char *)(pNewStore + 1);
+    pNewStore->pString[0] = '\0';
+    if (m_pStore && m_pStore->iLength > 0) { memcpy(pNewStore->pString, m_pStore->pString, m_pStore->iLength); pNewStore->pString[m_pStore->iLength] = '\0'; }
+
+    if (m_pStore)
+    {
+        if (--m_pStore->iRefCount == 0)
+        {
+            if (m_pStore->pString) free(m_pStore->pString);
+            free(m_pStore);
+        }
+    }
+    m_pStore = pNewStore;
+}
 void Kernel::CString::ReadFromStream(Kernel::IReadStream *pStream) { }
-void Kernel::CString::Transcribe(const char *pString, int iLen) { if (!pString) return; if (iLen == -1) iLen = strlen(pString); if (iLen == 0) { Truncate(0); return; } GrowToFit(iLen); if (m_pStore) { memcpy(m_pStore->pString, pString, iLen); m_pStore->iLength = iLen; m_pStore->pString[iLen] = '\0'; } }
+void Kernel::CString::Transcribe(const char *pString, int iLen)
+{
+    if (!pString) return;
+    if (iLen == -1) iLen = strlen(pString);
+    if (iLen == 0) { Truncate(0); return; }
+    GrowToFit(iLen);
+    if (m_pStore) { memcpy(m_pStore->pString, pString, iLen); m_pStore->iLength = iLen; m_pStore->pString[iLen] = '\0'; }
+}
 void Kernel::CString::Truncate(int iLength) { if (!m_pStore) return; if (iLength < m_pStore->iLength) { m_pStore->iLength = iLength; m_pStore->pString[iLength] = '\0'; } }
 
 }
