@@ -13,6 +13,147 @@
 #include <mutex>
 #include <sys/stat.h>
 
+#ifndef MAKELONG
+#define MAKELONG(a, b) ((unsigned int)(((unsigned short)(a)) | ((unsigned int)((unsigned short)(b))) << 16))
+#endif
+
+#ifndef WM_KEYDOWN
+#define WM_KEYDOWN 0x0100
+#endif
+#ifndef WM_KEYUP
+#define WM_KEYUP 0x0101
+#endif
+#ifndef WM_CHAR
+#define WM_CHAR 0x0102
+#endif
+#ifndef WM_LBUTTONDOWN
+#define WM_LBUTTONDOWN 0x0201
+#endif
+#ifndef WM_LBUTTONUP
+#define WM_LBUTTONUP 0x0202
+#endif
+#ifndef WM_RBUTTONDOWN
+#define WM_RBUTTONDOWN 0x0204
+#endif
+#ifndef WM_RBUTTONUP
+#define WM_RBUTTONUP 0x0205
+#endif
+#ifndef WM_MOUSEMOVE
+#define WM_MOUSEMOVE 0x0200
+#endif
+#ifndef WM_MOUSEWHEEL
+#define WM_MOUSEWHEEL 0x020A
+#endif
+#ifndef WM_SIZE
+#define WM_SIZE 0x0005
+#endif
+#ifndef WM_MOVE
+#define WM_MOVE 0x0003
+#endif
+#ifndef WM_MBUTTONDOWN
+#define WM_MBUTTONDOWN 0x0207
+#endif
+#ifndef WM_MBUTTONUP
+#define WM_MBUTTONUP 0x0208
+#endif
+
+#ifndef VK_UP
+#define VK_UP 0x26
+#endif
+#ifndef VK_DOWN
+#define VK_DOWN 0x28
+#endif
+#ifndef VK_LEFT
+#define VK_LEFT 0x25
+#endif
+#ifndef VK_RIGHT
+#define VK_RIGHT 0x27
+#endif
+#ifndef VK_RETURN
+#define VK_RETURN 0x0D
+#endif
+#ifndef VK_ESCAPE
+#define VK_ESCAPE 0x1B
+#endif
+#ifndef VK_SPACE
+#define VK_SPACE 0x20
+#endif
+#ifndef VK_BACK
+#define VK_BACK 0x08
+#endif
+#ifndef VK_TAB
+#define VK_TAB 0x09
+#endif
+#ifndef VK_SHIFT
+#define VK_SHIFT 0x10
+#endif
+#ifndef VK_CONTROL
+#define VK_CONTROL 0x11
+#endif
+#ifndef VK_MENU
+#define VK_MENU 0x12
+#endif
+#ifndef VK_F1
+#define VK_F1 0x70
+#endif
+#ifndef VK_F2
+#define VK_F2 0x71
+#endif
+#ifndef VK_F3
+#define VK_F3 0x72
+#endif
+#ifndef VK_F4
+#define VK_F4 0x73
+#endif
+#ifndef VK_F5
+#define VK_F5 0x74
+#endif
+#ifndef VK_F6
+#define VK_F6 0x75
+#endif
+#ifndef VK_F7
+#define VK_F7 0x76
+#endif
+#ifndef VK_F8
+#define VK_F8 0x77
+#endif
+#ifndef VK_F9
+#define VK_F9 0x78
+#endif
+#ifndef VK_F10
+#define VK_F10 0x79
+#endif
+#ifndef VK_F11
+#define VK_F11 0x7A
+#endif
+#ifndef VK_F12
+#define VK_F12 0x7B
+#endif
+#ifndef VK_PRIOR
+#define VK_PRIOR 0x21
+#endif
+#ifndef VK_NEXT
+#define VK_NEXT 0x22
+#endif
+#ifndef VK_HOME
+#define VK_HOME 0x24
+#endif
+#ifndef VK_END
+#define VK_END 0x23
+#endif
+#ifndef VK_INSERT
+#define VK_INSERT 0x2D
+#endif
+#ifndef VK_DELETE
+#define VK_DELETE 0x2E
+#endif
+#ifndef VK_LWIN
+#define VK_LWIN 0x5B
+#endif
+#ifndef VK_RWIN
+#define VK_RWIN 0x5C
+#endif
+
 static const char* GetAppLogPath()
 {
     static char sPath[1024];
@@ -186,12 +327,105 @@ void App_Shutdown(void)
     log_msg("App_Shutdown: done");
 }
 
+static unsigned int SDLKeyToVK(SDL_Scancode scanCode)
+{
+    switch (scanCode)
+    {
+    case SDL_SCANCODE_UP: return VK_UP;
+    case SDL_SCANCODE_DOWN: return VK_DOWN;
+    case SDL_SCANCODE_LEFT: return VK_LEFT;
+    case SDL_SCANCODE_RIGHT: return VK_RIGHT;
+    case SDL_SCANCODE_RETURN: return VK_RETURN;
+    case SDL_SCANCODE_ESCAPE: return VK_ESCAPE;
+    case SDL_SCANCODE_SPACE: return VK_SPACE;
+    case SDL_SCANCODE_BACKSPACE: return VK_BACK;
+    case SDL_SCANCODE_TAB: return VK_TAB;
+    case SDL_SCANCODE_LSHIFT: return VK_SHIFT;
+    case SDL_SCANCODE_RSHIFT: return VK_SHIFT;
+    case SDL_SCANCODE_LCTRL: return VK_CONTROL;
+    case SDL_SCANCODE_RCTRL: return VK_CONTROL;
+    case SDL_SCANCODE_LALT: return VK_MENU;
+    case SDL_SCANCODE_RALT: return VK_MENU;
+    case SDL_SCANCODE_F1: return VK_F1;
+    case SDL_SCANCODE_F2: return VK_F2;
+    case SDL_SCANCODE_F3: return VK_F3;
+    case SDL_SCANCODE_F4: return VK_F4;
+    case SDL_SCANCODE_F5: return VK_F5;
+    case SDL_SCANCODE_F6: return VK_F6;
+    case SDL_SCANCODE_F7: return VK_F7;
+    case SDL_SCANCODE_F8: return VK_F8;
+    case SDL_SCANCODE_F9: return VK_F9;
+    case SDL_SCANCODE_F10: return VK_F10;
+    case SDL_SCANCODE_F11: return VK_F11;
+    case SDL_SCANCODE_F12: return VK_F12;
+    case SDL_SCANCODE_PAGEUP: return VK_PRIOR;
+    case SDL_SCANCODE_PAGEDOWN: return VK_NEXT;
+    case SDL_SCANCODE_HOME: return VK_HOME;
+    case SDL_SCANCODE_END: return VK_END;
+    case SDL_SCANCODE_INSERT: return VK_INSERT;
+    case SDL_SCANCODE_DELETE: return VK_DELETE;
+    case SDL_SCANCODE_LGUI: return VK_LWIN;
+    case SDL_SCANCODE_RGUI: return VK_RWIN;
+    default: return (unsigned int)scanCode;
+    }
+}
+
 int App_PumpEvents(void)
 {
     SDL_Event event;
     while (SDL_PollEvent(&event))
     {
         if (event.type == SDL_QUIT) { g_AppState.bRunning = false; return 0; }
+
+        switch (event.type)
+        {
+        case SDL_KEYDOWN:
+            PlatformPostMessage(WM_KEYDOWN, SDLKeyToVK(event.key.keysym.scancode), nullptr);
+            break;
+        case SDL_KEYUP:
+            PlatformPostMessage(WM_KEYUP, SDLKeyToVK(event.key.keysym.scancode), nullptr);
+            break;
+        case SDL_TEXTINPUT:
+            for (const char* p = event.text.text; *p; p++)
+                PlatformPostMessage(WM_CHAR, *p, nullptr);
+            break;
+        case SDL_MOUSEMOTION:
+            PlatformPostMessage(WM_MOUSEMOVE,
+                MAKELONG(event.motion.x, event.motion.y),
+                (void*)(uintptr_t)event.motion.state);
+            break;
+        case SDL_MOUSEBUTTONDOWN:
+            {
+                int msg = WM_LBUTTONDOWN;
+                if (event.button.button == 2) msg = WM_RBUTTONDOWN;
+                else if (event.button.button == 3) msg = WM_MBUTTONDOWN;
+                PlatformPostMessage(msg,
+                    event.button.button,
+                    (void*)(uintptr_t)MAKELONG(event.button.x, event.button.y));
+            }
+            break;
+        case SDL_MOUSEBUTTONUP:
+            {
+                int msg = WM_LBUTTONUP;
+                if (event.button.button == 2) msg = WM_RBUTTONUP;
+                else if (event.button.button == 3) msg = WM_MBUTTONUP;
+                PlatformPostMessage(msg,
+                    event.button.button,
+                    (void*)(uintptr_t)MAKELONG(event.button.x, event.button.y));
+            }
+            break;
+        case SDL_MOUSEWHEEL:
+            PlatformPostMessage(WM_MOUSEWHEEL,
+                MAKELONG(event.wheel.y, 0),
+                (void*)(uintptr_t)MAKELONG(event.wheel.x, event.wheel.y));
+            break;
+        case SDL_WINDOWEVENT:
+            if (event.window.event == SDL_WINDOWEVENT_RESIZED)
+                PlatformPostMessage(WM_SIZE, 0, (void*)(uintptr_t)MAKELONG(event.window.data1, event.window.data2));
+            else if (event.window.event == SDL_WINDOWEVENT_MOVED)
+                PlatformPostMessage(WM_MOVE, 0, (void*)(uintptr_t)MAKELONG(event.window.data1, event.window.data2));
+            break;
+        }
     }
     return 1;
 }

@@ -803,6 +803,13 @@ class CHumanInterface
 		static bool Create (void);
 		static void Destroy (void);
 
+		LONG WMChar (char chChar, DWORD dwKeyData);
+		LONG WMKeyDown (int iVirtKey, DWORD dwKeyData);
+		LONG WMKeyUp (int iVirtKey, DWORD dwKeyData);
+		LONG WMLButtonDown (int x, int y, DWORD dwFlags);
+		LONG WMLButtonUp (int x, int y, DWORD dwFlags);
+		LONG WMMouseMove (int x, int y, DWORD dwFlags);
+
 	private:
 		struct SPostCommand
 			{
@@ -824,20 +831,14 @@ class CHumanInterface
 		void MainLoop (void);
 
 		LONG WMActivateApp (bool bActivate);
-		LONG WMChar (char chChar, DWORD dwKeyData);
 		LONG WMClose (void);
 		bool WMCreate (HWND hWnd, CString *retsError);
 		void WMDestroy (void);
 		LONG WMDisplayChange (int iBitDepth, int cxWidth, int cyHeight);
-		LONG WMKeyDown (int iVirtKey, DWORD dwKeyData);
-		LONG WMKeyUp (int iVirtKey, DWORD dwKeyData);
 		LONG WMLButtonDblClick (int x, int y, DWORD dwFlags);
-		LONG WMLButtonDown (int x, int y, DWORD dwFlags);
-		LONG WMLButtonUp (int x, int y, DWORD dwFlags);
 		LONG WMMButtonDblClick (int x, int y, DWORD dwFlags);
 		LONG WMMButtonDown (int x, int y, DWORD dwFlags);
 		LONG WMMButtonUp (int x, int y, DWORD dwFlags);
-		LONG WMMouseMove (int x, int y, DWORD dwFlags);
 		LONG WMMouseWheel (int iDelta, int x, int y, DWORD dwFlags);
 		LONG WMMove (int x, int y);
 		LONG WMRButtonDblClick (int x, int y, DWORD dwFlags);

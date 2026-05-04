@@ -129,6 +129,27 @@ void UpdateGameUI(SAppState& state)
             g_pHI->OnTaskComplete((DWORD)wParam, (LPARAM)lParam);
         else if (msg == WM_TIMER)
             g_pHI->OnTimer((DWORD)wParam);
+        else if (msg == WM_KEYDOWN)
+            g_pHI->WMKeyDown(wParam, (DWORD)(uintptr_t)lParam);
+        else if (msg == WM_KEYUP)
+            g_pHI->WMKeyUp(wParam, (DWORD)(uintptr_t)lParam);
+        else if (msg == WM_MOUSEMOVE)
+            g_pHI->WMMouseMove(
+                (int)(unsigned short)wParam,
+                (int)(unsigned short)((wParam >> 16) & 0xFFFF),
+                (DWORD)(uintptr_t)lParam);
+        else if (msg == WM_LBUTTONDOWN || msg == WM_RBUTTONDOWN || msg == WM_MBUTTONDOWN)
+            g_pHI->WMLButtonDown(
+                (int)(unsigned short)wParam,
+                (int)(unsigned short)((wParam >> 16) & 0xFFFF),
+                (DWORD)(uintptr_t)lParam);
+        else if (msg == WM_LBUTTONUP || msg == WM_RBUTTONUP || msg == WM_MBUTTONUP)
+            g_pHI->WMLButtonUp(
+                (int)(unsigned short)wParam,
+                (int)(unsigned short)((wParam >> 16) & 0xFFFF),
+                (DWORD)(uintptr_t)lParam);
+        else if (msg == WM_CHAR)
+            g_pHI->WMChar((char)wParam, 0);
     }
 
     if (tick % 60 == 0) {
