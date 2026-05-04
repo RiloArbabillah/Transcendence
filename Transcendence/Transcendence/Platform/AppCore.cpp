@@ -227,6 +227,8 @@ int App_Init(void)
 
     log_msg("App_Init: SDL_Init OK");
 
+    SDL_StartTextInput();
+
     g_AppState.cxWidth = DEFAULT_WIDTH;
     g_AppState.cyHeight = DEFAULT_HEIGHT;
 
@@ -399,9 +401,11 @@ int App_PumpEvents(void)
                 int msg = WM_LBUTTONDOWN;
                 if (event.button.button == 2) msg = WM_RBUTTONDOWN;
                 else if (event.button.button == 3) msg = WM_MBUTTONDOWN;
+                int x = event.button.x;
+                int y = event.button.y;
                 PlatformPostMessage(msg,
-                    event.button.button,
-                    (void*)(uintptr_t)MAKELONG(event.button.x, event.button.y));
+                    MAKELONG(x, y),
+                    (void*)(uintptr_t)event.button.button);
             }
             break;
         case SDL_MOUSEBUTTONUP:
@@ -409,9 +413,11 @@ int App_PumpEvents(void)
                 int msg = WM_LBUTTONUP;
                 if (event.button.button == 2) msg = WM_RBUTTONUP;
                 else if (event.button.button == 3) msg = WM_MBUTTONUP;
+                int x = event.button.x;
+                int y = event.button.y;
                 PlatformPostMessage(msg,
-                    event.button.button,
-                    (void*)(uintptr_t)MAKELONG(event.button.x, event.button.y));
+                    MAKELONG(x, y),
+                    (void*)(uintptr_t)event.button.button);
             }
             break;
         case SDL_MOUSEWHEEL:
