@@ -219,6 +219,44 @@ Text input:
 4. If mouse hit testing is wrong, fix logical-to-drawable coordinate conversion in the platform/input boundary.
 5. Re-run the same manual flow after each small fix.
 
+### Current Audit Fix Plan
+
+Apply these fixes before marking Stage 1 complete. They are based on the current SDL bridge audit after the Minimax input/runtime changes.
+
+1. Restore Win32-style message packing in the macOS SDL bridge.
+   - In `AppCore.cpp`, post mouse messages with `wParam = button/key flags` and `lParam = MAKELONG(x, y)`.
+   - In `GameUIBridge.cpp`, decode mouse coordinates from `lParam` the same way `Run.cpp` does.
+   - Do not keep a macOS-only convention where coordinates are stored in `wParam`; it makes `PeekMessage`/Win32-compat paths inconsistent.
+2. Route each mouse message to the matching `CHumanInterface` handler.
+   - `WM_LBUTTONDOWN` / `WM_LBUTTONUP` -> `WMLButtonDown` / `WMLButtonUp`.
+   - `WM_RBUTTONDOWN` / `WM_RBUTTONUP` -> `WMRButtonDown` / `WMRButtonUp`.
+   - `WM_MBUTTONDOWN` / `WM_MBUTTONUP` -> `WMMButtonDown` / `WMMButtonUp`.
+   - `WM_MOUSEWHEEL` -> `WMMouseWheel` with the wheel delta and coordinates decoded like the Windows path.
+   - Expose only the needed handlers in `TSUI.h`; avoid broad public surface changes.
+3. Fix SDL mouse button mapping.
+   - Use `SDL_BUTTON_RIGHT` and `SDL_BUTTON_MIDDLE` instead of hardcoded `2`/`3` assumptions.
+   - SDL uses middle as `2` and right as `3`; the current hardcoded mapping swaps them.
+4. Keep coordinate conversion consistent with Windows behavior.
+   - In `CHumanInterfaceMac.cpp`, call `m_ScreenMgr.ClientToLocal` before `HIMouseMove`, just as `Run.cpp` does.
+   - Verify hover and click after resize and on Retina/high-DPI displays.
+5. Handle resize and move messages.
+   - If `AppCore.cpp` posts `WM_SIZE` and `WM_MOVE`, `GameUIBridge.cpp` must dispatch them to `WMSize` and `WMMove`.
+   - If the macOS path does not need these yet, do not post them until the dispatch path is ready.
+6. Tighten keyboard mapping before relying on gameplay/menu hotkeys.
+   - Map `A-Z`, `0-9`, keypad, plus/minus, and other game-used keys to Win32 virtual-key values.
+   - Do not use raw SDL scancode as a generic virtual-key fallback unless it is known to match the engine expectation.
+7. Treat text input as ASCII-only unless the engine path is widened.
+   - SDL text events are UTF-8; posting one `WM_CHAR` per byte is only safe for ASCII.
+   - If non-ASCII input is out of scope, document the limitation and filter to supported characters.
+
+Verification after these fixes:
+
+- Build `transcendence_app` successfully.
+- Confirm keyboard navigation, enter/escape, and at least one hotkey using letter or number input.
+- Confirm hover, left click, right click if a flow uses it, middle click if a flow uses it, and wheel scrolling.
+- Confirm pointer hit testing still works after resize and on Retina/high-DPI display.
+- Confirm one text-entry flow does not double-insert characters and does not inject command/navigation keys.
+
 ### Exit Gate
 
 - Main menu and related menu/settings flows are operable by keyboard and mouse.

@@ -428,6 +428,12 @@ Summary:
 - Change Type: updated
 - Summary: recorded post-Minimax runtime changes for SDL input bridging, mouse coordinate packing, SDL text input, software-renderer fallback for the Metal callback crash, recursive pthread critical sections, and the remaining background `CCodeChain::Boot()` / `CString::GetPointer()` crash investigation
 
+### 2026-05-04
+
+- Document: `minimax-m27-port-completion-plan.md`
+- Change Type: updated
+- Summary: added the SDL input bridge audit fix plan for Minimax, covering Win32-style message packing, right/middle/wheel routing, SDL mouse button constants, ClientToLocal conversion, resize/move dispatch, keyboard virtual-key mapping, and ASCII text-input limits
+
 ## Maintenance Notes
 
 - Add a new entry when a document is created, significantly restructured, or materially changes scope or execution direction.
