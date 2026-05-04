@@ -989,11 +989,6 @@ class CTranscendenceController : public IHIController, public IExtraSettingsHand
 				m_Model(m_HI),
 				m_DebugConsole(m_HI.GetVisuals())
 			{
-			m_SessionCtx.pHI = &m_HI;
-			m_SessionCtx.pModel = &m_Model;
-			m_SessionCtx.pSettings = &m_Settings;
-			m_SessionCtx.pDebugConsole = &m_DebugConsole;
-			m_SessionCtx.pSoundtrack = &m_Soundtrack;
 			}
 
 		CCommandLineDisplay &GetDebugConsole (void) { return m_DebugConsole; }

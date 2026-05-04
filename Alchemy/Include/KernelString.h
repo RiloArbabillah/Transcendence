@@ -116,14 +116,7 @@ class CString
 			{
 			if (m_pStore && (--m_pStore->iRefCount) == 0)
 				{
-				if (m_pStore->iAllocSize > 0)
-					FreeStore(m_pStore);
-				else
-					{
-					if (m_pStore->pString)
-						free(m_pStore->pString);
-					free(m_pStore);
-					}
+				FreeStore(m_pStore);
 				m_pStore = NULL;
 				}
 			}

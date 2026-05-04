@@ -5,6 +5,8 @@
 
 #include "AppCore.h"
 #include <SDL2/SDL.h>
+#include "Alchemy.h"
+#include "Kernel.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -218,6 +220,13 @@ static Uint32 TimerThunk(Uint32 interval, void *param)
 int App_Init(void)
 {
     log_msg("App_Init: start");
+
+    if (!kernelInit(KERNEL_FLAG_INTERNETS))
+    {
+        log_msg("App_Init: kernelInit failed");
+        return 0;
+    }
+    log_msg("App_Init: kernelInit OK");
 
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO) < 0)
     {
