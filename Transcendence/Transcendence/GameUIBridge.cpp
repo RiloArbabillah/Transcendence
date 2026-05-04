@@ -88,6 +88,17 @@ void InitGameUI(SAppState& state)
     log_msg("IG: 3 GetScreenMgr().Init");
     g_pHI->GetScreenMgr().Init(state.cxWidth, state.cyHeight, nullptr);
 
+    log_msg("IG: 3b about to init visuals");
+    {
+    CString sError2;
+    log_msg("IG: 3b1 got sError2");
+    CVisualPalette &Visuals = const_cast<CVisualPalette &>(g_pHI->GetVisuals());
+    log_msg("IG: 3b2 got Visuals");
+    ALERROR initResult = Visuals.Init(NULL, &sError2);
+    log_va("IG: 3b3 Init returned: %d", initResult);
+    }
+    log_msg("IG: 3b done");
+
     log_msg("IG: 4 new CTranscendenceController");
     g_pController = new CTranscendenceController();
 
