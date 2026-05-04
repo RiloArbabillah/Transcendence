@@ -115,10 +115,19 @@ class CString
 		void DecRefCount (void)
 			{
 			if (m_pStore && (--m_pStore->iRefCount) == 0)
-				FreeStore(m_pStore);
+				{
+				if (m_pStore->iAllocSize > 0)
+					FreeStore(m_pStore);
+				else
+					{
+					if (m_pStore->pString)
+						free(m_pStore->pString);
+					free(m_pStore);
+					}
+				m_pStore = NULL;
+				}
 			}
 #else
-		void DecRefCount (void);
 #endif
 
 		static void FreeStore (PSTORESTRUCT pStore);
