@@ -6,25 +6,20 @@ This document records the current state of the native macOS Apple Silicon port a
 
 ## Build Status
 
-**Current State:** core and engine static libraries build on macOS; the final app target compiles but fails at link due to missing implementation files and unfinished platform/backend seams.
+**Current State:** the macOS app target builds and launches from the CMake-generated build tree. The active runtime path uses the SDL shell, software frame generation, SDL event forwarding, and a compatibility SDL software renderer while the Metal callback crash is avoided.
 
-**Validated Locally:** 2026-04-30
+**Validated Locally:** 2026-05-04
 
 ```sh
-cmake --preset macos-debug
-cmake --build --preset macos-debug --target alchemy_kernel
-cmake --build --preset macos-debug --target alchemy_codechain alchemy_xmlutil alchemy_jpeg alchemy_graphics mammoth_tse
-cmake --build --preset macos-debug --target mammoth_tsui
-cmake --build --preset macos-debug --target transcendence_app
+xcodebuild -project build/TranscendenceMacOS.xcodeproj -scheme transcendence_app -configuration Debug build
 ```
 
 Result:
 
-- configure succeeds
-- `alchemy_kernel` builds ✅
-- `alchemy_codechain`, `alchemy_xmlutil`, `alchemy_jpeg`, `alchemy_graphics`, and `mammoth_tse` build ✅
-- `mammoth_tsui` builds ✅ (CExtensionListMap.cpp fixed with TSUISettings.h include)
-- `transcendence_app` reaches final link and fails on unresolved symbols (Phase B onwards)
+- generated Xcode project builds successfully
+- executable is produced at `build/Debug/Transcendence`
+- app launches far enough to exercise loading/menu/input paths
+- current crash investigation is runtime-only, not a link/build blocker
 
 ## What Works
 
@@ -55,17 +50,25 @@ Result:
 
 ## Current Status
 
-**Build/runtime baseline (2026-05-01):**
+**Build/runtime baseline (2026-05-04):**
 
 - `transcendence_app` builds and runs on macOS from CMake build tree.
-- SDL shell + Metal-backed present path are active.
+- SDL shell is active.
+- Software frame generation remains the compatibility renderer.
+- SDL software renderer + vsync is active to avoid the prior Metal thread callback crash.
 - OnBoot/OnInit path is active in `GameUIBridge.cpp` (no longer skipped).
 - Resource path and JPEG color channel issues are corrected for loading background/title.
+- SDL keyboard, mouse, wheel, and text input events are now bridged into the `CHumanInterface` Win32-style handlers.
+- Mouse coordinate packing now sends both X and Y through the message bridge instead of losing Y.
+- macOS `CRITICAL_SECTION` compatibility now uses recursive `pthread_mutex_t` instead of a no-op/std::mutex mismatch.
+- Background task threads now call `kernelInit()` before executing `IHITask` work.
 
 **Known active blocker for release readiness:**
 
-- Loading stargate animation still shows a shadow/trail artifact on macOS.
-- Multiple mask/blit fixes have reduced corruption, but visual parity is not yet complete.
+- First playable stability is blocked by a runtime crash on a background task thread during `CCodeChain::Boot()` / `CString::GetPointer()`.
+- The added background-thread `kernelInit()` call is a mitigation attempt, but does not yet prove the crash is fixed.
+- The older loading stargate shadow/trail artifact is no longer treated as an active blocker unless user validation reopens it.
+- Menu/input bridge code exists, but M4 still needs a complete manual validation pass for keyboard, mouse, wheel, text input, and Retina behavior.
 
 **Release readiness gaps still open:**
 
@@ -276,17 +279,19 @@ cmake --build "build" -j8
 
 ### Next Focus (Release-Ready Path)
 
-1. Close loading stargate shadow/trail visual parity issue.
-2. Execute Stage 2 menu/input validation checklist (keyboard, mouse, text, Retina mapping).
-3. Implement native audio backend parity and verify soundtrack/SFX behavior.
-4. Validate save/settings/resource paths in both repo-run and bundled `.app` run.
-5. Complete packaging + Finder launch and run M2-M7 required QA gates.
+1. Investigate and fix the background-thread `CString::GetPointer()` crash in the `CCodeChain::Boot()` path.
+2. Execute the M4 menu/input validation checklist against the new SDL event bridge.
+3. Validate first playable flow after the runtime crash is resolved.
+4. Implement native audio backend parity and verify soundtrack/SFX behavior.
+5. Validate save/settings/resource paths in both repo-run and bundled `.app` run.
+6. Complete packaging + Finder launch and run M2-M7 required QA gates.
 
 ## Current Risks
 
 - The CMake source lists have grown beyond the original bounded menu-only scope; this helps expose real blockers but can pull gameplay/audio/effects dependencies into the menu link.
 - `Kernel.h` still carries duplicated Win32 compatibility definitions (`INADDR_NONE`, `INVALID_HANDLE_VALUE`, `WINAPI`) that generate warnings and should eventually be cleaned behind a single portability boundary.
 - Some `DWORD`/`int` pointer-storage assumptions still appear in warnings and may become runtime correctness bugs on arm64 even when they do not block compilation.
+- `CSymbolTable`/`CDictionary` paths still store and compare `CString *` keys through integer slots; this is a current suspect for the background `CString::GetPointer()` crash on arm64.
 - Hardcoded Homebrew paths in `CMakeLists.txt` should be replaced with proper package discovery before the build is considered reproducible.
 - **2026-04-30**: Phase A resolved. Remaining blockers: Phase B (CGDraw/CGFilter/CGFractal), Phase G (CMCIMixer/audio), and CGeometry/CGRunList gaps.
 

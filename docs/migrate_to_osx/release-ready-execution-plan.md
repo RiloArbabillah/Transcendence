@@ -2,17 +2,19 @@
 
 ## Document Status
 
-- Version: v1.0
-- Last Updated: 2026-05-01
+- Version: v1.1
+- Last Updated: 2026-05-04
 - Scope: Native macOS Apple Silicon release-ready port
 - Build Path: `CMake` (`macos-debug` / `macos-release`)
 
 ## Current Baseline
 
 - `transcendence_app` builds and runs on macOS.
-- SDL shell and Metal-backed presentation path are active.
+- SDL shell is active.
+- The current renderer safety path uses SDL's software renderer plus vsync; the previous Metal-backed path hit a thread callback crash and should not be treated as the active release path until stabilized.
 - Loading-screen color pipeline is corrected.
-- Remaining known visual issue: stargate loading animation still shows residual shadow artifact in user validation.
+- SDL keyboard, mouse, wheel, and text input events are bridged into the `CHumanInterface` path, but M4 still needs complete manual validation.
+- Current first-playable blocker is a background-thread crash during `CCodeChain::Boot()` / `CString::GetPointer()`.
 - Audio backend is still compatibility/stub level and not release-ready.
 - Packaging and Finder launch validation are not complete.
 
@@ -44,21 +46,21 @@ Release-ready means all items below are true:
 
 - A reproducible baseline is documented and shared.
 
-## Stage 1 - Visual Correctness (Boot/Menu)
+## Stage 1 - Runtime Crash Triage
 
 ### Goals
 
-- Eliminate remaining loading visual artifact and verify color/alpha integrity.
+- Resolve the background-thread `CString::GetPointer()` crash before treating first playable validation as meaningful.
 
 ### Tasks
 
-- Finalize deterministic stargate blit path (no blend residue).
-- Verify title/background/loading visuals against expected reference.
-- Confirm no regressions in other menu images.
+- Instrument or inspect `CCodeChain::Boot()`, `CSymbolTable`, and `CDictionary` pointer-key handling as needed.
+- Confirm whether background-thread `kernelInit()` is sufficient, unnecessary, or only a partial mitigation.
+- Rebuild and reproduce under LLDB until the active crash is classified and fixed.
 
 ### Exit Gate
 
-- No visible blocking artifacts in loading/title/menu visuals.
+- New Game or the current first-playable startup path no longer crashes in CodeChain boot.
 
 ## Stage 2 - Input and Menu Operability
 
@@ -142,6 +144,6 @@ Release-ready means all items below are true:
 
 ## Immediate Next Slice (In Progress)
 
-1. Close Stage 1 loading animation shadow artifact.
-2. Re-validate menu visual parity with latest build.
-3. Promote Stage 2 input validation checklist to active execution.
+1. Fix or conclusively classify the background CodeChain/CString crash.
+2. Re-validate the M4 menu/input checklist with the SDL bridge changes.
+3. Re-run first playable validation after the runtime crash is resolved.

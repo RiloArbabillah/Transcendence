@@ -2,8 +2,8 @@
 
 ## Document Status
 
-- Version: v1.3
-- Last Updated: 2026-04-30
+- Version: v1.4
+- Last Updated: 2026-05-04
 - Scope: documentation-only changes for the macOS port planning set
 
 ## Purpose
@@ -421,6 +421,12 @@ Summary:
 - Document: `../macOS_port_status.md`, `index.md`, `next-implementation-focus.md`, `task-backlog.md`, `roadmap.md`, `qa-test-matrix.md`, `cmake-build-plan.md`
 - Change Type: updated
 - Summary: audited the live macOS build state, confirmed static library targets build through `mammoth_tsui`, recorded `transcendence_app` final-link blocker clusters, and shifted the completion plan from kernel compile bring-up to app-link closure, software drawing coverage, audio seam selection, SDL shell, Metal presenter, playable gameplay, native runtime parity, and packaging
+
+### 2026-05-04
+
+- Document: `../macOS_port_status.md`, `minimax-m27-port-completion-plan.md`, `release-ready-execution-plan.md`, `qa-test-matrix.md`
+- Change Type: updated
+- Summary: recorded post-Minimax runtime changes for SDL input bridging, mouse coordinate packing, SDL text input, software-renderer fallback for the Metal callback crash, recursive pthread critical sections, and the remaining background `CCodeChain::Boot()` / `CString::GetPointer()` crash investigation
 
 ## Maintenance Notes
 

@@ -2,8 +2,8 @@
 
 ## Document Status
 
-- Version: v1.0
-- Last Updated: 2026-05-03
+- Version: v1.1
+- Last Updated: 2026-05-04
 - Owner: Akira
 - Intended Executor: Minimax M2.7
 - Scope: finish the native macOS Apple Silicon port from the current runnable baseline to a release-candidate-quality `.app`
@@ -36,13 +36,16 @@ Assume the following are complete unless local validation proves otherwise:
 
 - `transcendence_app` builds and runs on macOS from the CMake build tree.
 - SDL shell is active.
-- Metal-backed presentation path is active.
+- Compatibility presentation is active. The current safety path uses SDL's software renderer plus vsync to avoid a Metal thread callback crash observed in runtime testing.
 - `OnBoot` and `OnInit` are active in `GameUIBridge.cpp`.
 - Resource path fixes are in place for loading/title/menu-critical assets.
 - JPEG color channel issues for loading/title/background are corrected.
 - Loading stargate shadow/trail visual artifact is accepted as done and is not a blocker.
 - Source-list/link closure work and CPU draw/filter/fractal coverage are complete enough for the current runnable app baseline.
 - `CMCIMixer` has a no-op macOS-compatible stub, so the build runs silently until real audio is implemented.
+- SDL keyboard, mouse, wheel, and text input events are bridged into the `CHumanInterface` handler path.
+- Mouse message packing includes both X and Y coordinates.
+- Background task threads call `kernelInit()` before task execution, but the current background `CString::GetPointer()` crash is not yet proven fixed.
 
 ## Active Release Readiness Gaps
 
@@ -52,6 +55,7 @@ Treat these as the active blockers:
 |---|---|---|---|
 | P0 | Menu and input operability validation | A visible menu is not release-ready unless keyboard, mouse, wheel, text input, repeat behavior, and Retina mapping work | `qa-test-matrix.md` M4 |
 | P0 | First playable stability | Release candidate needs New Game -> gameplay -> short stable loop | `qa-test-matrix.md` M5 |
+| P0 | Background CodeChain boot crash | Current runtime testing still points to a background-thread `CString::GetPointer()` crash during `CCodeChain::Boot()` | `../macOS_port_status.md` |
 | P0 | macOS save/settings/resource path parity | The app must not depend on repo CWD or write into the bundle | `architecture.md`, `dependency-matrix.md` |
 | P0 | Native audio backend | Current audio is stub-level; release readiness needs SFX and music | `release-ready-execution-plan.md`, `dependency-matrix.md` |
 | P0 | `.app` packaging and Finder launch | The build must behave like a native app outside the terminal | `qa-test-matrix.md` M7 |
@@ -65,6 +69,7 @@ Do not spend time on these unless the user explicitly changes scope:
 - Loading stargate shadow/trail artifact.
 - Old app-link closure tasks such as adding omitted implementation files already covered by the current runnable baseline.
 - Full GPU-native Metal renderer rewrite.
+- Restoring the Metal-present path before the current software-renderer safety path and background crash are stable.
 - Steam support on macOS.
 - Production cloud/Hexarc integration.
 - Universal binary support.
@@ -84,6 +89,7 @@ Deferred image callers unless proven necessary:
 - Preserve Windows build behavior and Visual Studio project ownership.
 - Keep SDL, Metal, AppKit, and Objective-C++ out of shared engine headers.
 - Keep software rendering as the frame-generation path; Metal presents the final framebuffer.
+- Keep the SDL software renderer fallback acceptable while the Metal callback crash is triaged; do not re-enable an unstable Metal path only to satisfy stale wording.
 - Prefer one small verified slice over broad refactors.
 - For every runtime fix, run the smallest relevant build/run loop before moving on.
 - If a failure appears, classify it before coding: input, renderer/presenter, resource path, save/settings, audio, gameplay, package, or lifecycle.

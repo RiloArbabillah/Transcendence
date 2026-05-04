@@ -2,8 +2,8 @@
 
 ## Document Status
 
-- Version: v1.1
-- Last Updated: 2026-04-30
+- Version: v1.2
+- Last Updated: 2026-05-04
 - Derived From: `PRD.md`
 - Companion Docs: `roadmap.md`, `task-backlog.md`, `dependency-matrix.md`, `architecture.md`, `milestone-1-plan.md`, `cmake-build-plan.md`, `decision-log.md`
 - Project: Native macOS Apple Silicon port of `kronosaur/TranscendenceDev`
@@ -191,6 +191,8 @@ Validate that the app can launch and own a real native window without Win32 life
 
 Validate that the macOS path can show a correct frame through `Metal` using the compatibility-first presenter.
 
+Current note: the runtime safety path temporarily uses SDL's software renderer to avoid a Metal thread callback crash. Treat Metal-present restoration as a stabilization task, not as a prerequisite for validating menu/input behavior on the current build.
+
 ### Required Checks
 
 #### Renderer Bring-Up
@@ -243,17 +245,21 @@ Validate that the title or main menu is not just visible, but actually operable.
 - main menu navigation works from keyboard
 - enter/escape/back behavior is correct enough for menu flow
 - key repeat does not break navigation
+- SDL scancodes are translated to the expected Win32 virtual-key values for arrows, enter, escape, tab, function keys, and modifiers
 
 #### Mouse Input
 
 - pointer hover works where expected
 - pointer click works where expected
 - pointer position is accurate enough for menu interaction
+- mouse message packing preserves both X and Y coordinates
+- wheel events reach the UI where applicable
 
 #### Text Entry
 
 - at least one UI screen requiring text entry accepts typed input
 - text input does not double-insert characters from mixed key/text handling
+- command/navigation keys do not inject text through SDL text input
 
 #### Resource Loading
 
