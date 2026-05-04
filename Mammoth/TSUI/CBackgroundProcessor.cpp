@@ -38,6 +38,8 @@ void CBackgroundProcessor::AddTask (IHITask *pTask, IHICommand *pListener, const
 
 	std::thread([this, pTask]()
 		{
+		kernelInit();
+
 		//	Keep a stable copy of listener/cmd because m_Tasks may mutate on UI thread
 		IHICommand *pListener = NULL;
 		CString sCmd;
