@@ -116,8 +116,8 @@ int App_Init(void)
 
     g_AppState.pRenderer = SDL_CreateRenderer(
         g_AppState.pWindow,
-        -1,
-        SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_TARGETTEXTURE
+        0,
+        SDL_RENDERER_SOFTWARE | SDL_RENDERER_PRESENTVSYNC
     );
 
     if (!g_AppState.pRenderer)

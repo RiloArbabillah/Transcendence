@@ -41,6 +41,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <errno.h>
+#include <pthread.h>
 #include <mach/mach_time.h>
 
 #undef htons
@@ -708,7 +709,7 @@ struct BITMAPINFOHEADER;
 
 struct CRITICAL_SECTION
 	{
-	std::mutex Mutex;
+	pthread_mutex_t Mutex;
 	};
 
 #ifndef TRUE
@@ -818,10 +819,21 @@ inline UINT MapVirtualKey (UINT, UINT) { return 0; }
 inline HANDLE GetProcessHeap (void) { return nullptr; }
 inline LPVOID HeapAlloc (HANDLE, DWORD, size_t iSize) { return std::malloc(iSize); }
 inline BOOL HeapFree (HANDLE, DWORD, LPVOID pMem) { std::free(pMem); return TRUE; }
-inline void InitializeCriticalSection (CRITICAL_SECTION *) { }
-inline void DeleteCriticalSection (CRITICAL_SECTION *) { }
-inline void EnterCriticalSection (CRITICAL_SECTION *pCS) { pCS->Mutex.lock(); }
-inline void LeaveCriticalSection (CRITICAL_SECTION *pCS) { pCS->Mutex.unlock(); }
+inline void InitializeCriticalSection (CRITICAL_SECTION *pCS)
+	{
+	pthread_mutexattr_t attr;
+	pthread_mutexattr_init(&attr);
+	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+	int err = pthread_mutex_init(&pCS->Mutex, &attr);
+	if (err != 0) { fprintf(stderr, "pthread_mutex_init failed: %d\n", err); }
+	pthread_mutexattr_destroy(&attr);
+	}
+inline void DeleteCriticalSection (CRITICAL_SECTION *pCS) { pthread_mutex_destroy(&pCS->Mutex); }
+inline void EnterCriticalSection (CRITICAL_SECTION *pCS) {
+	int err = pthread_mutex_lock(&pCS->Mutex);
+	if (err != 0) { fprintf(stderr, "pthread_mutex_lock failed: %d\n", err); }
+}
+inline void LeaveCriticalSection (CRITICAL_SECTION *pCS) { pthread_mutex_unlock(&pCS->Mutex); }
 inline DWORD WaitForSingleObject (HANDLE, DWORD) { return WAIT_OBJECT_0; }
 inline BOOL ResetEvent (HANDLE) { return TRUE; }
 inline BOOL SetEvent (HANDLE) { return TRUE; }
