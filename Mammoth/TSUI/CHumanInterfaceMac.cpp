@@ -116,11 +116,133 @@ LONG CHumanInterface::WMMouseMove (int x, int y, DWORD dwFlags)
 	{
 	if (m_pCurSession)
 		{
+		int xLocal, yLocal;
+		m_ScreenMgr.ClientToLocal(x, y, &xLocal, &yLocal);
+
 		m_bMouseMoved = true;
 		m_xLastMousePos = x;
 		m_yLastMousePos = y;
-		m_pCurSession->HIMouseMove(x, y, dwFlags);
+		m_pCurSession->HIMouseMove(xLocal, yLocal, dwFlags);
 		}
+
+	return 0;
+	}
+
+LONG CHumanInterface::WMRButtonDown (int x, int y, DWORD dwFlags)
+
+//	WMRButtonDown
+
+	{
+	CaptureMouse();
+
+	if (m_pCurSession)
+		{
+		int xLocal, yLocal;
+		m_ScreenMgr.ClientToLocal(x, y, &xLocal, &yLocal);
+
+		m_iLastVirtualKey = VK_RBUTTON;
+		m_pCurSession->HIRButtonDown(xLocal, yLocal, dwFlags);
+		m_iLastVirtualKey = 0;
+		}
+
+	m_bRButtonDown = true;
+	return 0;
+	}
+
+LONG CHumanInterface::WMRButtonUp (int x, int y, DWORD dwFlags)
+
+//	WMRButtonUp
+
+	{
+	ReleaseMouse();
+
+	if (m_pCurSession)
+		{
+		int xLocal, yLocal;
+		m_ScreenMgr.ClientToLocal(x, y, &xLocal, &yLocal);
+		m_pCurSession->HIRButtonUp(xLocal, yLocal, dwFlags);
+		}
+
+	m_bRButtonDown = false;
+	return 0;
+	}
+
+LONG CHumanInterface::WMMButtonDown (int x, int y, DWORD dwFlags)
+
+//	WMMButtonDown
+
+	{
+	CaptureMouse();
+
+	if (m_pCurSession)
+		{
+		int xLocal, yLocal;
+		m_ScreenMgr.ClientToLocal(x, y, &xLocal, &yLocal);
+
+		m_iLastVirtualKey = VK_MBUTTON;
+		m_pCurSession->HIMButtonDown(xLocal, yLocal, dwFlags);
+		m_iLastVirtualKey = 0;
+		}
+
+	m_bMButtonDown = true;
+	return 0;
+	}
+
+LONG CHumanInterface::WMMButtonUp (int x, int y, DWORD dwFlags)
+
+//	WMMButtonUp
+
+	{
+	ReleaseMouse();
+
+	if (m_pCurSession)
+		{
+		int xLocal, yLocal;
+		m_ScreenMgr.ClientToLocal(x, y, &xLocal, &yLocal);
+		m_pCurSession->HIMButtonUp(xLocal, yLocal, dwFlags);
+		}
+
+	m_bMButtonDown = false;
+	return 0;
+	}
+
+LONG CHumanInterface::WMMouseWheel (int iDelta, int x, int y, DWORD dwFlags)
+
+//	WMMouseWheel
+
+	{
+	if (m_pCurSession)
+		{
+		int xLocal, yLocal;
+		m_ScreenMgr.GlobalToLocal(x, y, &xLocal, &yLocal);
+		m_pCurSession->HIMouseWheel(iDelta, xLocal, yLocal, dwFlags);
+		}
+
+	return 0;
+	}
+
+LONG CHumanInterface::WMSize (int cxWidth, int cyHeight, int iSize)
+
+//	WMSize
+
+	{
+	m_ScreenMgr.OnWMSize(cxWidth, cyHeight, iSize);
+
+	if (m_pCurSession)
+		m_pCurSession->HISize(GetScreenWidth(), GetScreenHeight());
+
+	return 0;
+	}
+
+LONG CHumanInterface::WMMove (int x, int y)
+
+//	WMMove
+
+	{
+	m_ScreenMgr.OnWMMove(x, y);
+
+	if (m_pCurSession)
+		m_pCurSession->HISize(GetScreenWidth(), GetScreenHeight());
 
 	return 0;
 	}

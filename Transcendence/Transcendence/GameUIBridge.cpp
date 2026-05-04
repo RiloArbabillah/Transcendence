@@ -135,19 +135,54 @@ void UpdateGameUI(SAppState& state)
             g_pHI->WMKeyUp(wParam, (DWORD)(uintptr_t)lParam);
         else if (msg == WM_MOUSEMOVE)
             g_pHI->WMMouseMove(
-                (int)(unsigned short)wParam,
-                (int)(unsigned short)((wParam >> 16) & 0xFFFF),
-                (DWORD)(uintptr_t)lParam);
-        else if (msg == WM_LBUTTONDOWN || msg == WM_RBUTTONDOWN || msg == WM_MBUTTONDOWN)
+                (int)(unsigned short)LOWORD((uintptr_t)lParam),
+                (int)(unsigned short)HIWORD((uintptr_t)lParam),
+                (DWORD)(uintptr_t)wParam);
+        else if (msg == WM_LBUTTONDOWN)
             g_pHI->WMLButtonDown(
-                (int)(unsigned short)wParam,
-                (int)(unsigned short)((wParam >> 16) & 0xFFFF),
-                (DWORD)(uintptr_t)lParam);
-        else if (msg == WM_LBUTTONUP || msg == WM_RBUTTONUP || msg == WM_MBUTTONUP)
+                (int)(unsigned short)LOWORD((uintptr_t)lParam),
+                (int)(unsigned short)HIWORD((uintptr_t)lParam),
+                (DWORD)(uintptr_t)wParam);
+        else if (msg == WM_RBUTTONDOWN)
+            g_pHI->WMRButtonDown(
+                (int)(unsigned short)LOWORD((uintptr_t)lParam),
+                (int)(unsigned short)HIWORD((uintptr_t)lParam),
+                (DWORD)(uintptr_t)wParam);
+        else if (msg == WM_MBUTTONDOWN)
+            g_pHI->WMMButtonDown(
+                (int)(unsigned short)LOWORD((uintptr_t)lParam),
+                (int)(unsigned short)HIWORD((uintptr_t)lParam),
+                (DWORD)(uintptr_t)wParam);
+        else if (msg == WM_LBUTTONUP)
             g_pHI->WMLButtonUp(
-                (int)(unsigned short)wParam,
-                (int)(unsigned short)((wParam >> 16) & 0xFFFF),
-                (DWORD)(uintptr_t)lParam);
+                (int)(unsigned short)LOWORD((uintptr_t)lParam),
+                (int)(unsigned short)HIWORD((uintptr_t)lParam),
+                (DWORD)(uintptr_t)wParam);
+        else if (msg == WM_RBUTTONUP)
+            g_pHI->WMRButtonUp(
+                (int)(unsigned short)LOWORD((uintptr_t)lParam),
+                (int)(unsigned short)HIWORD((uintptr_t)lParam),
+                (DWORD)(uintptr_t)wParam);
+        else if (msg == WM_MBUTTONUP)
+            g_pHI->WMMButtonUp(
+                (int)(unsigned short)LOWORD((uintptr_t)lParam),
+                (int)(unsigned short)HIWORD((uintptr_t)lParam),
+                (DWORD)(uintptr_t)wParam);
+        else if (msg == WM_MOUSEWHEEL)
+            g_pHI->WMMouseWheel(
+                (int)(short)HIWORD((uintptr_t)wParam),
+                (int)(unsigned short)LOWORD((uintptr_t)lParam),
+                (int)(unsigned short)HIWORD((uintptr_t)lParam),
+                (DWORD)LOWORD((uintptr_t)wParam));
+        else if (msg == WM_SIZE)
+            g_pHI->WMSize(
+                (int)(unsigned short)LOWORD((uintptr_t)lParam),
+                (int)(unsigned short)HIWORD((uintptr_t)lParam),
+                (int)(uintptr_t)wParam);
+        else if (msg == WM_MOVE)
+            g_pHI->WMMove(
+                (int)(unsigned short)LOWORD((uintptr_t)lParam),
+                (int)(unsigned short)HIWORD((uintptr_t)lParam));
         else if (msg == WM_CHAR)
             g_pHI->WMChar((char)wParam, 0);
     }

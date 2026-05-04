@@ -368,6 +368,57 @@ static unsigned int SDLKeyToVK(SDL_Scancode scanCode)
     case SDL_SCANCODE_DELETE: return VK_DELETE;
     case SDL_SCANCODE_LGUI: return VK_LWIN;
     case SDL_SCANCODE_RGUI: return VK_RWIN;
+    case SDL_SCANCODE_A: return 0x41;
+    case SDL_SCANCODE_B: return 0x42;
+    case SDL_SCANCODE_C: return 0x43;
+    case SDL_SCANCODE_D: return 0x44;
+    case SDL_SCANCODE_E: return 0x45;
+    case SDL_SCANCODE_F: return 0x46;
+    case SDL_SCANCODE_G: return 0x47;
+    case SDL_SCANCODE_H: return 0x48;
+    case SDL_SCANCODE_I: return 0x49;
+    case SDL_SCANCODE_J: return 0x4A;
+    case SDL_SCANCODE_K: return 0x4B;
+    case SDL_SCANCODE_L: return 0x4C;
+    case SDL_SCANCODE_M: return 0x4D;
+    case SDL_SCANCODE_N: return 0x4E;
+    case SDL_SCANCODE_O: return 0x4F;
+    case SDL_SCANCODE_P: return 0x50;
+    case SDL_SCANCODE_Q: return 0x51;
+    case SDL_SCANCODE_R: return 0x52;
+    case SDL_SCANCODE_S: return 0x53;
+    case SDL_SCANCODE_T: return 0x54;
+    case SDL_SCANCODE_U: return 0x55;
+    case SDL_SCANCODE_V: return 0x56;
+    case SDL_SCANCODE_W: return 0x57;
+    case SDL_SCANCODE_X: return 0x58;
+    case SDL_SCANCODE_Y: return 0x59;
+    case SDL_SCANCODE_Z: return 0x5A;
+    case SDL_SCANCODE_0: return 0x30;
+    case SDL_SCANCODE_1: return 0x31;
+    case SDL_SCANCODE_2: return 0x32;
+    case SDL_SCANCODE_3: return 0x33;
+    case SDL_SCANCODE_4: return 0x34;
+    case SDL_SCANCODE_5: return 0x35;
+    case SDL_SCANCODE_6: return 0x36;
+    case SDL_SCANCODE_7: return 0x37;
+    case SDL_SCANCODE_8: return 0x38;
+    case SDL_SCANCODE_9: return 0x39;
+    case SDL_SCANCODE_KP_0: return 0x60;
+    case SDL_SCANCODE_KP_1: return 0x61;
+    case SDL_SCANCODE_KP_2: return 0x62;
+    case SDL_SCANCODE_KP_3: return 0x63;
+    case SDL_SCANCODE_KP_4: return 0x64;
+    case SDL_SCANCODE_KP_5: return 0x65;
+    case SDL_SCANCODE_KP_6: return 0x66;
+    case SDL_SCANCODE_KP_7: return 0x67;
+    case SDL_SCANCODE_KP_8: return 0x68;
+    case SDL_SCANCODE_KP_9: return 0x69;
+    case SDL_SCANCODE_KP_PLUS: return 0x6B;
+    case SDL_SCANCODE_KP_MINUS: return 0x6D;
+    case SDL_SCANCODE_KP_MULTIPLY: return 0x6A;
+    case SDL_SCANCODE_KP_DIVIDE: return 0x6F;
+    case SDL_SCANCODE_KP_PERIOD: return 0x6E;
     default: return (unsigned int)scanCode;
     }
 }
@@ -393,36 +444,36 @@ int App_PumpEvents(void)
             break;
         case SDL_MOUSEMOTION:
             PlatformPostMessage(WM_MOUSEMOVE,
-                MAKELONG(event.motion.x, event.motion.y),
-                (void*)(uintptr_t)event.motion.state);
+                (int)(uintptr_t)event.motion.state,
+                (void*)(uintptr_t)MAKELONG(event.motion.x, event.motion.y));
             break;
         case SDL_MOUSEBUTTONDOWN:
             {
                 int msg = WM_LBUTTONDOWN;
-                if (event.button.button == 2) msg = WM_RBUTTONDOWN;
-                else if (event.button.button == 3) msg = WM_MBUTTONDOWN;
+                if (event.button.button == 3) msg = WM_RBUTTONDOWN;
+                else if (event.button.button == 2) msg = WM_MBUTTONDOWN;
                 int x = event.button.x;
                 int y = event.button.y;
                 PlatformPostMessage(msg,
-                    MAKELONG(x, y),
-                    (void*)(uintptr_t)event.button.button);
+                    (int)(uintptr_t)event.button.button,
+                    (void*)(uintptr_t)MAKELONG(x, y));
             }
             break;
         case SDL_MOUSEBUTTONUP:
             {
                 int msg = WM_LBUTTONUP;
-                if (event.button.button == 2) msg = WM_RBUTTONUP;
-                else if (event.button.button == 3) msg = WM_MBUTTONUP;
+                if (event.button.button == 3) msg = WM_RBUTTONUP;
+                else if (event.button.button == 2) msg = WM_MBUTTONUP;
                 int x = event.button.x;
                 int y = event.button.y;
                 PlatformPostMessage(msg,
-                    MAKELONG(x, y),
-                    (void*)(uintptr_t)event.button.button);
+                    (int)(uintptr_t)event.button.button,
+                    (void*)(uintptr_t)MAKELONG(x, y));
             }
             break;
         case SDL_MOUSEWHEEL:
             PlatformPostMessage(WM_MOUSEWHEEL,
-                MAKELONG(event.wheel.y, 0),
+                (int)(uintptr_t)MAKELONG(0, event.wheel.y),
                 (void*)(uintptr_t)MAKELONG(event.wheel.x, event.wheel.y));
             break;
         case SDL_WINDOWEVENT:

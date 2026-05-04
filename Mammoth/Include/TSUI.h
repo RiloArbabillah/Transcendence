@@ -808,7 +808,14 @@ class CHumanInterface
 		LONG WMKeyUp (int iVirtKey, DWORD dwKeyData);
 		LONG WMLButtonDown (int x, int y, DWORD dwFlags);
 		LONG WMLButtonUp (int x, int y, DWORD dwFlags);
+		LONG WMRButtonDown (int x, int y, DWORD dwFlags);
+		LONG WMRButtonUp (int x, int y, DWORD dwFlags);
+		LONG WMMButtonDown (int x, int y, DWORD dwFlags);
+		LONG WMMButtonUp (int x, int y, DWORD dwFlags);
 		LONG WMMouseMove (int x, int y, DWORD dwFlags);
+		LONG WMMouseWheel (int iDelta, int x, int y, DWORD dwFlags);
+		LONG WMSize (int cxWidth, int cyHeight, int iSize);
+		LONG WMMove (int x, int y);
 
 	private:
 		struct SPostCommand
@@ -837,14 +844,7 @@ class CHumanInterface
 		LONG WMDisplayChange (int iBitDepth, int cxWidth, int cyHeight);
 		LONG WMLButtonDblClick (int x, int y, DWORD dwFlags);
 		LONG WMMButtonDblClick (int x, int y, DWORD dwFlags);
-		LONG WMMButtonDown (int x, int y, DWORD dwFlags);
-		LONG WMMButtonUp (int x, int y, DWORD dwFlags);
-		LONG WMMouseWheel (int iDelta, int x, int y, DWORD dwFlags);
-		LONG WMMove (int x, int y);
 		LONG WMRButtonDblClick (int x, int y, DWORD dwFlags);
-		LONG WMRButtonDown (int x, int y, DWORD dwFlags);
-		LONG WMRButtonUp (int x, int y, DWORD dwFlags);
-		LONG WMSize (int cxWidth, int cyHeight, int iSize);
 		LONG WMTimer (DWORD dwID);
 
 		static LONG APIENTRY MainWndProc (HWND hWnd, UINT message, UINT wParam, LONG lParam);
