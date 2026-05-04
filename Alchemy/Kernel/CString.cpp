@@ -526,9 +526,7 @@ void CString::DecRefCount (void)
 		if (m_pStore->iRefCount == 0)
 			{
 			EnterCriticalSection(&g_csStore);
-			if (!IsExternalStorage())
-				HeapFree(GetProcessHeap(), 0, m_pStore->pString);
-			AddToFreeList(m_pStore, 1);
+			FreeStore(m_pStore);
 			LeaveCriticalSection(&g_csStore);
 			}
 		}
