@@ -1792,7 +1792,12 @@ ALERROR CExtensionCollection::LoadBaseFile (const CString &sFilespec, DWORD dwFl
 
 	//	Add the base file. Note that this will set m_pBase correctly.
 
-	ASSERT(pBase->GetUNID() == 0);
+	if (pBase->GetUNID() != 0)
+		{
+		if (retsError)
+			*retsError = strPatternSubst(CONSTLIT("Base file has invalid UNID: %x"), pBase->GetUNID());
+		return ERR_FAIL;
+		}
 	pBase->SetVerified(bVerified);
 	AddOrReplace(pBase);
 
@@ -1810,7 +1815,12 @@ ALERROR CExtensionCollection::LoadBaseFile (const CString &sFilespec, DWORD dwFl
 
 		//	Add to list
 
-		ASSERT(pExtension->GetUNID() != 0);
+		if (pExtension->GetUNID() == 0)
+			{
+			if (retsError)
+				*retsError = strPatternSubst(CONSTLIT("Embedded extension has invalid UNID: %s"), pExtension->GetFilespec());
+			return ERR_FAIL;
+			}
 		AddOrReplace(pExtension);
 		}
 
