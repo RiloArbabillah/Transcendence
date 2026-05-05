@@ -451,6 +451,7 @@ ALERROR CExtension::CreateBaseFile (SDesignLoadCtx &Ctx, EGameTypes iGame, CXMLE
 	//	Set up context
 
 	Ctx.pExtension = pExtension;
+	DWORD dwOriginalUNID = pExtension->m_dwUNID;
 
 	//	Load the Main XML file
 
@@ -506,7 +507,12 @@ ALERROR CExtension::CreateBaseFile (SDesignLoadCtx &Ctx, EGameTypes iGame, CXMLE
 	Ctx.pExtension = NULL;
 
 	//	Done
+	//
+	//	The base file is always the synthetic extension with UNID 0. Some
+	//	macOS bring-up paths can mutate this while loading child content, so we
+	//	restore the invariant before returning.
 
+	pExtension->m_dwUNID = 0;
 	pExtension->m_iLoadState = loadComplete;
 
 	return NOERROR;
@@ -531,6 +537,7 @@ ALERROR CExtension::CreateExtension (SDesignLoadCtx &Ctx, CXMLElement *pDesc, EF
 	//	Set up context
 
 	Ctx.pExtension = pExtension;
+	DWORD dwOriginalUNID = pExtension->m_dwUNID;
 
 	//	Load all the design elements
 
@@ -565,6 +572,7 @@ ALERROR CExtension::CreateExtension (SDesignLoadCtx &Ctx, CXMLElement *pDesc, EF
 
 	//	Done
 
+	pExtension->m_dwUNID = dwOriginalUNID;
 	pExtension->m_pRootXML = pDesc;
 	pExtension->m_iLoadState = (Ctx.bLoadAdventureDesc ? loadAdventureDesc : loadComplete);
 	*retpExtension = pExtension;
