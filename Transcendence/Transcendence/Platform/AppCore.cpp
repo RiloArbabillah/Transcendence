@@ -241,8 +241,8 @@ int App_Init(void)
     g_AppState.cxWidth = DEFAULT_WIDTH;
     g_AppState.cyHeight = DEFAULT_HEIGHT;
 
-    SDL_SetHint(SDL_HINT_RENDER_DRIVER, "metal");
-    SDL_SetHint(SDL_HINT_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK, "1");
+	SDL_SetHint(SDL_HINT_RENDER_DRIVER, "software");
+	SDL_SetHint(SDL_HINT_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK, "1");
 
     char buf[256];
     snprintf(buf, sizeof(buf), "App_Init: create window %dx%d", g_AppState.cxWidth, g_AppState.cyHeight);
@@ -280,11 +280,7 @@ int App_Init(void)
         return 0;
     }
 
-    void* pMetalLayer = SDL_RenderGetMetalLayer(g_AppState.pRenderer);
-    if (pMetalLayer)
-        log_msg("App_Init: Metal layer OK");
-    else
-        log_msg("App_Init: No Metal layer");
+	log_msg("App_Init: using SDL software renderer");
 
 	g_AppState.pTexture = SDL_CreateTexture(
 		g_AppState.pRenderer,

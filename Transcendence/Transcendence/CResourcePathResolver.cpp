@@ -57,14 +57,32 @@ static bool FindResourceEntry (const SResourceEntry *pTable, int iCount, const C
 	return false;
 	}
 
+static CString FindResourcesRootCandidate (void)
+	{
+	static const char *CANDIDATES[] =
+		{
+		"Transcendence/Transcendence/Resources",
+		"../../Transcendence/Transcendence/Resources",
+		"../Transcendence/Transcendence/Resources",
+		"Transcendence/TransCore/Resources",
+		"../../Transcendence/TransCore/Resources",
+		"../Transcendence/TransCore/Resources",
+		};
+
+	for (int i = 0; i < (sizeof(CANDIDATES) / sizeof(CANDIDATES[0])); i++)
+		{
+		CString sCandidate = CString(CANDIDATES[i]);
+		if (pathExists(sCandidate))
+			return sCandidate;
+		}
+
+	return CONSTLIT("Transcendence/Transcendence/Resources");
+	}
+
 CString CResourcePathResolver::GetResourcesRoot (void)
 
 	{
-#ifdef __APPLE__
-	return "/Users/macbook/Experiment/transcendece/Transcendence/Transcendence/Resources/";
-#else
-	return "Transcendence/Transcendence/Resources";
-#endif
+	return FindResourcesRootCandidate();
 	}
 
 bool CResourcePathResolver::FindBitmapResource (const CString &sName, CString *retsFilespec)

@@ -439,7 +439,7 @@ inline BOOL DestroyWindow(HWND hWnd) { return TRUE; }
 inline int GetSystemMetrics(int nIndex) { return 0; }
 
 inline HICON LoadIcon(HINSTANCE hInstance, LPCSTR lpIconName) { return nullptr; }
-inline int SetCurrentDirectory(LPCSTR lpPathName) { return 1; }
+inline int SetCurrentDirectory(LPCSTR lpPathName) { return (lpPathName && *lpPathName ? chdir(lpPathName) : 1); }
 inline BOOL SystemParametersInfo(UINT uiAction, UINT uiParam, LPVOID pvParam, UINT fWinIni) { return TRUE; }
 #define SPI_GETWORKAREA 48
 #define WS_OVERLAPPEDWINDOW 0x00CF0000
