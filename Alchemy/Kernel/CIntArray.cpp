@@ -49,9 +49,9 @@ CIntArray &CIntArray::operator= (const CIntArray &Obj)
 		{
 		m_iAllocSize = Obj.m_iAllocSize;
 		m_iLength = Obj.m_iLength;
-		m_pData = (int *)::MemAlloc(sizeof(int) * (Obj.m_iAllocSize));
+		m_pData = (intptr_t *)::MemAlloc(sizeof(intptr_t) * (Obj.m_iAllocSize));
 		
-		utlMemCopy((char *)Obj.m_pData, (char *)m_pData, sizeof(int) * m_iLength);
+		utlMemCopy((char *)Obj.m_pData, (char *)m_pData, sizeof(intptr_t) * m_iLength);
 		}
 	else
 		{
@@ -63,7 +63,7 @@ CIntArray &CIntArray::operator= (const CIntArray &Obj)
 	return *this;
 	}
 
-ALERROR CIntArray::AppendElement (int iElement, int *retiIndex)
+ALERROR CIntArray::AppendElement (intptr_t iElement, int *retiIndex)
 
 //	AppendElement
 //
@@ -91,14 +91,14 @@ ALERROR CIntArray::ExpandArray (int iPos, int iCount)
     
     if (m_iLength + iCount > m_iAllocSize)
     	{
-        int *pNewData;
+		intptr_t *pNewData;
 		int iInc;
 
 		iInc = AlignUp(iCount, ALLOC_INCREMENT);
         
         //	Allocate a bigger buffer
         
-        pNewData = (int *)MemAlloc(sizeof(int) * (m_iAllocSize + iInc));
+        pNewData = (intptr_t *)MemAlloc(sizeof(intptr_t) * (m_iAllocSize + iInc));
         if (pNewData == NULL)
         	return ERR_MEMORY;
         
@@ -125,7 +125,7 @@ ALERROR CIntArray::ExpandArray (int iPos, int iCount)
 	return NOERROR;
 	}
 
-int CIntArray::FindElement (int iElement) const
+int CIntArray::FindElement (intptr_t iElement) const
 
 //	FindElement
 //
@@ -152,7 +152,7 @@ int CIntArray::GetCount (void) const
 	return m_iLength;
 	}
 
-int CIntArray::GetElement (int iIndex) const
+intptr_t CIntArray::GetElement (int iIndex) const
 
 //	GetElement
 //
@@ -163,7 +163,7 @@ int CIntArray::GetElement (int iIndex) const
 	return m_pData[iIndex];
 	}
 
-ALERROR CIntArray::InsertElement (int iElement, int iPos, int *retiIndex)
+ALERROR CIntArray::InsertElement (intptr_t iElement, int iPos, int *retiIndex)
 
 //	InsertElement
 //
@@ -245,7 +245,7 @@ ALERROR CIntArray::MoveRange (int iStart, int iEnd, int iPos)
 
 		for (i = iPos - 1; i > iStart; i--)
 			{
-			int iTemp;
+			intptr_t iTemp;
 
 			iTemp = m_pData[iEnd - iDest];
 			m_pData[iEnd - iDest] = m_pData[i];
@@ -261,7 +261,7 @@ ALERROR CIntArray::MoveRange (int iStart, int iEnd, int iPos)
 
 		for (i = iPos; i < iEnd; i++)
 			{
-			int iTemp;
+			intptr_t iTemp;
 
 			iTemp = m_pData[iStart + iDest];
 			m_pData[iStart + iDest] = m_pData[i];
@@ -274,7 +274,7 @@ ALERROR CIntArray::MoveRange (int iStart, int iEnd, int iPos)
 	return NOERROR;
 	}
 
-ALERROR CIntArray::Set (int iCount, int *pData)
+ALERROR CIntArray::Set (int iCount, intptr_t *pData)
 
 //	Set
 //
@@ -287,7 +287,7 @@ ALERROR CIntArray::Set (int iCount, int *pData)
     //	Allocate the data
     
 	m_iAllocSize = (1 + (iCount / ALLOC_INCREMENT)) * ALLOC_INCREMENT;
-	m_pData = (int *)MemAlloc(sizeof(int) * m_iAllocSize);
+	m_pData = (intptr_t *)MemAlloc(sizeof(intptr_t) * m_iAllocSize);
 	if (m_pData == NULL)
 		return ERR_MEMORY;
     
@@ -341,7 +341,7 @@ ALERROR CIntArray::RemoveRange (int iStart, int iEnd)
     return NOERROR;
 	}
 
-void CIntArray::ReplaceElement (int iPos, int iElement)
+void CIntArray::ReplaceElement (int iPos, intptr_t iElement)
 
 //	ReplaceElement
 //
@@ -368,7 +368,7 @@ void CIntArray::Shuffle (void)
 		{
 		int x = mathRandom(0, i);
 
-		int iValue = m_pData[x];
+		intptr_t iValue = m_pData[x];
 		m_pData[x] = m_pData[i];
 		m_pData[i] = iValue;
 

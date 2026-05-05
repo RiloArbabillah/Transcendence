@@ -43,7 +43,7 @@ CSymbolTable::~CSymbolTable (void)
 
 	for (i = 0; i < CDictionary::GetCount(); i++)
 		{
-		int iKey, iValue;
+		intptr_t iKey, iValue;
 		CString *pKey;
 
 		CDictionary::GetEntry(i, &iKey, &iValue);
@@ -98,7 +98,7 @@ ALERROR CSymbolTable::AddEntry (const CString &sKey, CObject *pValue)
 	return NOERROR;
 	}
 
-int CSymbolTable::Compare (int iKey1, int iKey2) const
+int CSymbolTable::Compare (intptr_t iKey1, intptr_t iKey2) const
 
 //	Compare
 //
@@ -125,7 +125,7 @@ void CSymbolTable::CopyHandler (CObject *pOriginal)
 		{
 		//	Get the key and value
 
-		int iKey, iValue;
+		intptr_t iKey, iValue;
 		GetEntry(i, &iKey, &iValue);
 
 		//	Convert to the appropriate thing
@@ -159,7 +159,7 @@ CString CSymbolTable::GetKey (int iEntry) const
 //	Returns the key of the nth entry
 
 	{
-	int iKey, iValue;
+	intptr_t iKey, iValue;
 	CString *pKey;
 
 	GetEntry(iEntry, &iKey, &iValue);
@@ -175,7 +175,7 @@ CObject *CSymbolTable::GetValue (int iEntry) const
 //	Returns the value of the nth entry
 
 	{
-	int iKey, iValue;
+	intptr_t iKey, iValue;
 
 	GetEntry(iEntry, &iKey, &iValue);
 	return (CObject *)iValue;
@@ -339,7 +339,7 @@ ALERROR CSymbolTable::Lookup (const CString &sKey, CObject **retpValue) const
 
 	{
 	ALERROR error;
-	int iValue;
+	intptr_t iValue;
 	CString sKeyToFind(sKey);
 
 	if (error = CDictionary::Find((intptr_t)&sKeyToFind, &iValue))
@@ -378,7 +378,7 @@ ALERROR CSymbolTable::RemoveAll (void)
 
 	for (i = 0; i < CDictionary::GetCount(); i++)
 		{
-		int iKey, iValue;
+		intptr_t iKey, iValue;
 		CString *pKey;
 
 		CDictionary::GetEntry(i, &iKey, &iValue);
@@ -403,7 +403,7 @@ ALERROR CSymbolTable::RemoveEntry (int iEntry, CObject **retpOldValue)
 
 	{
 	ALERROR error;
-	int iOldValue;
+	intptr_t iOldValue;
 
 	//	Let the dictionary do the removing
 
@@ -431,7 +431,7 @@ ALERROR CSymbolTable::RemoveEntry (const CString &sKey, CObject **retpOldValue)
 
 	{
 	ALERROR error;
-	int iOldValue;
+	intptr_t iOldValue;
 
 	//	Let the dictionary do the removing
 
@@ -460,7 +460,7 @@ ALERROR CSymbolTable::ReplaceEntry (const CString &sKey, CObject *pValue, bool b
 
 	{
 	ALERROR error;
-	int iOldValue;
+	intptr_t iOldValue;
 	CObject *pOldObj;
 	CString *pKey;
 	bool bAdded;
@@ -542,7 +542,7 @@ ALERROR CSymbolTable::SaveHandler (CArchiver *pArchiver)
 
 	for (i = 0; i < CDictionary::GetCount(); i++)
 		{
-		int iKey, iValue;
+		intptr_t iKey, iValue;
 		CString *pKey;
 
 		CDictionary::GetEntry(i, &iKey, &iValue);
@@ -591,7 +591,7 @@ void CSymbolTable::SetValue (int iEntry, CObject *pValue, CObject **retpOldValue
 //	Sets the value
 
 	{
-	int iKey, iValue;
+	intptr_t iKey, iValue;
 
 	GetEntry(iEntry, &iKey, &iValue);
 

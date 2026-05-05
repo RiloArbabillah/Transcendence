@@ -31,7 +31,7 @@ CDictionary::~CDictionary (void)
 	{
 	}
 
-ALERROR CDictionary::AddEntry (int iKey, int iValue)
+ALERROR CDictionary::AddEntry (intptr_t iKey, intptr_t iValue)
 
 //	AddEntry
 //
@@ -60,7 +60,7 @@ ALERROR CDictionary::AddEntry (int iKey, int iValue)
 	return NOERROR;
 	}
 
-int CDictionary::Compare (int iKey1, int iKey2) const
+int CDictionary::Compare (intptr_t iKey1, intptr_t iKey2) const
 
 //	Compare
 //
@@ -76,7 +76,7 @@ int CDictionary::Compare (int iKey1, int iKey2) const
 		return -1;
 	}
 
-ALERROR CDictionary::Find (int iKey, int *retiValue) const
+ALERROR CDictionary::Find (intptr_t iKey, intptr_t *retiValue) const
 
 //	Find
 //
@@ -93,7 +93,7 @@ ALERROR CDictionary::Find (int iKey, int *retiValue) const
 	return NOERROR;
 	}
 
-ALERROR CDictionary::FindEx (int iKey, int *retiEntry) const
+ALERROR CDictionary::FindEx (intptr_t iKey, int *retiEntry) const
 
 //	FindEx
 //
@@ -109,7 +109,7 @@ ALERROR CDictionary::FindEx (int iKey, int *retiEntry) const
 	return NOERROR;
 	}
 
-ALERROR CDictionary::FindOrAdd (int iKey, int iValue, bool *retbFound, int *retiValue)
+ALERROR CDictionary::FindOrAdd (intptr_t iKey, intptr_t iValue, bool *retbFound, intptr_t *retiValue)
 
 //	FindOrAdd
 //
@@ -146,7 +146,7 @@ ALERROR CDictionary::FindOrAdd (int iKey, int iValue, bool *retbFound, int *reti
 	return NOERROR;
 	}
 
-bool CDictionary::FindSlot (int iKey, int *retiPos) const
+bool CDictionary::FindSlot (intptr_t iKey, int *retiPos) const
 
 //	FindSlot
 //
@@ -157,7 +157,8 @@ bool CDictionary::FindSlot (int iKey, int *retiPos) const
 
 	{
 	int iLeft, iRight, iCount;
-	int iEntryKey, iCompare;
+	intptr_t iEntryKey;
+	int iCompare;
 
 	//	If there are no entries, then we always fail
 
@@ -220,7 +221,7 @@ bool CDictionary::FindSlot (int iKey, int *retiPos) const
 	return FALSE;
 	}
 
-void CDictionary::GetEntry (int iEntry, int *retiKey, int *retiValue) const
+void CDictionary::GetEntry (int iEntry, intptr_t *retiKey, intptr_t *retiValue) const
 
 //	GetEntry
 //
@@ -233,7 +234,7 @@ void CDictionary::GetEntry (int iEntry, int *retiKey, int *retiValue) const
 		*retiValue = m_Array.GetElement(iEntry * 2 + 1);
 	}
 
-ALERROR CDictionary::RemoveEntry (int iKey, int *retiOldValue)
+ALERROR CDictionary::RemoveEntry (intptr_t iKey, intptr_t *retiOldValue)
 
 //	RemoveEntry
 //
@@ -245,7 +246,7 @@ ALERROR CDictionary::RemoveEntry (int iKey, int *retiOldValue)
 
 	if (FindSlot(iKey, &iPos))
 		{
-		int iOldValue;
+		intptr_t iOldValue;
 
 		//	Get the old value
 
@@ -267,7 +268,7 @@ ALERROR CDictionary::RemoveEntry (int iKey, int *retiOldValue)
 	return NOERROR;
 	}
 
-ALERROR CDictionary::RemoveEntryByOrdinal (int iEntry, int *retiOldValue)
+ALERROR CDictionary::RemoveEntryByOrdinal (int iEntry, intptr_t *retiOldValue)
 
 //	RemoveEntryByOrdinal
 //
@@ -275,7 +276,7 @@ ALERROR CDictionary::RemoveEntryByOrdinal (int iEntry, int *retiOldValue)
 
 	{
 	ALERROR error;
-	int iOldValue;
+	intptr_t iOldValue;
 
 	//	Get the old value
 
@@ -294,7 +295,7 @@ ALERROR CDictionary::RemoveEntryByOrdinal (int iEntry, int *retiOldValue)
 	return NOERROR;
 	}
 
-ALERROR CDictionary::ReplaceEntry (int iKey, int iValue, bool bAdd, bool *retbAdded, int *retiOldValue)
+ALERROR CDictionary::ReplaceEntry (intptr_t iKey, intptr_t iValue, bool bAdd, bool *retbAdded, intptr_t *retiOldValue)
 
 //	ReplaceEntry
 //
@@ -305,7 +306,7 @@ ALERROR CDictionary::ReplaceEntry (int iKey, int iValue, bool bAdd, bool *retbAd
 	{
 	ALERROR error;
 	int iPos;
-	int iOldValue;
+	intptr_t iOldValue;
 
 	//	Look for the key in the array. If we don't find the key, return an error
 
@@ -354,7 +355,7 @@ ALERROR CDictionary::ReplaceEntry (int iKey, int iValue, bool bAdd, bool *retbAd
 	return NOERROR;
 	}
 
-void CDictionary::SetEntry (int iEntry, int iKey, int iValue)
+void CDictionary::SetEntry (int iEntry, intptr_t iKey, intptr_t iValue)
 
 //	SetEntry
 //

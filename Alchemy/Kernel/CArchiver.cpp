@@ -186,7 +186,7 @@ ALERROR CArchiver::Reference2ID (void *pReference, int *retiID)
 	{
 	ALERROR error;
 	bool bFound;
-	int iID;
+	intptr_t iID;
 
 	//	We always map NULL to -1
 
@@ -205,7 +205,7 @@ ALERROR CArchiver::Reference2ID (void *pReference, int *retiID)
 	//	got added as the new ID
 
 	if (bFound)
-		*retiID = iID;
+		*retiID = (int)iID;
 	else
 		{
 		*retiID = m_iNextID;
@@ -684,4 +684,3 @@ ALERROR CUnarchiver::ResolveExternalReference (CString sTag, void *pReference)
 
 	return NOERROR;
 	}
-

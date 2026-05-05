@@ -7,6 +7,7 @@
 #include "Platform/AppCore.h"
 #include <cstdio>
 #include <cstdarg>
+#include <execinfo.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <cstring>
@@ -78,12 +79,20 @@ static void sig_handler(int sig) {
 #include <signal.h>
 
 static void sigsegv_handler(int sig) {
+    (void)sig;
     write(STDOUT_FILENO, "!!! SIGSEGV received !!!\n", 25);
+    void *frames[64];
+    int frameCount = backtrace(frames, 64);
+    backtrace_symbols_fd(frames, frameCount, STDOUT_FILENO);
     _exit(1);
 }
 
 static void sigabrt_handler(int sig) {
+    (void)sig;
     write(STDOUT_FILENO, "!!! SIGABRT received !!!\n", 24);
+    void *frames[64];
+    int frameCount = backtrace(frames, 64);
+    backtrace_symbols_fd(frames, frameCount, STDOUT_FILENO);
     _exit(1);
 }
 

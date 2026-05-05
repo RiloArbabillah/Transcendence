@@ -22,7 +22,7 @@ bool CCAtomTable::AddEntry (ICCItem *pAtom, ICCItem *pEntry, bool bForceLocalAdd
 
 	{
 	ICCItem *pPrevEntry = NULL;
-	int iOldEntry;
+	intptr_t iOldEntry;
 	bool bAdded;
 
 	if (m_Table.ReplaceEntry(pAtom->GetIntegerValue(), (int)(intptr_t)pEntry->Reference(), true, &bAdded, &iOldEntry) != NOERROR)
@@ -65,8 +65,8 @@ void CCAtomTable::DestroyItem (void)
 
 	for (i = 0; i < m_Table.GetCount(); i++)
 		{
-		int iKey;
-		int iValue;
+		intptr_t iKey;
+		intptr_t iValue;
 		ICCItem *pItem;
 
 		m_Table.GetEntry(i, &iKey, &iValue);
@@ -112,7 +112,7 @@ ICCItem *CCAtomTable::ListSymbols (CCodeChain *pCC)
 		for (i = 0; i < m_Table.GetCount(); i++)
 			{
 			ICCItem *pItem;
-			int iKey;
+			intptr_t iKey;
 
 			m_Table.GetEntry(i, &iKey, NULL);
 
@@ -150,7 +150,7 @@ ICCItem *CCAtomTable::LookupEx (CCodeChain *pCC, ICCItem *pAtom, bool *retbFound
 
 	{
 	ALERROR error;
-	int iValue;
+	intptr_t iValue;
 	ICCItem *pBinding;
 
 	if (error = m_Table.Find(pAtom->GetIntegerValue(), &iValue))

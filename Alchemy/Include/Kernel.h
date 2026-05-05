@@ -1466,25 +1466,25 @@ class CIntArray : public CObject
 
 		CIntArray &operator= (const CIntArray &Obj);
 
-		ALERROR AppendElement (int iElement, int *retiIndex = NULL);
+		ALERROR AppendElement (intptr_t iElement, int *retiIndex = NULL);
 		ALERROR CollapseArray (int iPos, int iCount) { return RemoveRange(iPos, iPos + iCount - 1); }
 		ALERROR ExpandArray (int iPos, int iCount);
-		int FindElement (int iElement) const;
+		int FindElement (intptr_t iElement) const;
 		int GetCount (void) const;
-		int GetElement (int iIndex) const;
-		ALERROR InsertElement (int iElement, int iPos, int *retiIndex);
+		intptr_t GetElement (int iIndex) const;
+		ALERROR InsertElement (intptr_t iElement, int iPos, int *retiIndex);
 		ALERROR InsertRange (CIntArray *pList, int iStart, int iEnd, int iPos);
 		ALERROR MoveRange (int iStart, int iEnd, int iPos);
-		ALERROR Set (int iCount, int *pData);
+		ALERROR Set (int iCount, intptr_t *pData);
 		ALERROR RemoveAll (void);
 		ALERROR RemoveElement (int iPos) { return RemoveRange(iPos, iPos); }
 		ALERROR RemoveRange (int iStart, int iEnd);
-		void ReplaceElement (int iPos, int iElement);
+		void ReplaceElement (int iPos, intptr_t iElement);
 		void Shuffle (void);
 
 	private:
 		int m_iAllocSize;					//	Number of integers allocated
-		int *m_pData;						//	Pointer to integer array
+		intptr_t *m_pData;					//	Pointer to integer array
 		int m_iLength;						//	Number of integers used
 	};
 
@@ -1531,23 +1531,23 @@ class CDictionary : public CObject
 		CDictionary (IObjectClass *pClass);
 		virtual ~CDictionary (void);
 
-		ALERROR AddEntry (int iKey, int iValue);
-		ALERROR Find (int iKey, int *retiValue) const;
-		ALERROR FindEx (int iKey, int *retiEntry) const;
-		ALERROR FindOrAdd (int iKey, int iValue, bool *retbFound, int *retiValue);
+		ALERROR AddEntry (intptr_t iKey, intptr_t iValue);
+		ALERROR Find (intptr_t iKey, intptr_t *retiValue) const;
+		ALERROR FindEx (intptr_t iKey, int *retiEntry) const;
+		ALERROR FindOrAdd (intptr_t iKey, intptr_t iValue, bool *retbFound, intptr_t *retiValue);
 		int GetCount (void) const { return m_Array.GetCount() / 2; }
-		void GetEntry (int iEntry, int *retiKey, int *retiValue) const;
-		ALERROR ReplaceEntry (int iKey, int iValue, bool bAdd, bool *retbAdded, int *retiOldValue);
+		void GetEntry (int iEntry, intptr_t *retiKey, intptr_t *retiValue) const;
+		ALERROR ReplaceEntry (intptr_t iKey, intptr_t iValue, bool bAdd, bool *retbAdded, intptr_t *retiOldValue);
 		ALERROR RemoveAll (void) { return m_Array.RemoveAll(); }
-		ALERROR RemoveEntryByOrdinal (int iEntry, int *retiOldValue = NULL);
-		ALERROR RemoveEntry (int iKey, int *retiOldValue);
+		ALERROR RemoveEntryByOrdinal (int iEntry, intptr_t *retiOldValue = NULL);
+		ALERROR RemoveEntry (intptr_t iKey, intptr_t *retiOldValue);
 
 	protected:
-		virtual int Compare (int iKey1, int iKey2) const;
+		virtual int Compare (intptr_t iKey1, intptr_t iKey2) const;
 		ALERROR ExpandArray (int iPos, int iCount) { return m_Array.ExpandArray(2 * iPos, 2 * iCount); }
-		void SetEntry (int iEntry, int iKey, int iValue);
+		void SetEntry (int iEntry, intptr_t iKey, intptr_t iValue);
 
-		bool FindSlot (int iKey, int *retiPos) const;
+		bool FindSlot (intptr_t iKey, int *retiPos) const;
 
 		CIntArray m_Array;
 	};
@@ -1572,7 +1572,7 @@ class CIDTable : public CDictionary
 		void SetValue (int iEntry, CObject *pValue, CObject **retpOldValue);
 
 	protected:
-		virtual int Compare (int iKey1, int iKey2) const;
+		virtual int Compare (intptr_t iKey1, intptr_t iKey2) const;
 		virtual void CopyHandler (CObject *pOriginal);
 		virtual ALERROR LoadHandler (CUnarchiver *pUnarchiver);
 		virtual ALERROR SaveHandler (CArchiver *pArchiver);
@@ -1604,7 +1604,7 @@ class CSymbolTable : public CDictionary
 		void SetValue (int iEntry, CObject *pValue, CObject **retpOldValue);
 
 	protected:
-		virtual int Compare (int iKey1, int iKey2) const;
+		virtual int Compare (intptr_t iKey1, intptr_t iKey2) const;
 		virtual void CopyHandler (CObject *pOriginal);
 		virtual ALERROR LoadHandler (CUnarchiver *pUnarchiver);
 		virtual ALERROR SaveHandler (CArchiver *pArchiver);

@@ -41,16 +41,18 @@ CIDTable::~CIDTable (void)
 
 		for (i = 0; i < CDictionary::GetCount(); i++)
 			{
-			int iKey;
+			intptr_t iKey;
 			CObject *pValue;
 
-			CDictionary::GetEntry(i, &iKey, (int *)&pValue);
+			intptr_t iValue;
+			CDictionary::GetEntry(i, &iKey, &iValue);
+			pValue = (CObject *)iValue;
 			delete pValue;
 			}
 		}
 	}
 
-int CIDTable::Compare (int iKey1, int iKey2) const
+int CIDTable::Compare (intptr_t iKey1, intptr_t iKey2) const
 
 //	Compare
 //
@@ -87,7 +89,7 @@ int CIDTable::GetKey (int iEntry) const
 //	Returns the key of the nth entry
 
 	{
-	int iKey, iValue;
+	intptr_t iKey, iValue;
 
 	GetEntry(iEntry, &iKey, &iValue);
 
@@ -101,7 +103,7 @@ CObject *CIDTable::GetValue (int iEntry) const
 //	Returns the value of the nth entry
 
 	{
-	int iKey, iValue;
+	intptr_t iKey, iValue;
 
 	GetEntry(iEntry, &iKey, &iValue);
 	return (CObject *)iValue;
@@ -143,7 +145,7 @@ ALERROR CIDTable::LoadHandler (CUnarchiver *pUnarchiver)
 	for (i = 0; i < (int)dwCount; i++)
 		{
 		CObject *pValue;
-		int iKey;
+		intptr_t iKey;
 
 		//	Read in the key
 
@@ -182,7 +184,7 @@ ALERROR CIDTable::Lookup (int iKey, CObject **retpValue) const
 
 	{
 	ALERROR error;
-	int iValue;
+	intptr_t iValue;
 
 	if (error = CDictionary::Find(iKey, &iValue))
 		return error;
@@ -238,7 +240,7 @@ ALERROR CIDTable::RemoveEntry (int iKey, CObject **retpOldValue)
 
 	{
 	ALERROR error;
-	int iOldValue;
+	intptr_t iOldValue;
 
 	//	Let the dictionary do the removing
 
@@ -267,7 +269,7 @@ ALERROR CIDTable::ReplaceEntry (int iKey, CObject *pValue, bool bAdd, CObject **
 
 	{
 	ALERROR error;
-	int iOldValue;
+	intptr_t iOldValue;
 	CObject *pOldObj;
 	bool  bAdded;
 
@@ -325,7 +327,7 @@ ALERROR CIDTable::SaveHandler (CArchiver *pArchiver)
 
 	for (i = 0; i < CDictionary::GetCount(); i++)
 		{
-		int iKey, iValue;
+		intptr_t iKey, iValue;
 
 		CDictionary::GetEntry(i, &iKey, &iValue);
 
@@ -372,7 +374,7 @@ void CIDTable::SetValue (int iEntry, CObject *pValue, CObject **retpOldValue)
 //	Sets the value
 
 	{
-	int iKey, iValue;
+	intptr_t iKey, iValue;
 
 	GetEntry(iEntry, &iKey, &iValue);
 
