@@ -8,7 +8,7 @@ This document records the current state of the native macOS Apple Silicon port a
 
 **Current State:** the macOS app target builds and launches from the CMake-generated build tree. The active runtime path uses the SDL shell, software frame generation, SDL event forwarding, and a compatibility SDL software renderer while the Metal callback crash is avoided.
 
-**Validated Locally:** 2026-05-04
+**Validated Locally:** 2026-05-05
 
 ```sh
 xcodebuild -project build/TranscendenceMacOS.xcodeproj -scheme transcendence_app -configuration Debug build
@@ -17,9 +17,9 @@ xcodebuild -project build/TranscendenceMacOS.xcodeproj -scheme transcendence_app
 Result:
 
 - generated Xcode project builds successfully
-- executable is produced at `build/Debug/Transcendence`
-- app launches far enough to exercise loading/menu/input paths
-- current crash investigation is runtime-only, not a link/build blocker
+- executable is produced from the macOS CMake build tree and runs
+- app enters the SDL main loop reliably on Apple Silicon
+- current blockers are runtime/menu initialization issues, not configure/link blockers
 
 ## What Works
 
@@ -50,28 +50,34 @@ Result:
 
 ## Current Status
 
-**Build/runtime baseline (2026-05-04):**
+**Build/runtime baseline (2026-05-05):**
 
 - `transcendence_app` builds and runs on macOS from CMake build tree.
 - SDL shell is active.
 - Software frame generation remains the compatibility renderer.
-- SDL software renderer + vsync is active to avoid the prior Metal thread callback crash.
+- SDL software renderer is now forced explicitly for the active safety path to avoid the unstable SDL/Metal texture upload path.
 - OnBoot/OnInit path is active in `GameUIBridge.cpp` (no longer skipped).
 - Resource path and JPEG color channel issues are corrected for loading background/title.
 - SDL keyboard, mouse, wheel, and text input events are now bridged into the `CHumanInterface` Win32-style handlers.
 - Mouse coordinate packing now sends both X and Y through the message bridge instead of losing Y.
 - macOS `CRITICAL_SECTION` compatibility now uses recursive `pthread_mutex_t` instead of a no-op/std::mutex mismatch.
 - Background task threads now call `kernelInit()` before executing `IHITask` work.
+- `CString::DecRefCount` external-string cleanup bug is fixed.
+- arm64 pointer truncation in `CIntArray`/`CDictionary`/`CSymbolTable`/`CIDTable` is fixed, which removes the prior background `CCodeChain::Boot()` crash.
+- macOS `SetCurrentDirectory` now calls `chdir`, and debug resource-root lookup is dynamic instead of hardcoded to a developer machine path.
 
 **Known active blocker for release readiness:**
 
-- First playable stability is blocked by a runtime crash on a background task thread during `CCodeChain::Boot()` / `CString::GetPointer()`.
-- The added background-thread `kernelInit()` call is a mitigation attempt, but does not yet prove the crash is fixed.
-- The older loading stargate shadow/trail artifact is no longer treated as an active blocker unless user validation reopens it.
-- Menu/input bridge code exists, but M4 still needs a complete manual validation pass for keyboard, mouse, wheel, text input, and Retina behavior.
+- The app currently reaches the SDL main loop but still shows a black window instead of a visible title/menu frame.
+- Runtime initialization is still failing on the background universe/base-file load path, centered around `CExtensionCollection::LoadBaseFile` while processing the base file and embedded extensions from `Transcendence.xml`.
+- The older background `CCodeChain::Boot()` / `CString::GetPointer()` crash is no longer the active blocker.
+- The older loading stargate shadow/trail artifact is still non-blocking unless validation reopens it.
+- Menu/input bridge code exists, but M4 still needs a complete manual validation pass for keyboard, mouse, wheel, text input, and Retina behavior after the black-screen blocker is removed.
 
 **Release readiness gaps still open:**
 
+- Visible first frame / menu presentation on macOS.
+- Base/embedded extension loading stability during background universe init.
 - Native audio parity (current implementation is still stub-level behavior).
 - Save/settings/resource path parity validation for packaged `.app` runtime.
 - Finder-launch packaging and full milestone QA gate execution.

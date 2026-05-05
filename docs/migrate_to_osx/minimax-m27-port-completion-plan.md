@@ -36,7 +36,7 @@ Assume the following are complete unless local validation proves otherwise:
 
 - `transcendence_app` builds and runs on macOS from the CMake build tree.
 - SDL shell is active.
-- Compatibility presentation is active. The current safety path uses SDL's software renderer plus vsync to avoid a Metal thread callback crash observed in runtime testing.
+- Compatibility presentation is active. The current safety path explicitly forces SDL's software renderer to avoid the unstable SDL/Metal texture upload path observed in runtime testing.
 - `OnBoot` and `OnInit` are active in `GameUIBridge.cpp`.
 - Resource path fixes are in place for loading/title/menu-critical assets.
 - JPEG color channel issues for loading/title/background are corrected.
@@ -45,7 +45,9 @@ Assume the following are complete unless local validation proves otherwise:
 - `CMCIMixer` has a no-op macOS-compatible stub, so the build runs silently until real audio is implemented.
 - SDL keyboard, mouse, wheel, and text input events are bridged into the `CHumanInterface` handler path.
 - Mouse message packing includes both X and Y coordinates.
-- Background task threads call `kernelInit()` before task execution, but the current background `CString::GetPointer()` crash is not yet proven fixed.
+- Background task threads call `kernelInit()` before task execution.
+- The earlier background `CCodeChain::Boot()` / `CString::GetPointer()` crash is fixed.
+- The app now reaches the main loop, but the current user-visible state is still a black window and background universe/base-file initialization is not yet stable.
 
 ## Active Release Readiness Gaps
 
@@ -55,7 +57,8 @@ Treat these as the active blockers:
 |---|---|---|---|
 | P0 | Menu and input operability validation | A visible menu is not release-ready unless keyboard, mouse, wheel, text input, repeat behavior, and Retina mapping work | `qa-test-matrix.md` M4 |
 | P0 | First playable stability | Release candidate needs New Game -> gameplay -> short stable loop | `qa-test-matrix.md` M5 |
-| P0 | Background CodeChain boot crash | Current runtime testing still points to a background-thread `CString::GetPointer()` crash during `CCodeChain::Boot()` | `../macOS_port_status.md` |
+| P0 | Black screen / no visible first frame | A runnable binary is not release-ready if title/menu UI never becomes visible | `qa-test-matrix.md` M3-M4, `../macOS_port_status.md` |
+| P0 | Background base/embedded extension load failure | Universe initialization still fails while loading the base file and embedded extensions from `Transcendence.xml` | `../macOS_port_status.md` |
 | P0 | macOS save/settings/resource path parity | The app must not depend on repo CWD or write into the bundle | `architecture.md`, `dependency-matrix.md` |
 | P0 | Native audio backend | Current audio is stub-level; release readiness needs SFX and music | `release-ready-execution-plan.md`, `dependency-matrix.md` |
 | P0 | `.app` packaging and Finder launch | The build must behave like a native app outside the terminal | `qa-test-matrix.md` M7 |
