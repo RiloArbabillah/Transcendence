@@ -600,24 +600,17 @@ int App_Run(void)
         return 1;
     }
 
-    log_msg("App_Run: App_Init OK, calling InitGameUI");
-    InitGameUI(g_AppState);
-    log_msg("App_Run: InitGameUI returned");
+	log_msg("App_Run: App_Init OK, calling InitGameUI");
+	InitGameUI(g_AppState);
 
-    log_msg("App_Run: entering main loop");
-    while (g_AppState.bRunning)
-    {
-        if (!App_PumpEvents()) break;
-        UpdateGameUI(g_AppState);
-        static int sPresentTick = 0;
-        sPresentTick++;
-        if (sPresentTick <= 5)
-            log_msg("App_Run: before App_PresentFrameBuffer");
-        App_PresentFrameBuffer();
-        if (sPresentTick <= 5)
-            log_msg("App_Run: after App_PresentFrameBuffer");
-        SDL_Delay(16);
-    }
+	log_msg("App_Run: entering main loop");
+	while (g_AppState.bRunning)
+	{
+		if (!App_PumpEvents()) break;
+		UpdateGameUI(g_AppState);
+		App_PresentFrameBuffer();
+		SDL_Delay(16);
+	}
 
     log_msg("App_Run: exit main loop");
     App_Shutdown();

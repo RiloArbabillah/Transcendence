@@ -502,14 +502,9 @@ ALERROR CTranscendenceController::OnBoot (char *pszCommandLine, SHIOptions *retO
 	{
 	ALERROR error;
 
-	fprintf(stderr, "OnBoot: START\n");
-	fflush(stderr);
-
 	//	Set our basic application settings
 
 	retOptions->sAppName = CONSTLIT("Transcendence");
-	fprintf(stderr, "OnBoot: after sAppName\n");
-	fflush(stderr);
 	retOptions->sClassName = CONSTLIT("transcendence_class");
 	retOptions->sAppData = CONSTLIT("Kronosaur\\Transcendence");
 	retOptions->hIcon = ::LoadIcon(NULL, "AppIcon");

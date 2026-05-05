@@ -1176,6 +1176,15 @@ ALERROR CUniverse::Init (SInitDesc &Ctx, CString *retsError)
 			if (Ctx.bForceTDB)
 				sMainFilespec = CONSTLIT("Transcendence.tdb");
 
+			//	On macOS debug builds we often launch from the CMake build tree,
+			//	so prefer known source-tree XML locations before falling back to TDB.
+
+			else if (pathExists("../../Transcendence/TransCore/Transcendence.xml"))
+				sMainFilespec = CONSTLIT("../../Transcendence/TransCore/Transcendence.xml");
+
+			else if (pathExists("Transcendence/TransCore/Transcendence.xml"))
+				sMainFilespec = CONSTLIT("Transcendence/TransCore/Transcendence.xml");
+
 			//	Check the source subdirector first.
 
 			else if (pathExists("..\\TransCore\\Transcendence.xml"))

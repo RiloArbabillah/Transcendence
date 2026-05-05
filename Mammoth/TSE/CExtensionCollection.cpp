@@ -1727,7 +1727,7 @@ ALERROR CExtensionCollection::LoadBaseFile (const CString &sFilespec, DWORD dwFl
 	//	Log whether or not we're using the XML or TDB files.
 
 	if (Resources.IsUsingExternalGameFile())
-		kernelDebugLogPattern("Using external %s", sFilespec);
+		kernelDebugLogString(strPatternSubst(CONSTLIT("Using external %s"), sFilespec));
 
 	if (Resources.IsUsingExternalResources())
 		kernelDebugLogPattern("Using external resource files");

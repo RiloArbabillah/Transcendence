@@ -2236,12 +2236,12 @@ class CThreadPool
 void kernelCleanUp (void);
 void kernelClearDebugLog (void);
 void kernelDebugLogPattern (const char *pszLine, ...);
-inline void kernelDebugLogPattern (const char *pszLine, const CString &s1) { kernelDebugLogPattern(pszLine, s1.GetASCIIZPointer()); }
-inline void kernelDebugLogPattern (const char *pszLine, const CString &s1, const CString &s2) { kernelDebugLogPattern(pszLine, s1.GetASCIIZPointer(), s2.GetASCIIZPointer()); }
-inline void kernelDebugLogPattern (const char *pszLine, const CString &s1, int i2) { kernelDebugLogPattern(pszLine, s1.GetASCIIZPointer(), i2); }
-inline void kernelDebugLogPattern (const char *pszLine, const CString &s1, int i2, const CString &s3) { kernelDebugLogPattern(pszLine, s1.GetASCIIZPointer(), i2, s3.GetASCIIZPointer()); }
-inline void kernelDebugLogPattern (const char *pszLine, const CString &s1, int i2, const CString &s3, int i4) { kernelDebugLogPattern(pszLine, s1.GetASCIIZPointer(), i2, s3.GetASCIIZPointer(), i4); }
-inline void kernelDebugLogPattern (const char *pszLine, const CString &s1, int i2, const CString &s3, int i4, const CString &s5) { kernelDebugLogPattern(pszLine, s1.GetASCIIZPointer(), i2, s3.GetASCIIZPointer(), i4, s5.GetASCIIZPointer()); }
+inline void kernelDebugLogPattern (const char *pszLine, const CString &s1) { ((void (*)(const char *, ...))kernelDebugLogPattern)(pszLine, s1.GetASCIIZPointer()); }
+inline void kernelDebugLogPattern (const char *pszLine, const CString &s1, const CString &s2) { ((void (*)(const char *, ...))kernelDebugLogPattern)(pszLine, s1.GetASCIIZPointer(), s2.GetASCIIZPointer()); }
+inline void kernelDebugLogPattern (const char *pszLine, const CString &s1, int i2) { ((void (*)(const char *, ...))kernelDebugLogPattern)(pszLine, s1.GetASCIIZPointer(), i2); }
+inline void kernelDebugLogPattern (const char *pszLine, const CString &s1, int i2, const CString &s3) { ((void (*)(const char *, ...))kernelDebugLogPattern)(pszLine, s1.GetASCIIZPointer(), i2, s3.GetASCIIZPointer()); }
+inline void kernelDebugLogPattern (const char *pszLine, const CString &s1, int i2, const CString &s3, int i4) { ((void (*)(const char *, ...))kernelDebugLogPattern)(pszLine, s1.GetASCIIZPointer(), i2, s3.GetASCIIZPointer(), i4); }
+inline void kernelDebugLogPattern (const char *pszLine, const CString &s1, int i2, const CString &s3, int i4, const CString &s5) { ((void (*)(const char *, ...))kernelDebugLogPattern)(pszLine, s1.GetASCIIZPointer(), i2, s3.GetASCIIZPointer(), i4, s5.GetASCIIZPointer()); }
 void kernelDebugLogString (const CString &sLine);
 CString kernelGetSessionDebugLog (void);
 

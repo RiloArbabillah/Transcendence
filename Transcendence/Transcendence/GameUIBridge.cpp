@@ -14,45 +14,9 @@
 #include <signal.h>
 #include <sys/stat.h>
 
-static int g_logFd = -1;
 static CTranscendenceController* g_pController = nullptr;
 
-static const char* GetGameUILogPath()
-{
-    static char sPath[1024];
-    static bool bInit = false;
-
-    if (!bInit)
-    {
-        const char* pHome = getenv("HOME");
-        if (pHome && *pHome)
-        {
-            char basePath[1024];
-            snprintf(basePath, sizeof(basePath), "%s/Library/Application Support", pHome);
-            mkdir(basePath, 0755);
-
-            snprintf(basePath, sizeof(basePath), "%s/Library/Application Support/Kronosaur", pHome);
-            mkdir(basePath, 0755);
-
-            snprintf(basePath, sizeof(basePath), "%s/Library/Application Support/Kronosaur/Transcendence", pHome);
-            mkdir(basePath, 0755);
-
-            snprintf(sPath, sizeof(sPath), "%s/trans_gameui.log", basePath);
-        }
-        else
-            snprintf(sPath, sizeof(sPath), "%s", "/tmp/trans_gameui.log");
-
-        bInit = true;
-    }
-
-    return sPath;
-}
-
 static void log_msg(const char* msg) {
-    if (g_logFd >= 0) {
-        write(g_logFd, msg, strlen(msg));
-        write(g_logFd, "\n", 1);
-    }
     fprintf(stderr, "%s\n", msg);
     fflush(stderr);
 }
@@ -65,18 +29,6 @@ static void log_va(const char* fmt, ...) {
     va_end(args);
     log_msg(buf);
 }
-
-static void sig_handler(int sig) {
-    log_msg("SIGSEGV caught!");
-    char buf[128];
-    snprintf(buf, sizeof(buf), "Signal %d at tick %d", sig, 0);
-    log_msg(buf);
-    _exit(1);
-}
-
-
-
-#include <signal.h>
 
 static void sigsegv_handler(int sig) {
     (void)sig;
@@ -98,46 +50,30 @@ static void sigabrt_handler(int sig) {
 
 void InitGameUI(SAppState& state)
 {
+    (void)state;
     signal(SIGSEGV, sigsegv_handler);
     signal(SIGABRT, sigabrt_handler);
 
-    fprintf(stderr, "GameUIBridge: InitGameUI starting\n");
-    fflush(stderr);
-    fprintf(stderr, "IG: 4a BEFORE new CTranscendenceController\n");
-    fflush(stderr);
-    CTranscendenceController* pTemp = new CTranscendenceController();
-    fprintf(stderr, "IG: 4b AFTER new, pTemp=%p\n", (void*)pTemp);
-    fflush(stderr);
-    g_pController = pTemp;
-    fprintf(stderr, "IG: 4c AFTER assignment\n");
-    fflush(stderr);
-
-    log_msg("IG: 5 SetController (with OnBoot)");
-    log_msg("IG: 5a calling SetController");
-    fflush(nullptr);
+    g_pController = new CTranscendenceController();
     g_pHI->SetController(g_pController);
-    fflush(nullptr);
-    log_msg("IG: 5b SetController returned");
-    fflush(nullptr);
 
-    log_msg("IG: 6 calling OnBoot (skip for SDL2-only)");
     SHIOptions Options;
     Options.m_bWindowedMode = true;
     Options.m_bNoGPUAcceleration = false;
     CString sError;
     char szCmdLine[1] = { '\0' };
     ALERROR error = g_pController->OnBoot(szCmdLine, &Options, &sError);
-    log_va("IG: 6 OnBoot result: %d (error: %s)", error, sError.GetASCIIZPointer());
 
-    log_msg("IG: 7 calling OnInit (testing)");
-    error = g_pController->OnInit(&sError);
-    log_va("IG: 7 OnInit result: %d (error: %s)", error, sError.GetASCIIZPointer());
+    if (error == NOERROR)
+        error = g_pController->OnInit(&sError);
 
-    log_msg("IG: 8 done");
+    if (error != NOERROR)
+        log_va("InitGameUI error: %d (%s)", error, sError.GetASCIIZPointer());
 }
 
 void UpdateGameUI(SAppState& state)
 {
+    (void)state;
     static int tick = 0;
     tick++;
 
@@ -213,17 +149,7 @@ void UpdateGameUI(SAppState& state)
             g_pHI->WMChar((char)wParam, 0);
     }
 
-    if (tick % 60 == 0) {
-        log_va("UG: tick %d", tick);
-    }
     if (g_pHI) {
-        IHISession* pSession = g_pHI->GetSession();
-        if (tick <= 5)
-            log_va("UG: tick %d GetSession = %p", tick, (void*)pSession);
-        if (tick <= 5)
-            log_va("UG: tick %d before OnAnimate", tick);
         g_pHI->OnAnimate();
-        if (tick <= 5)
-            log_va("UG: tick %d after OnAnimate", tick);
     }
 }
