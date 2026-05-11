@@ -124,11 +124,28 @@ Build baseline (CMake presets + app target)
 - Rebuild `macos-debug` berhasil setelah perubahan.
 - Smoke run masih hanya menunjukkan app berhasil init dan masuk main loop; `build/macos-debug/Debug.log` belum memuat log baru dari `LoadBaseFile`, jadi blocker sekarang belum cukup terlokalisasi dari run non-interaktif ini.
 - Kesimpulan sementara: belum ada bukti bahwa crash atau failure aktif sudah terpicu dalam smoke run headless yang dipakai sekarang. Langkah berikutnya adalah menjalankan di `lldb` atau menambah titik log lebih dekat ke jalur background init yang benar-benar dieksekusi.
+- Hasil `lldb` mengubah diagnosis blocker aktif:
+  - Crash pertama yang benar-benar terpicu bukan di `LoadBaseFile`, tetapi di `CTranscendenceController::CleanUpUpgrade` saat memanggil `kernelDebugLogPattern("Unable to delete file: %s.", FilesToDelete[i])`.
+  - Di macOS arm64, overload `kernelDebugLogPattern` yang meneruskan `CString` ke varargs menghasilkan argumen rusak; crash muncul di `Kernel::CString::Append` saat formatting log.
+  - Untuk membuka jalan ke blocker berikutnya, log cleanup itu dipersempit menjadi indeks file saja di `Transcendence/Transcendence/CTranscendenceController.cpp`.
+  - Setelah workaround tersebut, app tidak crash pada cleanup dan `lldb` berhasil mencapai breakpoint `CExtensionCollection::LoadBaseFile` di thread background.
+  - Run yang sama juga mengeluarkan error visual penting dari macOS image loader: `Resources\Title.JPG` tidak bisa dibuka karena path masih memakai backslash Windows di path resource (`.../Resources\Title.JPG`).
+- Artinya blocker aktif sudah bergeser lagi:
+  1. varargs logging dengan `CString` di macOS arm64 tidak aman dan perlu hardening lebih luas,
+  2. resource path normalization Windows-to-macOS masih memblokir first visible frame.
+- Slice berikutnya memperbaiki normalisasi separator di `Alchemy/Kernel/Path.cpp`.
+  - `pathAddComponent` sekarang memakai `/` pada `TARGET_PLATFORM_MACOS` alih-alih selalu menambahkan `\`.
+  - Setelah rebuild, error stdout dari macOS image loader untuk `Resources\Title.JPG` tidak muncul lagi pada smoke run berikutnya.
+  - Jalur `LoadBaseFile` tetap tercapai di `lldb`, sehingga path fix tidak memutus background initialization.
+  - Smoke run setelah fix masih masuk main loop, tetapi belum memberi bukti cukup bahwa title or menu frame sudah benar-benar visible dalam run non-interaktif.
 
 **Hasil sementara Task 2:**
 - Instrumentasi error context untuk embedded extension load sudah ditambahkan.
 - Build tetap hijau.
-- Root cause belum terkonfirmasi; task tetap `in_progress`.
+- `LoadBaseFile` terbukti benar-benar dieksekusi di background thread.
+- Root cause awal yang terkonfirmasi oleh `lldb` adalah crash pada logging varargs, bukan embedded extension load itu sendiri.
+- Blokir path resource `Title.JPG` yang terlihat di stdout sudah ditangani melalui normalisasi separator path di macOS.
+- Task tetap `in_progress` karena visible first frame dan jalur background load penuh masih perlu dibuktikan setelah path fix ini.
 
 ### Checkpoint: Setelah Task 1-2
 

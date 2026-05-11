@@ -387,11 +387,16 @@ CString Kernel::pathAddComponent (const CString &sPath, const CString &sComponen
 		CString sResult = sPath;
 		int iPathLength = sResult.GetLength();
 		char *pString = sResult.GetPointer();
+		const char *pszSeparator = "\\";
+
+#ifdef TARGET_PLATFORM_MACOS
+		pszSeparator = "/";
+#endif
 
 		//	If the path name does not have a trailing backslash, add one
 
 		if (!sPath.IsBlank() && !pathIsPathSeparator(pString + iPathLength - 1))
-			sResult.Append(LITERAL("\\"));
+			sResult.Append(pszSeparator);
 
 		//	Now concatenate the component
 

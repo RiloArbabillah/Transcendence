@@ -236,7 +236,7 @@ void CTranscendenceController::CleanUpUpgrade (void)
 
 	for (i = 0; i < FilesToDelete.GetCount(); i++)
 		if (!fileDelete(FilesToDelete[i]))
-			::kernelDebugLogPattern("Unable to delete file: %s.", FilesToDelete[i]);
+			::kernelDebugLogPattern("Unable to delete upgrade cleanup file at index %d.", i);
 	}
 
 bool CTranscendenceController::CmdInstallUpgrade (void)
