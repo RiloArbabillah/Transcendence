@@ -1727,7 +1727,10 @@ ALERROR CExtensionCollection::LoadBaseFile (const CString &sFilespec, DWORD dwFl
 	//	Log whether or not we're using the XML or TDB files.
 
 	if (Resources.IsUsingExternalGameFile())
-		kernelDebugLogString(strPatternSubst(CONSTLIT("Using external %s"), sFilespec));
+		{
+		kernelDebugLogString(CONSTLIT("Using external base file"));
+		kernelDebugLogString(sFilespec);
+		}
 
 	if (Resources.IsUsingExternalResources())
 		kernelDebugLogPattern("Using external resource files");
@@ -1807,7 +1810,10 @@ ALERROR CExtensionCollection::LoadBaseFile (const CString &sFilespec, DWORD dwFl
 		{
 		CString sEmbeddedFilespec = EmbeddedExtensions[i]->GetAttribute(FILENAME_ATTRIB);
 		if (!sEmbeddedFilespec.IsBlank())
-			kernelDebugLogPattern("Loading embedded extension file: %s", sEmbeddedFilespec);
+			{
+			kernelDebugLogString(CONSTLIT("Loading embedded extension file"));
+			kernelDebugLogString(sEmbeddedFilespec);
+			}
 		else
 			kernelDebugLogPattern("Loading embedded extension element: <%s> %08x", EmbeddedExtensions[i]->GetTag(), EmbeddedExtensions[i]->GetAttributeInteger(UNID_ATTRIB));
 
@@ -1865,7 +1871,10 @@ ALERROR CExtensionCollection::LoadEmbeddedExtension (SDesignLoadCtx &Ctx, CXMLEl
 	CString sFilename;
 	if (pDesc->FindAttribute(FILENAME_ATTRIB, &sFilename))
 		{
-		Ctx.sErrorFilespec = strPatternSubst(CONSTLIT("%s#%s"), Ctx.sResDb, sFilename);
+		CString sErrorFilespec = Ctx.sResDb;
+		sErrorFilespec.Append(CONSTLIT("#"));
+		sErrorFilespec.Append(sFilename);
+		Ctx.sErrorFilespec = sErrorFilespec;
 
 		//	If we have a path, then we need to apply this to any resources 
 		//	loaded by this file.
@@ -1909,7 +1918,9 @@ ALERROR CExtensionCollection::LoadEmbeddedExtension (SDesignLoadCtx &Ctx, CXMLEl
 		{
 		pRoot = pDesc->OrphanCopy();
 		pDesc = pRoot;
-		Ctx.sErrorFilespec = strPatternSubst(CONSTLIT("%s#<%s:%08x>"), Ctx.sResDb, pDesc->GetTag(), pDesc->GetAttributeInteger(UNID_ATTRIB));
+		CString sErrorFilespec = Ctx.sResDb;
+		sErrorFilespec.Append(CONSTLIT("#embedded-extension"));
+		Ctx.sErrorFilespec = sErrorFilespec;
 		}
 
 	//	Create the extension

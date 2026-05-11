@@ -48,9 +48,19 @@ ALERROR CFileReadBlock::Close (void)
 
 	//	Close the file
 
-	UnmapViewOfFile(m_pFile);
+	if (m_pFile && m_pFile != MAP_FAILED)
+		{
+#ifdef TARGET_PLATFORM_MACOS
+		munmap(m_pFile, m_dwFileSize);
+#else
+		UnmapViewOfFile(m_pFile);
+#endif
+		}
+
 	CloseHandle(m_hFileMap);
 	CloseHandle(m_hFile);
+	m_pFile = NULL;
+	m_hFileMap = NULL;
 	m_hFile = NULL;
 
 	return NOERROR;
@@ -90,6 +100,35 @@ ALERROR CFileReadBlock::Open (void)
 
 	//	Open a file mapping
 
+	//	Figure out the size of the file before mapping.
+
+	m_dwFileSize = ::GetFileSize(m_hFile, NULL);
+
+#ifdef TARGET_PLATFORM_MACOS
+	if (m_dwFileSize == 0)
+		{
+		m_pFile = NULL;
+		return NOERROR;
+		}
+
+	m_pFile = (char *)mmap(NULL,
+			m_dwFileSize,
+			PROT_READ,
+			MAP_PRIVATE,
+			(int)(intptr_t)m_hFile,
+			0);
+	if (m_pFile == MAP_FAILED)
+		{
+		CloseHandle(m_hFile);
+		m_pFile = NULL;
+		m_hFile = NULL;
+		return ERR_FAIL;
+		}
+
+	m_hFileMap = NULL;
+	return NOERROR;
+#endif
+
 	m_hFileMap = CreateFileMapping(m_hFile,
 			NULL,
 			PAGE_READONLY,
@@ -117,10 +156,6 @@ ALERROR CFileReadBlock::Open (void)
 		m_hFile = NULL;
 		return ERR_FAIL;
 		}
-
-	//	Figure out the size of the file
-
-	m_dwFileSize = ::GetFileSize(m_hFile, NULL);
 
 	return NOERROR;
 	}

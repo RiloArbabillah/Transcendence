@@ -150,6 +150,17 @@ Build baseline (CMake presets + app target)
   - asset menu utama berhasil dimuat,
   - tetapi first paint belum terjadi atau belum mencapai breakpoint paint sebelum background universe init memicu stop di `LoadBaseFile` path.
   - Jadi blocker aktif yang paling kuat sekarang kembali ke background initialization, bukan lagi loading-screen resource lookup.
+- Investigasi `lldb` lanjutan pada jalur background init memberi lokasi crash yang lebih konkret:
+  - Setelah log `LoadBaseFile` disederhanakan, stop di background thread bergeser menjadi `EXC_BAD_ACCESS` nyata, bukan lagi berhenti di log line.
+  - Backtrace aktif sekarang masuk ke:
+    - `SHAUpdate`
+    - `CDigest::CDigest`
+    - `cryptoCreateDigest`
+    - `fileCreateDigest`
+    - `CResourceDb::ComputeFileDigest`
+    - `CExtensionCollection::LoadBaseFile`
+  - Ini berarti blocker aktif saat ini berada pada perhitungan digest file base (`Transcendence.xml`/resource db) di background init, sebelum load embedded extension berjalan jauh dan sebelum first paint terkonfirmasi.
+  - Dengan kata lain, first-frame blocker sekarang punya akar teknis yang lebih sempit: digest or file-read path di `SecureHashAlgorithm.cpp` / `CResourceDb::ComputeFileDigest`, bukan loading-session setup.
 
 **Hasil sementara Task 2:**
 - Instrumentasi error context untuk embedded extension load sudah ditambahkan.
@@ -158,7 +169,7 @@ Build baseline (CMake presets + app target)
 - Root cause awal yang terkonfirmasi oleh `lldb` adalah crash pada logging varargs, bukan embedded extension load itu sendiri.
 - Blokir path resource `Title.JPG` yang terlihat di stdout sudah ditangani melalui normalisasi separator path di macOS.
 - `CLoadingSession::OnInit` kini terbukti berhasil, tetapi `OnPaint` pertama belum terbukti tercapai.
-- Task tetap `in_progress` karena jalur background `LoadBaseFile` masih menjadi suspect utama yang menahan first visible frame.
+- Task tetap `in_progress` karena jalur background `LoadBaseFile` sekarang terlokalisasi lebih jauh ke crash digest file di `SecureHashAlgorithm.cpp` dan `CResourceDb::ComputeFileDigest`.
 
 ### Checkpoint: Setelah Task 1-2
 
