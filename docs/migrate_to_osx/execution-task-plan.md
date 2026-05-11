@@ -138,6 +138,18 @@ Build baseline (CMake presets + app target)
   - Setelah rebuild, error stdout dari macOS image loader untuk `Resources\Title.JPG` tidak muncul lagi pada smoke run berikutnya.
   - Jalur `LoadBaseFile` tetap tercapai di `lldb`, sehingga path fix tidak memutus background initialization.
   - Smoke run setelah fix masih masuk main loop, tetapi belum memberi bukti cukup bahwa title or menu frame sudah benar-benar visible dalam run non-interaktif.
+- Verifikasi lanjutan untuk first-frame dilakukan dengan dua cara:
+  - `CTranscendenceController::OnInit` sekarang mengembalikan error jika `m_HI.ShowSession(new CLoadingSession(...))` gagal, sehingga kegagalan loading session tidak lagi diam-diam diabaikan.
+  - `CLoadingSession::OnInit` diberi log sempit ke stderr.
+- Hasilnya:
+  - `CLoadingSession::OnInit` sukses penuh: title image, stargate image, dan stargate mask semua berhasil ditemukan dan dimuat.
+  - Tetapi log `CLoadingSession::OnPaint` pertama tidak pernah muncul pada smoke run.
+  - Di bawah `lldb`, proses berhenti pada thread background selama `CTranscendenceModel::InitBackground -> CUniverse::Init -> CExtensionCollection::LoadBaseFile` sebelum breakpoint `CLoadingSession::OnPaint` pernah terpukul.
+- Interpretasi saat ini:
+  - loading session berhasil dibuat,
+  - asset menu utama berhasil dimuat,
+  - tetapi first paint belum terjadi atau belum mencapai breakpoint paint sebelum background universe init memicu stop di `LoadBaseFile` path.
+  - Jadi blocker aktif yang paling kuat sekarang kembali ke background initialization, bukan lagi loading-screen resource lookup.
 
 **Hasil sementara Task 2:**
 - Instrumentasi error context untuk embedded extension load sudah ditambahkan.
@@ -145,7 +157,8 @@ Build baseline (CMake presets + app target)
 - `LoadBaseFile` terbukti benar-benar dieksekusi di background thread.
 - Root cause awal yang terkonfirmasi oleh `lldb` adalah crash pada logging varargs, bukan embedded extension load itu sendiri.
 - Blokir path resource `Title.JPG` yang terlihat di stdout sudah ditangani melalui normalisasi separator path di macOS.
-- Task tetap `in_progress` karena visible first frame dan jalur background load penuh masih perlu dibuktikan setelah path fix ini.
+- `CLoadingSession::OnInit` kini terbukti berhasil, tetapi `OnPaint` pertama belum terbukti tercapai.
+- Task tetap `in_progress` karena jalur background `LoadBaseFile` masih menjadi suspect utama yang menahan first visible frame.
 
 ### Checkpoint: Setelah Task 1-2
 

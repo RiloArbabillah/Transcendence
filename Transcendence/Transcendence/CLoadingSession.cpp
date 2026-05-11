@@ -5,6 +5,14 @@
 #include "PreComp.h"
 #include "Transcendence.h"
 
+#include <cstdio>
+
+static void loading_log(const char *pszMsg)
+	{
+	fprintf(stderr, "%s\n", pszMsg);
+	fflush(stderr);
+	}
+
 const int STARGATE_WIDTH =						128;
 const int STARGATE_HEIGHT =						128;
 
@@ -83,6 +91,7 @@ ALERROR CLoadingSession::OnInit (CString *retsError)
 	{
 	ALERROR error;
 	const CVisualPalette &VI = m_HI.GetVisuals();
+	loading_log("CLoadingSession::OnInit start");
 
 	RECT rcCenter;
 	VI.GetWidescreenRect(&rcCenter);
@@ -93,9 +102,11 @@ ALERROR CLoadingSession::OnInit (CString *retsError)
 	CString sTitleFilespec;
 	if (!CResourcePathResolver::FindJPEGResource(CONSTLIT("IDR_TITLE_IMAGE"), &sTitleFilespec))
 		return ERR_FAIL;
+	loading_log("CLoadingSession::OnInit found title resource");
 
 	if (error = JPEGLoadToRGBAFromFile(sTitleFilespec, &Image))
 		return error;
+	loading_log("CLoadingSession::OnInit loaded title image");
 
 	bool bSuccess = m_TitleImage.CreateFromRaw(Image.Pixels.GetPointer(), Image.cxWidth, Image.cyHeight, Image.iPitch, CG32bitImage::alphaNone);
 	if (!bSuccess)
@@ -106,9 +117,11 @@ ALERROR CLoadingSession::OnInit (CString *retsError)
 	CString sStargateFilespec;
 	if (!CResourcePathResolver::FindJPEGResource(CONSTLIT("IDR_STARGATE_IMAGE"), &sStargateFilespec))
 		return ERR_FAIL;
+	loading_log("CLoadingSession::OnInit found stargate resource");
 
 	if (error = JPEGLoadToRGBAFromFile(sStargateFilespec, &Image))
 		return error;
+	loading_log("CLoadingSession::OnInit loaded stargate image");
 
 	bSuccess = m_StargateImage.CreateFromRaw(Image.Pixels.GetPointer(), Image.cxWidth, Image.cyHeight, Image.iPitch, CG32bitImage::alphaNone);
 	if (!bSuccess)
@@ -117,10 +130,12 @@ ALERROR CLoadingSession::OnInit (CString *retsError)
 	CString sMaskFilespec;
 	if (!CResourcePathResolver::FindBitmapResource(CONSTLIT("IDR_STARGATE_MASK"), &sMaskFilespec))
 		return ERR_FAIL;
+	loading_log("CLoadingSession::OnInit found stargate mask");
 
 	SBMPImageLoad Mask;
 	if (error = dibLoadToBufferFromFile(sMaskFilespec, &Mask))
 		return error;
+	loading_log("CLoadingSession::OnInit loaded stargate mask");
 
 	ApplyAlphaMask(m_StargateImage, Mask);
 	if (m_StargateImage.IsEmpty())
@@ -149,6 +164,8 @@ ALERROR CLoadingSession::OnInit (CString *retsError)
 		m_rcStargate.top = m_rcStargate.bottom - STARGATE_HEIGHT;
 		}
 
+	loading_log("CLoadingSession::OnInit done");
+
 	return NOERROR;
 	}
 
@@ -157,6 +174,13 @@ void CLoadingSession::OnPaint (CG32bitImage &Screen, const RECT &rcInvalid)
 //	OnPaint
 
 	{
+	static bool bLogged = false;
+	if (!bLogged)
+		{
+		loading_log("CLoadingSession::OnPaint first paint");
+		bLogged = true;
+		}
+
 	const CVisualPalette &VI = m_HI.GetVisuals();
 	const CG16bitFont &MediumHeavyBoldFont = VI.GetFont(fontMediumHeavyBold);
 	const CG16bitFont &SubTitleFont = VI.GetFont(fontSubTitle);

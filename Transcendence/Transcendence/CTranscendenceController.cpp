@@ -2147,6 +2147,14 @@ ALERROR CTranscendenceController::OnInit (CString *retsError)
 
 	CLoadingSession* pSession = new CLoadingSession(m_HI, m_Model.GetCopyright(), m_Settings);
 	ALERROR error2 = m_HI.ShowSession(pSession);
+	if (error2 != NOERROR)
+		{
+		if (retsError)
+			*retsError = CONSTLIT("Unable to initialize loading session.");
+		delete pSession;
+		return error2;
+		}
+
 	m_iState = stateLoading;
 
 	//	Play Intro Music
