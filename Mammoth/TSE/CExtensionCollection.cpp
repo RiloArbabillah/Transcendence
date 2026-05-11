@@ -1805,6 +1805,12 @@ ALERROR CExtensionCollection::LoadBaseFile (const CString &sFilespec, DWORD dwFl
 
 	for (i = 0; i < EmbeddedExtensions.GetCount(); i++)
 		{
+		CString sEmbeddedFilespec = EmbeddedExtensions[i]->GetAttribute(FILENAME_ATTRIB);
+		if (!sEmbeddedFilespec.IsBlank())
+			kernelDebugLogPattern("Loading embedded extension file: %s", sEmbeddedFilespec);
+		else
+			kernelDebugLogPattern("Loading embedded extension element: <%s> %08x", EmbeddedExtensions[i]->GetTag(), EmbeddedExtensions[i]->GetAttributeInteger(UNID_ATTRIB));
+
 		CExtension *pExtension;
 		if (error = LoadEmbeddedExtension(Ctx, EmbeddedExtensions[i], &pExtension))
 			return CExtension::ComposeLoadError(Ctx, retsError);
@@ -1859,6 +1865,8 @@ ALERROR CExtensionCollection::LoadEmbeddedExtension (SDesignLoadCtx &Ctx, CXMLEl
 	CString sFilename;
 	if (pDesc->FindAttribute(FILENAME_ATTRIB, &sFilename))
 		{
+		Ctx.sErrorFilespec = strPatternSubst(CONSTLIT("%s#%s"), Ctx.sResDb, sFilename);
+
 		//	If we have a path, then we need to apply this to any resources 
 		//	loaded by this file.
 
@@ -1901,6 +1909,7 @@ ALERROR CExtensionCollection::LoadEmbeddedExtension (SDesignLoadCtx &Ctx, CXMLEl
 		{
 		pRoot = pDesc->OrphanCopy();
 		pDesc = pRoot;
+		Ctx.sErrorFilespec = strPatternSubst(CONSTLIT("%s#<%s:%08x>"), Ctx.sResDb, pDesc->GetTag(), pDesc->GetAttributeInteger(UNID_ATTRIB));
 		}
 
 	//	Create the extension
@@ -1916,6 +1925,7 @@ ALERROR CExtensionCollection::LoadEmbeddedExtension (SDesignLoadCtx &Ctx, CXMLEl
 
 	//	We always load in full because we don't know how to load later.
 	ExtCtx.bLoadAdventureDesc = false;
+	ExtCtx.sErrorFilespec = Ctx.sErrorFilespec;
 
 	//	Root folder
 
@@ -1929,6 +1939,9 @@ ALERROR CExtensionCollection::LoadEmbeddedExtension (SDesignLoadCtx &Ctx, CXMLEl
 	CExtension *pExtension;
 	if (error = CExtension::CreateExtension(ExtCtx, pDesc, CExtension::folderBase, pExtEntities, &pExtension))
 		{
+		if (pOldEntities)
+			Ctx.pResDb->SetEntities(pOldEntities, bOldEntitiesFree);
+
 		delete pRoot;
 		delete pExtEntities;
 		Ctx.sError = ExtCtx.sError;
