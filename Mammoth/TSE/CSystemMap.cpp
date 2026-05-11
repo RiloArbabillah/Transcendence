@@ -467,8 +467,11 @@ ALERROR CSystemMap::OnCreateFromXML (SDesignLoadCtx &Ctx, CXMLElement *pDesc)
 			{
 			if (m_pBackgroundEffect.IsEmpty())
 				{
+				CString sBackgroundEffectUNID = sUNID;
+				sBackgroundEffectUNID.Append(CONSTLIT(":b"));
+
 				if (error = m_pBackgroundEffect.LoadEffect(Ctx,
-						strPatternSubst(CONSTLIT("%s:b"), sUNID),
+						sBackgroundEffectUNID,
 						pItem,
 						NULL_STR))
 					return ComposeLoadError(Ctx, Ctx.sError);

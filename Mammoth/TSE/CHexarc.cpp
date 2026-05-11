@@ -175,7 +175,10 @@ bool CHexarc::CreateCredentials (const CString &sUsername, const CString &sPassw
 //	Creates credentials for signing in to Hexarc
 
 	{
-	CBufferReadBlock Buffer(strPatternSubst(CONSTLIT("%s:HEXARC01:%s"), strToLower(sUsername), sPassword));
+	CString sCredentials = strToLower(sUsername);
+	sCredentials.Append(CONSTLIT(":HEXARC01:"));
+	sCredentials.Append(sPassword);
+	CBufferReadBlock Buffer(sCredentials);
 	return CHexarc::ConvertToJSON(CDigest(Buffer), retValue);
 	}
 
@@ -186,7 +189,10 @@ bool CHexarc::CreateCredentials (const CString &sUsername, const CString &sPassw
 //	Creates credentials for signing in to Hexarc
 
 	{
-	CBufferReadBlock Buffer(strPatternSubst("%s:HEXARC01:%s", strToLower(sUsername), sPassword));
+	CString sCredentials = strToLower(sUsername);
+	sCredentials.Append(CONSTLIT(":HEXARC01:"));
+	sCredentials.Append(sPassword);
+	CBufferReadBlock Buffer(sCredentials);
 	CDigest PasswordHash(Buffer);
 	*retsValue = CString((char *)PasswordHash.GetBytes(), PasswordHash.GetLength());
 	return true;

@@ -186,6 +186,15 @@ Build baseline (CMake presets + app target)
 - Sweep lanjutan dilakukan pada sekumpulan file efek/topologi yang membentuk derived UNID dengan pola `"%s/..."`, `"%s:..."`, atau `"%s/%d"`, termasuk `SFXVariants.cpp`, `SFXSequencer.cpp`, `CTopologyDesc.cpp`, `CTableTopologyProc.cpp`, `CRandomPointsProc.cpp`, `CPartitionNodesProc.cpp`, `CObjectEffectDesc.cpp`, `CLocateNodesProc.cpp`, `CGroupTopologyProc.cpp`, `CFillNodesProc.cpp`, dan `CConquerNodesProc.cpp`.
 - Setelah sweep itu, blocker berpindah dari effect or particle UNID builders ke `CTradingDesc::ComputeID`, tepatnya pada `strPatternSubst(CONSTLIT("%s:%s"), sService, sCriteria)`.
 - Ini menunjukkan sweep pada jalur active background design loading berhasil mendorong init jauh lebih dalam, dan pola rapuh sekarang meluas dari UNID turunan ke pembentukan ID trading berbasis `CString`.
+- Sweep tambahan berikutnya mencakup `CSystemMap::OnCreateFromXML`, `CHexarc.cpp`, `CHexarcSession.cpp`, `CGameStats.cpp`, dan `CTradingDesc.cpp` untuk menghapus pola string-builder sejenis yang masih tersisa di jalur aktif.
+- Setelah rebuild dan rerun `lldb`, blocker bergerak lagi dari `CTradingDesc::ComputeID` ke `CLanguageDataBlock::InitFromXML`, tepatnya pada pembentukan ID script:
+  - `sID = strPatternSubst(CONSTLIT("%s%s"), SCRIPT_ID_PREFIX, sID);`
+- Ini menunjukkan bahwa jalur background init terus maju dan pola masalah kini mencakup prefiks string berbasis `CString`, bukan hanya suffix atau path-derived IDs.
+- Sweep berikutnya juga mencakup titik sejenis yang tersisa di `CLanguageDataBlock.cpp`, `CSystemMap.cpp`, dan helper terkait, lalu build dan `lldb` dijalankan lagi sekali.
+- Setelah sweep tersebut, background init bergerak lebih jauh lagi, melewati load design XML dan masuk ke eksekusi globals CodeChain.
+- Blocker aktif terbaru sekarang berada di `CCLambda::initDesc`:
+  - `m_sDesc = strPatternSubst(CONSTLIT("(%s %s)\n\n%s\n"), sKey, pLambdaArgs->Print(PRFLAG_NO_LIST_LAMBDA_ARGS), sHelp);`
+- Ini berarti pola Apple Silicon yang semula terlihat di derived ID builders kini telah bergeser ke formatting string multi-arg pada jalur CodeChain/runtime description building.
 
 ### Checkpoint: Setelah Task 1-2
 

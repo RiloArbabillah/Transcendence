@@ -613,11 +613,21 @@ CString CTradingDesc::ComputeID (ETradeServiceTypes iService, DWORD dwUNID, cons
 
 	{
 	CString sService = ((iService >= 0 && iService < serviceCount) ? CString(SERVICE_DATA[iService].pszIDPrefix) : CONSTLIT("?"));
+	CString sID = sService;
+	sID.Append(CONSTLIT(":"));
 
 	if (dwUNID)
-		return strPatternSubst(CONSTLIT("%s:%x"), sService, dwUNID);
+		{
+		char szBuffer[32];
+		snprintf(szBuffer, sizeof(szBuffer), "%x", dwUNID);
+		sID.Append(CString(szBuffer));
+		return sID;
+		}
 	else
-		return strPatternSubst(CONSTLIT("%s:%s"), sService, sCriteria);
+		{
+		sID.Append(sCriteria);
+		return sID;
+		}
 	}
 
 int CTradingDesc::ComputePrice (STradeServiceCtx &Ctx, DWORD dwFlags) const
@@ -2652,4 +2662,3 @@ void CTradingDesc::WriteToStream (IWriteStream *pStream)
 		pStream->Write(Commodity.dwFlags);
 		}
 	}
-

@@ -124,9 +124,9 @@ void CGameStats::Insert (const CString &sStatName, const CString &sStatValue, co
 
 	//	We store the section name in the sort key (OK if sSection is blank)
 
-	pNew->sSortKey = strPatternSubst(CONSTLIT("%s/%s"),
-			sSection,
-			(sSortKey.IsBlank() ? sStatName : sSortKey));
+	pNew->sSortKey = sSection;
+	pNew->sSortKey.Append(CONSTLIT("/"));
+	pNew->sSortKey.Append((sSortKey.IsBlank() ? sStatName : sSortKey));
 	}
 
 void CGameStats::InsertFromCCItem (CDesignType &Type, const ICCItem &Entry)

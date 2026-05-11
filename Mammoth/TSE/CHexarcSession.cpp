@@ -174,7 +174,10 @@ CString CHexarcSession::GetClientVersion (void) const
 	SFileVersionInfo VerInfo;
 	::fileGetVersionInfo(NULL_STR, &VerInfo);
 
-	return strPatternSubst("%s/%s", CLIENT_TYPE, VerInfo.sProductVersion);
+	CString sClientType = CString(CLIENT_TYPE);
+	sClientType.Append(CONSTLIT("/"));
+	sClientType.Append(VerInfo.sProductVersion);
+	return sClientType;
 	}
 
 bool CHexarcSession::GetJSONResponse (CHTTPMessage &Response, CJSONValue *retValue, CString *retsError)

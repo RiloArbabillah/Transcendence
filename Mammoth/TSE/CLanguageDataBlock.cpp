@@ -364,7 +364,11 @@ ALERROR CLanguageDataBlock::InitFromXML (SDesignLoadCtx &Ctx, CXMLElement *pDesc
 
 		bool bIsScriptBlock = strEquals(pItem->GetTag(), SCRIPT_TAG);
 		if (bIsScriptBlock)
-			sID = strPatternSubst(CONSTLIT("%s%s"), SCRIPT_ID_PREFIX, sID);
+			{
+			CString sScriptID = CString(SCRIPT_ID_PREFIX);
+			sScriptID.Append(sID);
+			sID = sScriptID;
+			}
 
 		//	Add an entry
 
@@ -923,4 +927,3 @@ const CLanguageDataBlock::SEntry *CLanguageDataBlock::TranslateTry (const CDesig
 		return NULL;
 		}
 	}
-
