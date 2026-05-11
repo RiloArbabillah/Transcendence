@@ -193,7 +193,9 @@ ALERROR CRandomPointsProc::OnInitFromXML (SDesignLoadCtx &Ctx, CXMLElement *pDes
 
 		else if (strEquals(pItem->GetTag(), POINT_TAG))
 			{
-			CString sNewUNID = strPatternSubst(CONSTLIT("%s/%d"), sUNID, m_PointProcs.GetCount());
+			CString sNewUNID = sUNID;
+			sNewUNID.Append(CONSTLIT("/"));
+			sNewUNID.Append(strFromInt(m_PointProcs.GetCount(), false));
 			SPointProc *pPointProc = m_PointProcs.Insert();
 
 			//	Basic attributes
@@ -217,14 +219,20 @@ ALERROR CRandomPointsProc::OnInitFromXML (SDesignLoadCtx &Ctx, CXMLElement *pDes
 
 			//	Label effect
 
+			CString sLabelEffectUNID = sNewUNID;
+			sLabelEffectUNID.Append(CONSTLIT(":l"));
+
+			CString sMapEffectUNID = sNewUNID;
+			sMapEffectUNID.Append(CONSTLIT(":m"));
+
 			if (error = pPointProc->pLabelEffect.LoadEffect(Ctx,
-					strPatternSubst(CONSTLIT("%s:l"), sNewUNID),
+					sLabelEffectUNID,
 					pItem->GetContentElementByTag(LABEL_EFFECT_TAG),
 					pItem->GetAttribute(LABEL_EFFECT_ATTRIB)))
 				return error;
 
 			if (error = pPointProc->pMapEffect.LoadEffect(Ctx,
-					strPatternSubst(CONSTLIT("%s:m"), sNewUNID),
+					sMapEffectUNID,
 					pItem->GetContentElementByTag(MAP_EFFECT_TAG),
 					pItem->GetAttribute(MAP_EFFECT_ATTRIB)))
 				return error;

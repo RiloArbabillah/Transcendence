@@ -263,16 +263,24 @@ ALERROR CTopologyDesc::LoadFromXML (SDesignLoadCtx &Ctx, CXMLElement *pXMLDesc, 
 	CString sUNID;
 	if (!sParentUNID.IsBlank())
 		{
-		sUNID = strPatternSubst(CONSTLIT("%s/%s"), sParentUNID, m_sID);
+		sUNID = sParentUNID;
+		sUNID.Append(CONSTLIT("/"));
+		sUNID.Append(m_sID);
+
+		CString sLabelEffectUNID = sUNID;
+		sLabelEffectUNID.Append(CONSTLIT(":l"));
+
+		CString sMapEffectUNID = sUNID;
+		sMapEffectUNID.Append(CONSTLIT(":m"));
 
 		if (error = m_pLabelEffect.LoadEffect(Ctx,
-				strPatternSubst(CONSTLIT("%s:l"), sUNID),
+				sLabelEffectUNID,
 				pXMLDesc->GetContentElementByTag(LABEL_EFFECT_TAG),
 				pXMLDesc->GetAttribute(LABEL_EFFECT_ATTRIB)))
 			return error;
 
 		if (error = m_pMapEffect.LoadEffect(Ctx,
-				strPatternSubst(CONSTLIT("%s:m"), sUNID),
+				sMapEffectUNID,
 				pXMLDesc->GetContentElementByTag(MAP_EFFECT_TAG),
 				pXMLDesc->GetAttribute(MAP_EFFECT_ATTRIB)))
 			return error;

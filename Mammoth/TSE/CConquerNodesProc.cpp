@@ -255,7 +255,9 @@ ALERROR CConquerNodesProc::OnInitFromXML (SDesignLoadCtx &Ctx, CXMLElement *pDes
 
 		else
 			{
-			CString sNewUNID = strPatternSubst(CONSTLIT("%s/%d"), sUNID, m_Conquerors.GetCount());
+			CString sNewUNID = sUNID;
+			sNewUNID.Append(CONSTLIT("/"));
+			sNewUNID.Append(strFromInt(m_Conquerors.GetCount(), false));
 			SConqueror *pConqueror = m_Conquerors.Insert();
 
 			//	Get some properties

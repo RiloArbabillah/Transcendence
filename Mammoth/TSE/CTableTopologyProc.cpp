@@ -99,7 +99,9 @@ ALERROR CTableTopologyProc::OnInitFromXML (SDesignLoadCtx &Ctx, CXMLElement *pDe
 
 		else
 			{
-			CString sNewUNID = strPatternSubst(CONSTLIT("%s/%d"), sUNID, m_Procs.GetCount());
+			CString sNewUNID = sUNID;
+			sNewUNID.Append(CONSTLIT("/"));
+			sNewUNID.Append(strFromInt(m_Procs.GetCount(), false));
 			SEntry *pEntry = m_Procs.Insert();
 
 			if (error = ITopologyProcessor::CreateFromXML(Ctx, pItem, sNewUNID, &pEntry->pProc))

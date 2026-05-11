@@ -133,7 +133,9 @@ ALERROR CLocateNodesProc::OnInitFromXML (SDesignLoadCtx &Ctx, CXMLElement *pDesc
 
 		else
 			{
-			CString sNewUNID = strPatternSubst(CONSTLIT("%s/%d"), sUNID, m_Locations.GetCount());
+			CString sNewUNID = sUNID;
+			sNewUNID.Append(CONSTLIT("/"));
+			sNewUNID.Append(strFromInt(m_Locations.GetCount(), false));
 			SLocation *pEntry = m_Locations.Insert();
 
 			if (error = ITopologyProcessor::CreateFromXMLAsGroup(Ctx, pItem, sNewUNID, &pEntry->pProc))

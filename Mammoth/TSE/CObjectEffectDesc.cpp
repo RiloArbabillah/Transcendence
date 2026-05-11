@@ -126,8 +126,12 @@ ALERROR CObjectEffectDesc::InitFromXML (SDesignLoadCtx &Ctx, const CString &sUNI
 
 		//	Load the effect
 
+		CString sEffectUNID = sUNID;
+		sEffectUNID.Append(CONSTLIT(":"));
+		sEffectUNID.Append(strFromInt(i, false));
+
 		if (error = pEntry->pEffect.LoadEffect(Ctx,
-				strPatternSubst(CONSTLIT("%s:%d"), sUNID, i),
+				sEffectUNID,
 				(pEffectXML->GetContentElementCount() > 0 ? pEffectXML : NULL),
 				pEffectXML->GetAttribute(EFFECT_ATTRIB)))
 			return error;

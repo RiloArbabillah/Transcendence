@@ -133,8 +133,11 @@ ALERROR CParticleSystemDesc::InitFromXML (SDesignLoadCtx &Ctx, const CXMLElement
 
 	//	Load the effect to use
 
+	CString sParticleEffectUNID = sUNID;
+	sParticleEffectUNID.Append(CONSTLIT(":p"));
+
 	if (error = m_pParticleEffect.LoadEffect(Ctx, 
-			strPatternSubst("%s:p", sUNID),
+			sParticleEffectUNID,
 			pDesc->GetContentElementByTag(PARTICLE_EFFECT_TAG),
 			pDesc->GetAttribute(PARTICLE_EFFECT_ATTRIB)))
 		return error;

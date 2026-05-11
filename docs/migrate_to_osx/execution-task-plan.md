@@ -170,6 +170,22 @@ Build baseline (CMake presets + app target)
 - Blokir path resource `Title.JPG` yang terlihat di stdout sudah ditangani melalui normalisasi separator path di macOS.
 - `CLoadingSession::OnInit` kini terbukti berhasil, tetapi `OnPaint` pertama belum terbukti tercapai.
 - Task tetap `in_progress` karena jalur background `LoadBaseFile` sekarang terlokalisasi lebih jauh ke crash digest file di `SecureHashAlgorithm.cpp` dan `CResourceDb::ComputeFileDigest`.
+- Fresh rebuild dari folder `build` yang dibersihkan mengonfirmasi bahwa diagnosis tidak bergantung pada artefak build lama.
+- Setelah fix mmap/digest pada `CFileReadBlock.cpp`, blocker bergerak lebih jauh ke load embedded extension dan sekarang berhenti konsisten di `CEffectGroupCreator::OnEffectCreateFromXML`.
+- Stop aktif terjadi pada pembentukan sub-UNID effect group:
+  - `CString sSubUNID = strPatternSubst(CONSTLIT("%s/%d"), sUNID, i);`
+- Ini mempersempit blocker aktif berikutnya ke kombinasi `CString` / `strPatternSubst` pada jalur effect XML loading di Apple Silicon.
+- Slice berikutnya menormalkan resource path gambar di `CObjectImage.cpp`, karena `lldb` menunjukkan `m_sBitmap` masih berisi path Windows-style seperti `Resources\DockScreenBackground.jpg`.
+- Setelah normalisasi backslash -> slash pada path gambar, blocker maju lagi. Stop aktif berikutnya sekarang berada di `CWeaponFireDesc::InitFromXML` saat memanggil `strPatternSubst("%s:e", m_sUNID)` untuk membentuk UNID effect weapon.
+- Ini menguatkan pola bahwa beberapa jalur `strPatternSubst` dengan `CString` pada background init masih rapuh di Apple Silicon, sementara blocker path resource gambar spesifik sudah berhasil dilewati.
+- Patch berikutnya mengganti pembentukan `"%s:e"` di `CWeaponFireDesc::InitFromXML` dengan append manual, dan jalur tersebut berhasil dilewati.
+- Setelah rebuild dan `lldb`, blocker maju lagi ke jalur serupa pada weapon effects:
+  - `CWeaponFireDesc::InitFromXML`
+  - `strPatternSubst("%s:h", m_sUNID)` untuk `m_pHitEffect.LoadEffect(...)`
+- Ini mengonfirmasi pola yang konsisten: blocker aktif bukan satu bug tunggal pada data, melainkan beberapa titik pembentukan ID turunan berbasis `strPatternSubst` dan `CString` di background design loading pada Apple Silicon.
+- Sweep lanjutan dilakukan pada sekumpulan file efek/topologi yang membentuk derived UNID dengan pola `"%s/..."`, `"%s:..."`, atau `"%s/%d"`, termasuk `SFXVariants.cpp`, `SFXSequencer.cpp`, `CTopologyDesc.cpp`, `CTableTopologyProc.cpp`, `CRandomPointsProc.cpp`, `CPartitionNodesProc.cpp`, `CObjectEffectDesc.cpp`, `CLocateNodesProc.cpp`, `CGroupTopologyProc.cpp`, `CFillNodesProc.cpp`, dan `CConquerNodesProc.cpp`.
+- Setelah sweep itu, blocker berpindah dari effect or particle UNID builders ke `CTradingDesc::ComputeID`, tepatnya pada `strPatternSubst(CONSTLIT("%s:%s"), sService, sCriteria)`.
+- Ini menunjukkan sweep pada jalur active background design loading berhasil mendorong init jauh lebih dalam, dan pola rapuh sekarang meluas dari UNID turunan ke pembentukan ID trading berbasis `CString`.
 
 ### Checkpoint: Setelah Task 1-2
 

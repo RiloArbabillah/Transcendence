@@ -166,7 +166,9 @@ ALERROR CPartitionNodesProc::OnInitFromXML (SDesignLoadCtx &Ctx, CXMLElement *pD
 
 		else
 			{
-			CString sNewUNID = strPatternSubst(CONSTLIT("%s/%d"), sUNID, m_Partitions.GetCount());
+			CString sNewUNID = sUNID;
+			sNewUNID.Append(CONSTLIT("/"));
+			sNewUNID.Append(strFromInt(m_Partitions.GetCount(), false));
 			SPartition *pPart = m_Partitions.Insert();
 			
 			if (error = ITopologyProcessor::CreateFromXMLAsGroup(Ctx, pItem, sNewUNID, &pPart->pProc))

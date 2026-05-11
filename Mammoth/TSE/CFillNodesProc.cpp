@@ -100,7 +100,9 @@ ALERROR CFillNodesProc::OnInitFromXML (SDesignLoadCtx &Ctx, CXMLElement *pDesc, 
 		else
 			{
 			ITopologyProcessor *pNewProc;
-			CString sNewUNID = strPatternSubst(CONSTLIT("%s/%d"), sUNID, m_Procs.GetCount());
+			CString sNewUNID = sUNID;
+			sNewUNID.Append(CONSTLIT("/"));
+			sNewUNID.Append(strFromInt(m_Procs.GetCount(), false));
 
 			if (error = ITopologyProcessor::CreateFromXML(Ctx, pItem, sNewUNID, &pNewProc))
 				return error;

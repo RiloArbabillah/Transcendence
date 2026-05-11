@@ -22,6 +22,25 @@
 
 #define FIELD_IMAGE_DESC					CONSTLIT("imageDesc")
 
+static CString NormalizeResourcePathForPlatform (const CString &sPath)
+	{
+#ifdef TARGET_PLATFORM_MACOS
+	CString sResult = sPath;
+	char *pPos = sResult.GetPointer();
+	char *pEnd = pPos + sResult.GetLength();
+	while (pPos < pEnd)
+		{
+		if (*pPos == '\\')
+			*pPos = '/';
+		pPos++;
+		}
+
+	return sResult;
+#else
+	return sPath;
+#endif
+	}
+
 CObjectImage::CObjectImage (void)
 
 //	CObjectImage constructor
@@ -396,25 +415,25 @@ ALERROR CObjectImage::OnCreateFromXML (SDesignLoadCtx &Ctx, CXMLElement *pDesc)
 	m_sResourceDb = Ctx.sResDb;
 	if (Ctx.sFolder.IsBlank())
 		{
-		m_sBitmap = pDesc->GetAttribute(BITMAP_ATTRIB);
-		m_sBitmask = pDesc->GetAttribute(BITMASK_ATTRIB);
-		m_sHitMask = pDesc->GetAttribute(HIT_MASK_ATTRIB);
-		m_sShadowMask = pDesc->GetAttribute(SHADOW_MASK_ATTRIB);
+		m_sBitmap = NormalizeResourcePathForPlatform(pDesc->GetAttribute(BITMAP_ATTRIB));
+		m_sBitmask = NormalizeResourcePathForPlatform(pDesc->GetAttribute(BITMASK_ATTRIB));
+		m_sHitMask = NormalizeResourcePathForPlatform(pDesc->GetAttribute(HIT_MASK_ATTRIB));
+		m_sShadowMask = NormalizeResourcePathForPlatform(pDesc->GetAttribute(SHADOW_MASK_ATTRIB));
 		}
 	else
 		{
 		CString sFilespec;
 		if (pDesc->FindAttribute(BITMAP_ATTRIB, &sFilespec))
-			m_sBitmap = pathAddComponent(Ctx.sFolder, sFilespec);
+			m_sBitmap = NormalizeResourcePathForPlatform(pathAddComponent(Ctx.sFolder, sFilespec));
 
 		if (pDesc->FindAttribute(BITMASK_ATTRIB, &sFilespec))
-			m_sBitmask = pathAddComponent(Ctx.sFolder, sFilespec);
+			m_sBitmask = NormalizeResourcePathForPlatform(pathAddComponent(Ctx.sFolder, sFilespec));
 
 		if (pDesc->FindAttribute(HIT_MASK_ATTRIB, &sFilespec))
-			m_sHitMask = pathAddComponent(Ctx.sFolder, sFilespec);
+			m_sHitMask = NormalizeResourcePathForPlatform(pathAddComponent(Ctx.sFolder, sFilespec));
 
 		if (pDesc->FindAttribute(SHADOW_MASK_ATTRIB, &sFilespec))
-			m_sShadowMask = pathAddComponent(Ctx.sFolder, sFilespec);
+			m_sShadowMask = NormalizeResourcePathForPlatform(pathAddComponent(Ctx.sFolder, sFilespec));
 		}
 
 	//	Transparent color

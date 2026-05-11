@@ -115,7 +115,9 @@ ALERROR CEffectSequencerCreator::OnEffectCreateFromXML (SDesignLoadCtx &Ctx, CXM
 	for (i = 0; i < pDesc->GetContentElementCount(); i++)
 		{
 		CXMLElement *pCreatorDesc = pDesc->GetContentElement(i);
-		CString sSubUNID = strPatternSubst(CONSTLIT("%s/%d"), sUNID, i);
+		CString sSubUNID = sUNID;
+		sSubUNID.Append(CONSTLIT("/"));
+		sSubUNID.Append(strFromInt(i, false));
 
 		//	Load the creator
 
@@ -159,4 +161,3 @@ void CEffectSequencerCreator::OnEffectMarkResources (void)
 	for (int i = 0; i < m_Timeline.GetCount(); i++)
 		m_Timeline[i].pCreator->MarkImages();
 	}
-

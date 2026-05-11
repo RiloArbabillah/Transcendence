@@ -2205,9 +2205,11 @@ ALERROR CWeaponFireDesc::InitFromXML (SDesignLoadCtx &Ctx, CXMLElement *pDesc, c
 	//  as long as the missile).
 
 	Ctx.bLoopImages = true;
+	CString sEffectUNID = m_sUNID;
+	sEffectUNID.Append(CONSTLIT(":e"));
 
 	error = m_pEffect.LoadEffect(Ctx,
-		strPatternSubst("%s:e", m_sUNID),
+		sEffectUNID,
 		pDesc->GetContentElementByTag(EFFECT_TAG),
 		pDesc->GetAttribute(EFFECT_ATTRIB));
 
@@ -2237,7 +2239,10 @@ ALERROR CWeaponFireDesc::InitFromXML (SDesignLoadCtx &Ctx, CXMLElement *pDesc, c
 
 			if (m_iFireType == ftBeam && m_pEffect.IsEmpty())
 				{
-				if (error = m_pEffect.CreateBeamEffect(Ctx, pDesc, strPatternSubst("%s:e", m_sUNID)))
+				CString sBeamEffectUNID = m_sUNID;
+				sBeamEffectUNID.Append(CONSTLIT(":e"));
+
+				if (error = m_pEffect.CreateBeamEffect(Ctx, pDesc, sBeamEffectUNID))
 					return error;
 				}
 
@@ -2497,12 +2502,14 @@ ALERROR CWeaponFireDesc::InitFromXML (SDesignLoadCtx &Ctx, CXMLElement *pDesc, c
 
 		pLastFragment = pNewDesc;
 
-		//	Load fragment data
+			//	Load fragment data
 
-		SInitOptions FragOptions;
-		FragOptions.sUNID = strPatternSubst("%s/f%d", m_sUNID, iFragCount++);
-		FragOptions.iLevel = m_iLevel;
-		FragOptions.bIsFragment = true;
+			SInitOptions FragOptions;
+			FragOptions.sUNID = m_sUNID;
+			FragOptions.sUNID.Append(CONSTLIT("/f"));
+			FragOptions.sUNID.Append(strFromInt(iFragCount++, false));
+			FragOptions.iLevel = m_iLevel;
+			FragOptions.bIsFragment = true;
 
 		pNewDesc->pDesc = new CWeaponFireDesc;
 		if (error = pNewDesc->pDesc->InitFromXML(Ctx, pFragDesc, FragOptions))
@@ -2670,21 +2677,30 @@ ALERROR CWeaponFireDesc::InitFromXML (SDesignLoadCtx &Ctx, CXMLElement *pDesc, c
 
 	//	Effects
 
+	CString sHitEffectUNID = m_sUNID;
+	sHitEffectUNID.Append(CONSTLIT(":h"));
+
+	CString sFireEffectUNID = m_sUNID;
+	sFireEffectUNID.Append(CONSTLIT(":f"));
+
+	CString sChargeEffectUNID = m_sUNID;
+	sChargeEffectUNID.Append(CONSTLIT(":f"));
+
 	if (error = m_pHitEffect.LoadEffect(Ctx,
-			strPatternSubst("%s:h", m_sUNID),
+			sHitEffectUNID,
 			pDesc->GetContentElementByTag(HIT_EFFECT_TAG),
 			pDesc->GetAttribute(HIT_EFFECT_ATTRIB)))
 		return error;
 
 	if (error = m_pFireEffect.LoadEffect(Ctx,
-			strPatternSubst("%s:f", m_sUNID),
+			sFireEffectUNID,
 			pDesc->GetContentElementByTag(FIRE_EFFECT_TAG),
 			pDesc->GetAttribute(FIRE_EFFECT_ATTRIB)))
 		return error;
 
 
 	if (error = m_pChargeEffect.LoadEffect(Ctx,
-		strPatternSubst("%s:f", m_sUNID),
+		sChargeEffectUNID,
 		pDesc->GetContentElementByTag(CHARGE_EFFECT_TAG),
 		pDesc->GetAttribute(CHARGE_EFFECT_ATTRIB)))
 		return error;

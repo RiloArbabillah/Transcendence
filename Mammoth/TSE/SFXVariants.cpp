@@ -149,7 +149,9 @@ ALERROR CEffectVariantCreator::OnEffectCreateFromXML (SDesignLoadCtx &Ctx, CXMLE
 
 	for (i = 0; i < iCount; i++)
 		{
-		CString sSubUNID = strPatternSubst(CONSTLIT("%s/%d"), sUNID, i);
+		CString sSubUNID = sUNID;
+		sSubUNID.Append(CONSTLIT("/"));
+		sSubUNID.Append(strFromInt(i, false));
 
 		CXMLElement *pCreatorDesc = pDesc->GetContentElement(i);
 		if (error = CEffectCreator::CreateFromXML(Ctx, pCreatorDesc, sSubUNID, &m_Effects[i].pEffect))

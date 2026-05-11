@@ -646,7 +646,9 @@ ALERROR CEffectGroupCreator::OnEffectCreateFromXML (SDesignLoadCtx &Ctx, CXMLEle
 
 		for (i = 0; i < m_iCount; i++)
 			{
-			CString sSubUNID = strPatternSubst(CONSTLIT("%s/%d"), sUNID, i);
+			CString sSubUNID = sUNID;
+			sSubUNID.Append(CONSTLIT("/"));
+			sSubUNID.Append(strFromInt(i, false));
 
 			if (error = m_pCreators[i].LoadSimpleEffect(Ctx, sSubUNID, pEffectList->GetContentElement(i)))
 				return error;
@@ -749,4 +751,3 @@ bool CEffectGroupPainter::UsesOrigin (void) const
 
 	return false;
 	}
-
