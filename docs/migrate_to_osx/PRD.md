@@ -21,7 +21,7 @@ Native macOS Apple Silicon port of `kronosaur/TranscendenceDev` using `SDL2 + Me
 - `task-backlog.md` - actionable engineering backlog organized by epic, priority, dependencies, and acceptance criteria
 - `dependency-matrix.md` - platform dependency inventory with portability classification and replace/wrap/stub/defer decisions
 - `architecture.md` - target subsystem boundaries, interface ownership, dependency flow, and macOS port architecture rules
-- `milestone-1-plan.md` - detailed execution plan for the first native macOS milestone: title or main menu bring-up
+- `execution-task-plan.md` - living execution plan for the active macOS runtime-debugging and release-ready slices
 - `cmake-build-plan.md` - macOS `CMake` build target graph, dependency order, presets, framework linkage, and fallback strategy
 - `decision-log.md` - recorded architecture and build decisions with rationale, alternatives, and implementation impact
 - `qa-test-matrix.md` - minimum validation gates, manual checks, and milestone QA requirements for the macOS port

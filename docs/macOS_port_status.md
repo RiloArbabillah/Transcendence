@@ -8,7 +8,7 @@ This document records the current state of the native macOS Apple Silicon port a
 
 **Current State:** the macOS app target builds and launches from the CMake-generated build tree. The active runtime path uses the SDL shell, software frame generation, SDL event forwarding, and a compatibility SDL software renderer while the Metal callback crash is avoided.
 
-**Validated Locally:** 2026-05-05
+**Validated Locally:** 2026-05-11
 
 ```sh
 xcodebuild -project build/TranscendenceMacOS.xcodeproj -scheme transcendence_app -configuration Debug build
@@ -69,8 +69,8 @@ Result:
 **Known active blocker for release readiness:**
 
 - The app currently reaches the SDL main loop but still shows a black window instead of a visible title/menu frame.
-- Runtime initialization is still failing on the background universe/base-file load path, centered around `CExtensionCollection::LoadBaseFile` while processing the base file and embedded extensions from `Transcendence.xml`.
-- The older background `CCodeChain::Boot()` / `CString::GetPointer()` crash is no longer the active blocker.
+- Runtime initialization now progresses through base-file digesting, embedded extension loading, image path normalization, derived ID construction, and into CodeChain global execution.
+- The older background `CCodeChain::Boot()` / `CString::GetPointer()` crash is no longer the active blocker; the current `lldb`-localized blocker is in `Alchemy/CodeChain/CCLambda.cpp` during `CCLambda::initDesc` multi-argument `strPatternSubst` formatting.
 - The older loading stargate shadow/trail artifact is still non-blocking unless validation reopens it.
 - Menu/input bridge code exists, but M4 still needs a complete manual validation pass for keyboard, mouse, wheel, text input, and Retina behavior after the black-screen blocker is removed.
 
@@ -285,9 +285,9 @@ cmake --build "build" -j8
 
 ### Next Focus (Release-Ready Path)
 
-1. Investigate and fix the background-thread `CString::GetPointer()` crash in the `CCodeChain::Boot()` path.
-2. Execute the M4 menu/input validation checklist against the new SDL event bridge.
-3. Validate first playable flow after the runtime crash is resolved.
+1. Investigate and fix the active `CCLambda::initDesc` Apple Silicon formatting trap in CodeChain global execution.
+2. Continue advancing the background init path until the first visible frame is confirmed.
+3. Execute the M4 menu/input validation checklist once the visible menu exists.
 4. Implement native audio backend parity and verify soundtrack/SFX behavior.
 5. Validate save/settings/resource paths in both repo-run and bundled `.app` run.
 6. Complete packaging + Finder launch and run M2-M7 required QA gates.

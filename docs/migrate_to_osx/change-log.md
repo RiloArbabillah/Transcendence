@@ -32,6 +32,18 @@ Summary:
 
 ## Entries
 
+### 2026-05-11
+
+- Document: `index.md`, `PRD.md`, `qa-test-matrix.md`, `cmake-build-plan.md`, `decision-log.md`, `../macOS_port_status.md`, `execution-task-plan.md`, `change-log.md`
+- Change Type: updated
+- Summary: consolidated the documentation set around the live execution/status documents, refreshed the audited blocker to the current CodeChain lambda formatting trap, and removed obsolete milestone-1 and handoff references from the active navigation path
+
+### 2026-05-11
+
+- Document: `agent-handoff-gpt54.md`, `next-implementation-focus.md`, `source-audit-handoff.md`, `milestone-1-plan.md`, `milestone-1-source-subset.md`, `mammoth-tse-bounded-candidate-set.md`, `alchemy-kernel-portability-fallout.md`, `alchemy-kernel-split-strategy.md`, `alchemy-kernel-service-surface-next-slice.md`
+- Change Type: removed
+- Summary: deleted stale planning and handoff documents whose content had been superseded by `../macOS_port_status.md`, `execution-task-plan.md`, and the release-ready execution documents
+
 ### 2026-04-14
 
 - Document: `PRD.md`

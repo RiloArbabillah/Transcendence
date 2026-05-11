@@ -5,7 +5,7 @@
 - Version: v1.0
 - Last Updated: 2026-04-14
 - Derived From: `PRD.md`
-- Companion Docs: `roadmap.md`, `task-backlog.md`, `dependency-matrix.md`, `architecture.md`, `milestone-1-plan.md`, `cmake-build-plan.md`
+- Companion Docs: `roadmap.md`, `task-backlog.md`, `dependency-matrix.md`, `architecture.md`, `execution-task-plan.md`, `cmake-build-plan.md`
 - Project: Native macOS Apple Silicon port of `kronosaur/TranscendenceDev`
 
 ## Purpose
@@ -174,7 +174,7 @@ The first meaningful implementation milestone is a native macOS build that reach
 ### Impact
 
 - implementation work should prioritize menu boot path over full feature parity
-- `milestone-1-plan.md` is the active execution reference for early coding
+- `execution-task-plan.md` is the active execution reference for the live macOS runtime-debugging slices
 
 ## D-007 - Preserve core gameplay and engine logic where possible
 
@@ -398,5 +398,5 @@ These are likely upcoming decisions that may need entries later:
 - `task-backlog.md`
 - `dependency-matrix.md`
 - `architecture.md`
-- `milestone-1-plan.md`
+- `execution-task-plan.md`
 - `cmake-build-plan.md`

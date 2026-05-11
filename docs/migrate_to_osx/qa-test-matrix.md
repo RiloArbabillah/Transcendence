@@ -5,7 +5,7 @@
 - Version: v1.2
 - Last Updated: 2026-05-04
 - Derived From: `PRD.md`
-- Companion Docs: `roadmap.md`, `task-backlog.md`, `dependency-matrix.md`, `architecture.md`, `milestone-1-plan.md`, `cmake-build-plan.md`, `decision-log.md`
+- Companion Docs: `roadmap.md`, `task-backlog.md`, `dependency-matrix.md`, `architecture.md`, `execution-task-plan.md`, `cmake-build-plan.md`, `decision-log.md`
 - Project: Native macOS Apple Silicon port of `kronosaur/TranscendenceDev`
 
 ## Purpose
@@ -510,6 +510,6 @@ Notes:
 - `task-backlog.md`
 - `dependency-matrix.md`
 - `architecture.md`
-- `milestone-1-plan.md`
+- `execution-task-plan.md`
 - `cmake-build-plan.md`
 - `decision-log.md`

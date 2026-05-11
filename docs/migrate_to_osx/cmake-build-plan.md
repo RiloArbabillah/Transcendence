@@ -5,7 +5,7 @@
 - Version: v1.2
 - Last Updated: 2026-04-30
 - Derived From: `PRD.md`
-- Companion Docs: `roadmap.md`, `task-backlog.md`, `dependency-matrix.md`, `architecture.md`, `milestone-1-plan.md`
+- Companion Docs: `roadmap.md`, `task-backlog.md`, `dependency-matrix.md`, `architecture.md`, `execution-task-plan.md`
 - Project: Native macOS Apple Silicon port of `kronosaur/TranscendenceDev`
 - Build Strategy: Parallel `CMake` build for macOS, preserve existing Visual Studio workflow for Windows
 
@@ -659,4 +659,4 @@ This sequence aligns with milestone 1 and avoids dragging in deferred runtime co
 - `task-backlog.md`
 - `dependency-matrix.md`
 - `architecture.md`
-- `milestone-1-plan.md`
+- `execution-task-plan.md`
