@@ -206,6 +206,21 @@ Build baseline (CMake presets + app target)
   - `App_Run: exit main loop`
   - `App_Shutdown: done`
 - Namun log `CLoadingSession::OnPaint first paint` masih belum muncul, sehingga blocker aktif tidak lagi berupa crash background init yang sama, tetapi belum terkonfirmasi menjadi visible first frame/title-menu paint.
+- Slice lanjutan pada bridge macOS menyamakan inisialisasi `CHumanInterface` dengan jalur Win32 minimum: `WMCreate` sekarang menginisialisasi sound manager, background processors, visuals, dan `CScreenMgrSDL` sebelum sesi HI dipakai.
+- Setelah parity init itu aktif, crash berikutnya berpindah dari bridge awal ke pembuatan `CIntroSession`.
+- Root cause yang terkonfirmasi adalah `STranscendenceSessionCtx` belum diisi sebelum `CMD_MODEL_INIT_DONE` memanggil `new CIntroSession(...)`; akibatnya `CreateCtx.pSettings`/pointer lain masih `NULL` saat konstruktor dan `OnInit` intro dipanggil.
+- `CTranscendenceController::OnInit` sekarang mengisi `m_SessionCtx.pHI`, `pModel`, `pSettings`, `pDebugConsole`, dan `pSoundtrack` segera setelah `g_pTrans` dibuat, sebelum background init dan sebelum sesi apa pun dapat diluncurkan.
+- Verifikasi setelah patch:
+  - `cmake --build --preset macos-debug --target transcendence_app` tetap berhasil.
+  - `build/macos-debug/Debug.log` sekarang maju melewati:
+    - `CMD_MODEL_INIT_DONE: showing intro session`
+    - `CIntroSession::OnInit start`
+    - `CIntroSession::OnInit visuals OK`
+    - `CIntroSession::OnInit cursor set`
+    - `CIntroSession::OnInit options OK`
+    - `CIntroSession::OnInit widescreen rect OK`
+    - `CIntroSession::OnInit screen=1024x768 bar=128`
+- Ini menutup blocker `m_SessionCtx`/`pSettings` null pada intro init. Blocker aktif berikutnya kembali ke first visible frame/menu presentation setelah intro session berhasil mulai inisialisasi.
 
 ### Checkpoint: Setelah Task 1-2
 

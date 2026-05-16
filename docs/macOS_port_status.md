@@ -68,11 +68,14 @@ Result:
 
 **Known active blocker for release readiness:**
 
-- The app currently reaches the SDL main loop but still shows a black window instead of a visible title/menu frame.
-- Runtime initialization now progresses through base-file digesting, embedded extension loading, image path normalization, derived ID construction, and into CodeChain global execution.
+- The app currently reaches the SDL main loop, completes background universe init far enough to launch the intro session, but still has not confirmed a visible title/menu frame.
+- Runtime initialization now progresses through base-file digesting, embedded extension loading, image path normalization, derived ID construction, CodeChain global execution, and into `CIntroSession::OnInit`.
 - The older background `CCodeChain::Boot()` / `CString::GetPointer()` crash is no longer the active blocker.
 - The prior `CCLambda::initDesc` multi-argument `strPatternSubst` crash and the follow-on `CXMLElement::SetAttributesFromMerge` `attrib.%s` formatting crash have both been bypassed with manual string assembly on Apple Silicon.
-- Current runtime behavior now survives long enough to enter the SDL main loop and exit cleanly in smoke runs, but the active visual blocker remains that the first visible title/menu paint is still not confirmed.
+- macOS `CHumanInterface` init parity has been advanced: the SDL/macOS `WMCreate` path now initializes the sound manager, background processors, visuals, and `CScreenMgrSDL`, matching the minimum Win32 setup expected by HI sessions.
+- The intro-session creation crash caused by an uninitialized `STranscendenceSessionCtx` is fixed: `CTranscendenceController::OnInit` now populates `m_SessionCtx.pHI`, `pModel`, `pSettings`, `pDebugConsole`, and `pSoundtrack` before any session can be created.
+- Current runtime evidence from `build/macos-debug/Debug.log` shows progress through `CMD_MODEL_INIT_DONE: showing intro session`, `CIntroSession::OnInit start`, `visuals OK`, `cursor set`, `options OK`, `widescreen rect OK`, and `screen=1024x768 bar=128`.
+- Current runtime behavior now survives long enough to enter the intro init path in smoke runs, but the active visual blocker remains that the first visible title/menu paint is still not confirmed.
 - The older loading stargate shadow/trail artifact is still non-blocking unless validation reopens it.
 - Menu/input bridge code exists, but M4 still needs a complete manual validation pass for keyboard, mouse, wheel, text input, and Retina behavior after the black-screen blocker is removed.
 

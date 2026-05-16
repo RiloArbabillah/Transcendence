@@ -32,6 +32,12 @@ Summary:
 
 ## Entries
 
+### 2026-05-16
+
+- Document: `execution-task-plan.md`, `../macOS_port_status.md`
+- Change Type: updated
+- Summary: recorded the macOS HI init parity work, the confirmed `STranscendenceSessionCtx` null-pointer root cause during intro-session startup, the controller-side session-context initialization fix, and the new runtime checkpoint showing `CIntroSession::OnInit` progressing past options and screen metrics
+
 ### 2026-05-11
 
 - Document: `index.md`, `PRD.md`, `qa-test-matrix.md`, `cmake-build-plan.md`, `decision-log.md`, `../macOS_port_status.md`, `execution-task-plan.md`, `change-log.md`

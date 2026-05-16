@@ -795,6 +795,7 @@ ALERROR CTranscendenceController::OnCommand (const CString &sCmd, void *pData)
 
 		//	Launch intro session
 
+		::kernelDebugLogString(CONSTLIT("CMD_MODEL_INIT_DONE: showing intro session"));
 		m_HI.ShowSession(new CIntroSession(m_SessionCtx, CIntroSession::isOpeningTitles));
 
 		//	Start the intro
@@ -2071,6 +2072,16 @@ ALERROR CTranscendenceController::OnInit (CString *retsError)
 	//	Initialize our legacy window
 
 	g_pTrans = new CTranscendenceWnd(m_HI.GetHWND(), this);
+
+	//	Initialize shared session context before any HI session is created.
+	//	On macOS the intro session can be instantiated immediately after
+	//	background init completes, so these pointers must be valid up front.
+
+	m_SessionCtx.pHI = &m_HI;
+	m_SessionCtx.pModel = &m_Model;
+	m_SessionCtx.pSettings = &m_Settings;
+	m_SessionCtx.pDebugConsole = &m_DebugConsole;
+	m_SessionCtx.pSoundtrack = &m_Soundtrack;
 
 	//	Initialize the model
 
