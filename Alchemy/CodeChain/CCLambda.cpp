@@ -385,26 +385,37 @@ void CCLambda::initDesc(CString sHelp)
 	{
 	//	We only need to do this if m_sDesc was not populated
 	CString sKey = CONSTLIT("%s");
-	ICCItem* pLambdaArgs = GetArgList();
+	ICCItem *pLambdaArgs = GetArgList();
+	CString sSignature = CONSTLIT("(");
+	CString sLambdaArgs;
 
-	if (sHelp.GetLength())
+	if (pLambdaArgs)
 		{
-		if (pLambdaArgs)
-			if (pLambdaArgs->IsNil())
-				m_sDesc = strPatternSubst(CONSTLIT("(%s)\n\n%s\n"), sKey, sHelp);
-			else
-				m_sDesc = strPatternSubst(CONSTLIT("(%s %s)\n\n%s\n"), sKey, pLambdaArgs->Print(PRFLAG_NO_LIST_LAMBDA_ARGS), sHelp);
+		if (pLambdaArgs->IsNil())
+			{
+			sSignature.Append(sKey);
+			sSignature.Append(CONSTLIT(")"));
+			}
 		else
-			m_sDesc = strPatternSubst(CONSTLIT("(%s ...)\n\n%s\n"), sKey, sHelp);
+			{
+			sLambdaArgs = pLambdaArgs->Print(PRFLAG_NO_LIST_LAMBDA_ARGS);
+			sSignature.Append(sKey);
+			sSignature.Append(CONSTLIT(" "));
+			sSignature.Append(sLambdaArgs);
+			sSignature.Append(CONSTLIT(")"));
+			}
 		}
 	else
 		{
-		if (pLambdaArgs)
-			if (pLambdaArgs->IsNil())
-				m_sDesc = strPatternSubst(CONSTLIT("(%s)"), sKey);
-			else
-				m_sDesc = strPatternSubst(CONSTLIT("(%s %s)"), sKey, pLambdaArgs->Print(PRFLAG_NO_LIST_LAMBDA_ARGS));
-		else
-			m_sDesc = strPatternSubst(CONSTLIT("(%s ...)"), sKey);
+		sSignature.Append(sKey);
+		sSignature.Append(CONSTLIT(" ...)"));
+		}
+
+	m_sDesc = sSignature;
+	if (sHelp.GetLength())
+		{
+		m_sDesc.Append(CONSTLIT("\n\n"));
+		m_sDesc.Append(sHelp);
+		m_sDesc.Append(CONSTLIT("\n"));
 		}
 	}

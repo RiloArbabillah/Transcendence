@@ -192,9 +192,20 @@ Build baseline (CMake presets + app target)
 - Ini menunjukkan bahwa jalur background init terus maju dan pola masalah kini mencakup prefiks string berbasis `CString`, bukan hanya suffix atau path-derived IDs.
 - Sweep berikutnya juga mencakup titik sejenis yang tersisa di `CLanguageDataBlock.cpp`, `CSystemMap.cpp`, dan helper terkait, lalu build dan `lldb` dijalankan lagi sekali.
 - Setelah sweep tersebut, background init bergerak lebih jauh lagi, melewati load design XML dan masuk ke eksekusi globals CodeChain.
-- Blocker aktif terbaru sekarang berada di `CCLambda::initDesc`:
+- Blocker aktif terbaru sempat berada di `CCLambda::initDesc`:
   - `m_sDesc = strPatternSubst(CONSTLIT("(%s %s)\n\n%s\n"), sKey, pLambdaArgs->Print(PRFLAG_NO_LIST_LAMBDA_ARGS), sHelp);`
-- Ini berarti pola Apple Silicon yang semula terlihat di derived ID builders kini telah bergeser ke formatting string multi-arg pada jalur CodeChain/runtime description building.
+- Slice lanjutan mengganti builder deskripsi lambda di `Alchemy/CodeChain/CCLambda.cpp` menjadi append manual untuk menghindari formatting multi-arg berbasis `CString` pada Apple Silicon.
+- Setelah rebuild dan rerun `lldb`, crash tidak lagi berhenti di `CCLambda::initDesc`; background init maju lagi sampai merge XML di `Alchemy/XMLUtil/CXMLElement.cpp`.
+- Stop aktif berikutnya muncul di `CXMLElement::SetAttributesFromMerge` pada pembentukan keyword atribut:
+  - `m_Keywords.Atomize(strPatternSubst(CONSTLIT("attrib.%s"), A.GetAttributeName(iAPos)))`
+- Patch berikutnya mengganti pembentukan `attrib.<name>` itu dengan append manual.
+- Setelah rebuild dan rerun `lldb`, app tidak lagi crash pada dua titik tersebut selama jendela observasi 120 detik.
+- Smoke run biasa sekarang konsisten mencapai:
+  - `CLoadingSession::OnInit done`
+  - `App_Run: entering main loop`
+  - `App_Run: exit main loop`
+  - `App_Shutdown: done`
+- Namun log `CLoadingSession::OnPaint first paint` masih belum muncul, sehingga blocker aktif tidak lagi berupa crash background init yang sama, tetapi belum terkonfirmasi menjadi visible first frame/title-menu paint.
 
 ### Checkpoint: Setelah Task 1-2
 

@@ -1017,7 +1017,9 @@ void CXMLElement::SetAttributesFromMerge (const CXMLElement &A, const CXMLElemen
 			//	Get the merge flags. Attributes are in a different namespace, just in 
 			//	case.
 
-			DWORD dwAttribID = m_Keywords.Atomize(strPatternSubst(CONSTLIT("attrib.%s"), A.GetAttributeName(iAPos)));
+			CString sAttribID = CONSTLIT("attrib.");
+			sAttribID.Append(A.GetAttributeName(iAPos));
+			DWORD dwAttribID = m_Keywords.Atomize(sAttribID);
 
 			DWORD dwMerge;
 			if (!MergeFlags.Find(dwAttribID, &dwMerge))

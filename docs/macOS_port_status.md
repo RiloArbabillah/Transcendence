@@ -70,7 +70,9 @@ Result:
 
 - The app currently reaches the SDL main loop but still shows a black window instead of a visible title/menu frame.
 - Runtime initialization now progresses through base-file digesting, embedded extension loading, image path normalization, derived ID construction, and into CodeChain global execution.
-- The older background `CCodeChain::Boot()` / `CString::GetPointer()` crash is no longer the active blocker; the current `lldb`-localized blocker is in `Alchemy/CodeChain/CCLambda.cpp` during `CCLambda::initDesc` multi-argument `strPatternSubst` formatting.
+- The older background `CCodeChain::Boot()` / `CString::GetPointer()` crash is no longer the active blocker.
+- The prior `CCLambda::initDesc` multi-argument `strPatternSubst` crash and the follow-on `CXMLElement::SetAttributesFromMerge` `attrib.%s` formatting crash have both been bypassed with manual string assembly on Apple Silicon.
+- Current runtime behavior now survives long enough to enter the SDL main loop and exit cleanly in smoke runs, but the active visual blocker remains that the first visible title/menu paint is still not confirmed.
 - The older loading stargate shadow/trail artifact is still non-blocking unless validation reopens it.
 - Menu/input bridge code exists, but M4 still needs a complete manual validation pass for keyboard, mouse, wheel, text input, and Retina behavior after the black-screen blocker is removed.
 
