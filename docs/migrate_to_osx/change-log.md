@@ -36,6 +36,10 @@ Summary:
 
 - Document: `execution-task-plan.md`, `../macOS_port_status.md`, `change-log.md`
 - Change Type: updated
+- Summary: recorded the latest 60-second PTY smoke-run verification showing loading-screen first paint plus intro render entry remain stable with clean shutdown on harness timeout and no newly reproduced runtime crash signature
+
+- Document: `execution-task-plan.md`, `../macOS_port_status.md`, `change-log.md`
+- Change Type: updated
 - Summary: recorded the first confirmed macOS loading-screen and intro first-paint milestone, the Apple Silicon object-reference hardening sweep, the SDL-backed JPEG/HBITMAP bridge fix for intro assets, and the new active blocker in `CalcViewportCtx` / `PaintViewport`
 
 - Document: `execution-task-plan.md`, `../macOS_port_status.md`, `change-log.md`

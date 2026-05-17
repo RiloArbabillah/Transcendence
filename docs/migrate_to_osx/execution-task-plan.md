@@ -281,6 +281,10 @@ Build baseline (CMake presets + app target)
   - `CIntroSession::OnAnimate first frame`
   - `CIntroSession::Paint first frame`
   - `CIntroSession::Paint calling Render`
+- Verifikasi tambahan lewat PTY run 60 detik (`./build/macos-debug/Transcendence`) juga menunjukkan jalur loading/intro stabil selama jendela observasi:
+  - stdout mencapai `CLoadingSession::OnPaint first paint`
+  - `build/macos-debug/Debug.log` kembali mencapai `CIntroSession::Paint calling Render`
+  - saat harness menghentikan proses karena timeout, log aplikasi menutup dengan `App_Run: exit main loop` dan `App_Shutdown: done`, bukan dengan signature crash baru
 - Selama jendela observasi proses background ~30+ detik, tidak muncul lagi watched error seperti `Crash in `, `CException:`, `EXC_BAD_ACCESS`, `Unable to create bitmap`, atau `segmentation fault`, dan `Debug.log` tidak bertambah dengan crash intro viewport yang sebelumnya pernah tercatat.
 - Dengan demikian, blocker `CalcViewportCtx` / `PaintViewport` / `Out of memory` yang sempat dicatat sebelumnya belum berhasil direproduksi ulang pada smoke run terbaru dan sementara dianggap stale sampai ada reproduksi interaktif baru.
 - Task 3 tetap `in_progress` karena acceptance criteria terakhir masih butuh validasi manual visual/interaktif: memastikan frame intro/menu benar-benar readable, tidak ada korupsi alpha/warna, dan input menu berjalan benar pada window nyata macOS.
