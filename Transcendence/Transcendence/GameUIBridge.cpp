@@ -50,7 +50,6 @@ static void sigabrt_handler(int sig) {
 
 void InitGameUI(SAppState& state)
 {
-    (void)state;
     signal(SIGSEGV, sigsegv_handler);
     signal(SIGABRT, sigabrt_handler);
 
@@ -63,6 +62,12 @@ void InitGameUI(SAppState& state)
     CString sError;
     char szCmdLine[1] = { '\0' };
     ALERROR error = g_pController->OnBoot(szCmdLine, &Options, &sError);
+
+    if (error == NOERROR)
+    {
+        if (!g_pHI->InitFromSDL((HWND)state.pWindow, Options, &sError))
+            error = ERR_FAIL;
+    }
 
     if (error == NOERROR)
         error = g_pController->OnInit(&sError);

@@ -1003,7 +1003,7 @@ bool CDesignType::FireGetCreatePos (CSpaceObject *pBase, CSpaceObject *pTarget, 
 		if (pResult->IsError())
 			ReportEventError(GET_CREATE_POS_EVENT, pResult);
 
-		if (pResult->IsInteger())
+		if (pResult->IsInteger() || pResult->IsDouble())
 			{
 			*retpGate = Ctx.AsSpaceObject(pResult);
 			*retvPos = (*retpGate)->GetPos();

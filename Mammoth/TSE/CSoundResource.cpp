@@ -7,6 +7,26 @@
 
 #define FILENAME_ATTRIB							CONSTLIT("filename")
 
+static CString NormalizeSoundResourcePathForPlatform (const CString &sPath)
+	{
+#ifdef TARGET_PLATFORM_MACOS
+	CString sResult = sPath;
+	const int iLen = sResult.GetLength();
+	char *pPos = sResult.GetWritePointer(iLen);
+	char *pEnd = pPos + iLen;
+	while (pPos < pEnd)
+		{
+		if (*pPos == '\\')
+			*pPos = '/';
+		pPos++;
+		}
+
+	return sResult;
+#else
+	return sPath;
+#endif
+	}
+
 CSoundResource::CSoundResource (void) :
 		m_iChannel(-1),
 		m_bMarked(false)
@@ -84,13 +104,13 @@ ALERROR CSoundResource::OnCreateFromXML (SDesignLoadCtx &Ctx, CXMLElement *pDesc
 	m_sResourceDb = Ctx.sResDb;
 	if (Ctx.sFolder.IsBlank())
 		{
-		m_sFilename = pDesc->GetAttribute(FILENAME_ATTRIB);
+		m_sFilename = NormalizeSoundResourcePathForPlatform(pDesc->GetAttribute(FILENAME_ATTRIB));
 		}
 	else
 		{
 		CString sFilespec;
 		if (pDesc->FindAttribute(FILENAME_ATTRIB, &sFilespec))
-			m_sFilename = pathAddComponent(Ctx.sFolder, sFilespec);
+			m_sFilename = NormalizeSoundResourcePathForPlatform(pathAddComponent(Ctx.sFolder, sFilespec));
 		}
 
 	//	Done

@@ -32,6 +32,20 @@
 #define FIELD_SPEED						CONSTLIT("speed")
 #define FIELD_WEAPON_UNID				CONSTLIT("weaponUNID")
 
+static ICCItem *CreateObjPointerItem (CSpaceObject *pObj)
+	{
+	if (pObj)
+		{
+	#ifdef TARGET_64BIT
+		return CCodeChain::CreateDouble((double)(uintptr_t)pObj);
+	#else
+		return CCodeChain::CreateInteger((int)(uintptr_t)pObj);
+	#endif
+		}
+	else
+		return CCodeChain::CreateNil();
+	}
+
 void CCreatePainterCtx::AddDataInteger (const CString &sField, int iValue)
 
 //	AddDataInteger
@@ -66,7 +80,7 @@ ICCItem *CCreatePainterCtx::GetData (void)
 		m_pData->SetIntegerAt(m_Data[i].sField, m_Data[i].iValue);
 
 	if (m_pAnchor)
-		m_pData->SetIntegerAt(FIELD_ANCHOR_OBJ, (intptr_t)m_pAnchor);
+		m_pData->SetAt(FIELD_ANCHOR_OBJ, CreateObjPointerItem(m_pAnchor));
 
 	//	Set values depending on what we have in context
 
@@ -96,18 +110,18 @@ void CCreatePainterCtx::SetDamageCtxData (ICCItem *pTable, SDamageCtx &DamageCtx
 //	Sets the data from a damage context to the data block
 
 	{
-	pTable->SetIntegerAt(FIELD_OBJ_HIT, (intptr_t)DamageCtx.pObj);
+	pTable->SetAt(FIELD_OBJ_HIT, CreateObjPointerItem(DamageCtx.pObj));
 	pTable->SetIntegerAt(FIELD_ARMOR_SEG, DamageCtx.iSectHit);
 	if (DamageCtx.pCause)
-		pTable->SetIntegerAt(FIELD_CAUSE, (intptr_t)DamageCtx.pCause);
+		pTable->SetAt(FIELD_CAUSE, CreateObjPointerItem(DamageCtx.pCause));
 
 	CSpaceObject *pAttacker = DamageCtx.Attacker.GetObj();
 	if (pAttacker)
-		pTable->SetIntegerAt(FIELD_ATTACKER, (intptr_t)pAttacker);
+		pTable->SetAt(FIELD_ATTACKER, CreateObjPointerItem(pAttacker));
 
 	CSpaceObject *pOrderGiver = DamageCtx.GetOrderGiver();
 	if (pOrderGiver)
-		pTable->SetIntegerAt(FIELD_ORDER_GIVER, (intptr_t)pAttacker);
+		pTable->SetAt(FIELD_ORDER_GIVER, CreateObjPointerItem(pOrderGiver));
 
 	ICCItemPtr pHitPos(CreateListFromVector(DamageCtx.vHitPos));
 	pTable->SetAt(FIELD_HIT_POS, pHitPos);

@@ -2781,7 +2781,7 @@ bool CSpaceObject::FireOnDockObjAdj (CSpaceObject **retpObj)
 			ReportEventError(ON_DOCK_OBJ_ADJ_EVENT, pResult);
 			return false;
 			}
-		else if (pResult->IsInteger())
+		else if (pResult->IsInteger() || pResult->IsDouble())
 			{
 			CSpaceObject *pNewObj = Ctx.AsSpaceObject(pResult);
 

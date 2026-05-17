@@ -303,40 +303,129 @@ CString Kernel::strPattern (const CString &sPattern, LPVOID *pArgs)
 	return CString(sOutput.GetPointer(), sOutput.GetLength());
 	}
 
+static Kernel::CString strPatternSubstFromArgBlock (Kernel::CString sLine, const void *pArgs)
+	{
+	return Kernel::strPattern(sLine, (void **)pArgs);
+	}
+
+CString Kernel::strPatternSubst (CString sLine, const CString &s1)
+	{
+	const CString Args[] = { s1 };
+	return strPatternSubstFromArgBlock(sLine, Args);
+	}
+
+CString Kernel::strPatternSubst (CString sLine, const char *s1)
+	{
+	const CString Args[] = { CString(s1) };
+	return strPatternSubstFromArgBlock(sLine, Args);
+	}
+
+CString Kernel::strPatternSubst (CString sLine, int i1)
+	{
+	const int Args[] = { i1 };
+	return strPatternSubstFromArgBlock(sLine, Args);
+	}
+
+CString Kernel::strPatternSubst (CString sLine, const CString &s1, const CString &s2)
+	{
+	const CString Args[] = { s1, s2 };
+	return strPatternSubstFromArgBlock(sLine, Args);
+	}
+
+CString Kernel::strPatternSubst (CString sLine, const CString &s1, const char *s2)
+	{
+	const CString Args[] = { s1, CString(s2) };
+	return strPatternSubstFromArgBlock(sLine, Args);
+	}
+
+CString Kernel::strPatternSubst (CString sLine, const char *s1, const CString &s2)
+	{
+	const CString Args[] = { CString(s1), s2 };
+	return strPatternSubstFromArgBlock(sLine, Args);
+	}
+
+CString Kernel::strPatternSubst (CString sLine, const char *s1, const char *s2)
+	{
+	const CString Args[] = { CString(s1), CString(s2) };
+	return strPatternSubstFromArgBlock(sLine, Args);
+	}
+
+CString Kernel::strPatternSubst (CString sLine, const CString &s1, int i2)
+	{
+	struct SArgs
+		{
+		CString s1;
+		int i2;
+		};
+
+	const SArgs Args = { s1, i2 };
+	return strPatternSubstFromArgBlock(sLine, &Args);
+	}
+
+CString Kernel::strPatternSubst (CString sLine, int i1, const CString &s2)
+	{
+	struct SArgs
+		{
+		int i1;
+		CString s2;
+		};
+
+	const SArgs Args = { i1, s2 };
+	return strPatternSubstFromArgBlock(sLine, &Args);
+	}
+
+CString Kernel::strPatternSubst (CString sLine, const CString &s1, const CString &s2, const CString &s3)
+	{
+	const CString Args[] = { s1, s2, s3 };
+	return strPatternSubstFromArgBlock(sLine, Args);
+	}
+
+CString Kernel::strPatternSubst (CString sLine, const CString &s1, int i2, const CString &s3)
+	{
+	struct SArgs
+		{
+		CString s1;
+		int i2;
+		CString s3;
+		};
+
+	const SArgs Args = { s1, i2, s3 };
+	return strPatternSubstFromArgBlock(sLine, &Args);
+	}
+
+CString Kernel::strPatternSubst (CString sLine, const CString &s1, int i2, const CString &s3, int i4)
+	{
+	struct SArgs
+		{
+		CString s1;
+		int i2;
+		CString s3;
+		int i4;
+		};
+
+	const SArgs Args = { s1, i2, s3, i4 };
+	return strPatternSubstFromArgBlock(sLine, &Args);
+	}
+
+CString Kernel::strPatternSubst (CString sLine, const CString &s1, int i2, const CString &s3, int i4, const CString &s5)
+	{
+	struct SArgs
+		{
+		CString s1;
+		int i2;
+		CString s3;
+		int i4;
+		CString s5;
+		};
+
+	const SArgs Args = { s1, i2, s3, i4, s5 };
+	return strPatternSubstFromArgBlock(sLine, &Args);
+	}
+
 //	strPatternSubst
 //
-//	Substitutes patterns within a string: %Type or %ModifiersType
-//
-//	where type is one of the following:
-//
-//	d	Argument is a signed 32-bit integer. The number is substituted
-//		Supports the following modifiers:
-// 
-//		,	A leading comma means use a thousands separator 
-// 
-//		l	An l means to treat this as a 64-bit int instead
-// 
-//		0	Pad width with 0s (requires a width value)
-// 
-//		1-9	Enforce this width
-// 
-//	r	Argument is a double (64-bit float). The number is substituted.
-//
-//	p	If the last numeral argument was not 1, then 's' is substituted.
-//		This is used to pluralize words in the English language.
-//
-//	s	Argument is a CString. The string is substituted
-//
-//	x	Argument is an unsigned 32-bit integer. The hex value is substituted
-//		Supports the following modifiers:
-// 
-//		0	Pad width with 0s (requires a width value)
-// 
-//		1-9	Enforce this width
-//
-//	%	Evaluates to a single percent sign
-//
-//	&	Followed by an XML entity and semicolon
+//	Legacy varargs fallback. On Apple Silicon this is not ABI-safe for CString
+//	arguments, so prefer the typed overloads above.
 //
 CString Kernel::strPatternSubst (CString sLine, ...)
 

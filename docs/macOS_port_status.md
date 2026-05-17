@@ -68,20 +68,23 @@ Result:
 
 **Known active blocker for release readiness:**
 
-- The app currently reaches the SDL main loop, completes background universe init far enough to launch the intro session, but still has not confirmed a visible title/menu frame.
-- Runtime initialization now progresses through base-file digesting, embedded extension loading, image path normalization, derived ID construction, CodeChain global execution, and into `CIntroSession::OnInit`.
+- The app now reaches the SDL main loop, completes background universe init far enough to launch the intro session, and has confirmed both loading-screen first paint and intro-session first-frame entry on the normal macOS smoke run.
+- Runtime initialization now progresses through base-file digesting, embedded extension loading, image path normalization, derived ID construction, CodeChain global execution, `CIntroSession::OnInit`, `CLoadingSession::OnPaint first paint`, `CIntroSession::OnAnimate first frame`, and `CIntroSession::Paint first frame`.
 - The older background `CCodeChain::Boot()` / `CString::GetPointer()` crash is no longer the active blocker.
 - The prior `CCLambda::initDesc` multi-argument `strPatternSubst` crash and the follow-on `CXMLElement::SetAttributesFromMerge` `attrib.%s` formatting crash have both been bypassed with manual string assembly on Apple Silicon.
 - macOS `CHumanInterface` init parity has been advanced: the SDL/macOS `WMCreate` path now initializes the sound manager, background processors, visuals, and `CScreenMgrSDL`, matching the minimum Win32 setup expected by HI sessions.
 - The intro-session creation crash caused by an uninitialized `STranscendenceSessionCtx` is fixed: `CTranscendenceController::OnInit` now populates `m_SessionCtx.pHI`, `pModel`, `pSettings`, `pDebugConsole`, and `pSoundtrack` before any session can be created.
-- Current runtime evidence from `build/macos-debug/Debug.log` shows progress through `CMD_MODEL_INIT_DONE: showing intro session`, `CIntroSession::OnInit start`, `visuals OK`, `cursor set`, `options OK`, `widescreen rect OK`, and `screen=1024x768 bar=128`.
-- Current runtime behavior now survives long enough to enter the intro init path in smoke runs, but the active visual blocker remains that the first visible title/menu paint is still not confirmed.
+- The active CodeChain/TSE arm64 object-reference slice has been advanced: several live paths that returned raw object pointers as integer atoms now use the object-pointer helper path instead, avoiding the prior `CreateShipObjFromItem -> CreateObjFromItem` bad dereference on Apple Silicon.
+- The non-Windows JPEG loader now returns a valid SDL-backed `HBITMAP`/`SDLBitmap` wrapper instead of a raw pointer into temporary decoded bytes, which removes the earlier `Unable to create bitmap from image: Resources/DeepSpaceBackground.jpg` failure before intro viewport setup.
 - The older loading stargate shadow/trail artifact is still non-blocking unless validation reopens it.
-- Menu/input bridge code exists, but M4 still needs a complete manual validation pass for keyboard, mouse, wheel, text input, and Retina behavior after the black-screen blocker is removed.
+- The latest Apple Silicon object-reference sweep and intro render-path follow-up no longer reproduce the older `CreateShipObjFromItem -> CreateObjFromItem` bad dereference on the normal smoke run.
+- A fresh `./build/macos-debug/Transcendence` smoke run now consistently reaches `CIntroSession::Paint calling Render` and remains alive during the observation window without new `Debug.log` crash lines or watched runtime errors.
+- The previously logged `Crash in CalcViewportCtx`, `Crash in PaintViewport`, and `CException: Out of memory.` intro-render failure is not reproduced by the latest smoke run and should be treated as a stale-but-worth-retesting report until interactive validation proves otherwise.
+- Menu/input bridge code exists, but M4 now primarily needs an interactive manual validation pass for keyboard, mouse, wheel, text input, Retina behavior, and sustained intro/menu rendering under real window interaction.
 
 **Release readiness gaps still open:**
 
-- Visible first frame / menu presentation on macOS.
+- Interactive intro/menu validation on macOS (current smoke run confirms first render entry, but not full user-visible correctness under manual interaction).
 - Base/embedded extension loading stability during background universe init.
 - Native audio parity (current implementation is still stub-level behavior).
 - Save/settings/resource path parity validation for packaged `.app` runtime.

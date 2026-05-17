@@ -9,6 +9,11 @@
 #include "JPEGUtil.h"
 
 #include <ImageIO/ImageIO.h>
+
+#ifndef _WIN32
+#include "SDLBitmap.h"
+#include <SDL2/SDL.h>
+#endif
 #include <CoreGraphics/CoreGraphics.h>
 
 #ifdef _WIN32
@@ -122,7 +127,43 @@ ALERROR JPEGLoadFromMemory (char *pImage, int iSize, DWORD dwFlags, HPALETTE hPa
 
 ALERROR JPEGLoadFromFile (CString sFilename, DWORD dwFlags, HPALETTE hPalette, HBITMAP *rethBitmap)
 	{
-	return JPEGLoadToRGBAFromFile(sFilename, NULL) == NOERROR ? ERR_FAIL : NOERROR;
+	SJPEGLoadInfo info;
+	ALERROR error = JPEGLoadToRGBAFromFile(sFilename, &info);
+	if (error != NOERROR)
+		return error;
+
+	SDL_Surface *pSurface = SDL_CreateRGBSurfaceWithFormat(0, info.cxWidth, info.cyHeight, 24, SDL_PIXELFORMAT_BGR24);
+	if (pSurface == NULL)
+		return ERR_FAIL;
+
+	const BYTE *pSrcRow = (const BYTE *)info.Pixels.GetPointer();
+	BYTE *pDestRow = (BYTE *)pSurface->pixels;
+	for (int y = 0; y < info.cyHeight; y++)
+		{
+		const BYTE *pSrc = pSrcRow;
+		BYTE *pDest = pDestRow;
+		for (int x = 0; x < info.cxWidth; x++)
+			{
+			pDest[0] = pSrc[0];
+			pDest[1] = pSrc[1];
+			pDest[2] = pSrc[2];
+			pSrc += 4;
+			pDest += 3;
+			}
+
+		pSrcRow += info.iPitch;
+		pDestRow += pSurface->pitch;
+		}
+
+	SDLBitmap *pBitmap = SDLBitmapCreateFromSurface(pSurface, bitmapRGB, true);
+	if (pBitmap == NULL)
+		{
+		SDL_FreeSurface(pSurface);
+		return ERR_FAIL;
+		}
+
+	*rethBitmap = (HBITMAP)pBitmap;
+	return NOERROR;
 	}
 
 ALERROR JPEGLoadFromMemory (char *pImage, int iSize, DWORD dwFlags, HPALETTE hPalette, HBITMAP *rethBitmap)
@@ -132,7 +173,37 @@ ALERROR JPEGLoadFromMemory (char *pImage, int iSize, DWORD dwFlags, HPALETTE hPa
 	if (error != NOERROR)
 		return error;
 
-	*rethBitmap = (HBITMAP)info.Pixels.GetPointer();
+	SDL_Surface *pSurface = SDL_CreateRGBSurfaceWithFormat(0, info.cxWidth, info.cyHeight, 24, SDL_PIXELFORMAT_BGR24);
+	if (pSurface == NULL)
+		return ERR_FAIL;
+
+	const BYTE *pSrcRow = (const BYTE *)info.Pixels.GetPointer();
+	BYTE *pDestRow = (BYTE *)pSurface->pixels;
+	for (int y = 0; y < info.cyHeight; y++)
+		{
+		const BYTE *pSrc = pSrcRow;
+		BYTE *pDest = pDestRow;
+		for (int x = 0; x < info.cxWidth; x++)
+			{
+			pDest[0] = pSrc[0];
+			pDest[1] = pSrc[1];
+			pDest[2] = pSrc[2];
+			pSrc += 4;
+			pDest += 3;
+			}
+
+		pSrcRow += info.iPitch;
+		pDestRow += pSurface->pitch;
+		}
+
+	SDLBitmap *pBitmap = SDLBitmapCreateFromSurface(pSurface, bitmapRGB, true);
+	if (pBitmap == NULL)
+		{
+		SDL_FreeSurface(pSurface);
+		return ERR_FAIL;
+		}
+
+	*rethBitmap = (HBITMAP)pBitmap;
 	return NOERROR;
 	}
 

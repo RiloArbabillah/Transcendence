@@ -523,7 +523,7 @@ ALERROR CTranscendenceModel::EndGame (void)
 	//	are generated properly. (It gets cleared out in CTranscendenceWnd::PlayerEnteredGate)
 
 	CCodeChain &CC = m_Universe.GetCC();
-	CC.DefineGlobal(CONSTLIT("gPlayerShip"), CC.CreateInteger((intptr_t)m_pPlayer->GetShip()));
+	CC.DefineGlobal(CONSTLIT("gPlayerShip"), CreateObjPointer(CC, m_pPlayer->GetShip()));
 
 	//	Generate stats and save to file
 

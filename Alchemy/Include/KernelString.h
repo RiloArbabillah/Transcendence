@@ -259,6 +259,19 @@ int strParseIntOfBase (const char *pStart, int iBase, int iNullResult, const cha
 
 void strParseWhitespace (const char *pPos, const char **retpPos);
 Kernel::CString strPattern (const Kernel::CString &sPattern, LPVOID *pArgs);
+Kernel::CString strPatternSubst (Kernel::CString sLine, const Kernel::CString &s1);
+Kernel::CString strPatternSubst (Kernel::CString sLine, const char *s1);
+Kernel::CString strPatternSubst (Kernel::CString sLine, int i1);
+Kernel::CString strPatternSubst (Kernel::CString sLine, const Kernel::CString &s1, const Kernel::CString &s2);
+Kernel::CString strPatternSubst (Kernel::CString sLine, const Kernel::CString &s1, const char *s2);
+Kernel::CString strPatternSubst (Kernel::CString sLine, const char *s1, const Kernel::CString &s2);
+Kernel::CString strPatternSubst (Kernel::CString sLine, const char *s1, const char *s2);
+Kernel::CString strPatternSubst (Kernel::CString sLine, const Kernel::CString &s1, int i2);
+Kernel::CString strPatternSubst (Kernel::CString sLine, int i1, const Kernel::CString &s2);
+Kernel::CString strPatternSubst (Kernel::CString sLine, const Kernel::CString &s1, const Kernel::CString &s2, const Kernel::CString &s3);
+Kernel::CString strPatternSubst (Kernel::CString sLine, const Kernel::CString &s1, int i2, const Kernel::CString &s3);
+Kernel::CString strPatternSubst (Kernel::CString sLine, const Kernel::CString &s1, int i2, const Kernel::CString &s3, int i4);
+Kernel::CString strPatternSubst (Kernel::CString sLine, const Kernel::CString &s1, int i2, const Kernel::CString &s3, int i4, const Kernel::CString &s5);
 Kernel::CString strPatternSubst (Kernel::CString sLine, ...);
 
 constexpr DWORD STRPROC_NO_DOUBLE_QUOTES =			0x00000001;

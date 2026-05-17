@@ -3,6 +3,66 @@
 
 #include "stdafx.h"
 
+static constexpr DWORD ID_BACKGROUND_PROCESSOR_MAC = 1;
+static constexpr DWORD ID_LOW_PRIORITY_BACKGROUND_PROCESSOR_MAC = 2;
+
+bool CHumanInterface::InitFromSDL (HWND hWnd, const SHIOptions &Options, CString *retsError)
+
+//	InitFromSDL
+//
+//	Initializes the human interface on macOS without the Win32 CreateWindow path.
+
+	{
+	if (hWnd == NULL)
+		hWnd = (HWND)this;
+
+	m_Options = Options;
+	return WMCreate(hWnd, retsError);
+	}
+
+bool CHumanInterface::WMCreate (HWND hWnd, CString *retsError)
+
+//	WMCreate
+//
+//	Initializes the class for the SDL/macOS bridge.
+
+	{
+	ASSERT(hWnd);
+	m_hWnd = hWnd;
+
+	::ShowCursor(false);
+
+	if (m_SoundMgr.Init(m_hWnd) != NOERROR)
+		::kernelDebugLogPattern("Unable to initialize sound manager.");
+
+	m_SoundMgr.SetWaveVolume(m_Options.m_iSoundVolume);
+
+	if (m_Background.Init(m_hWnd, ID_BACKGROUND_PROCESSOR_MAC) != NOERROR)
+		{
+		if (retsError) *retsError = CONSTLIT("Unable to initialize background processor.");
+		return false;
+		}
+
+	if (m_BackgroundLowPriority.Init(m_hWnd, ID_LOW_PRIORITY_BACKGROUND_PROCESSOR_MAC) != NOERROR)
+		{
+		if (retsError) *retsError = CONSTLIT("Unable to initialize background processor.");
+		return false;
+		}
+
+	if (m_Visuals.Init(NULL, retsError) != NOERROR)
+		return false;
+
+	m_ScreenMgr.Init(m_Options.m_cxScreenDesired, m_Options.m_cyScreenDesired, retsError);
+	if (!m_ScreenMgr.CheckIsReady())
+		{
+		if (retsError && retsError->IsBlank())
+			*retsError = CONSTLIT("Unable to initialize screen manager.");
+		return false;
+		}
+
+	return true;
+	}
+
 LONG CHumanInterface::OnTimer (DWORD dwID)
 
 //	OnTimer

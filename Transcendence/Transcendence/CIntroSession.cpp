@@ -427,8 +427,11 @@ void CIntroSession::InitShipTable (TSortMap<int, CShipClass *> &List, bool bAll)
 				continue;
 
 			//	Skip unarmed ships
+			//	NOTE: On macOS/Apple Silicon bring-up we avoid the PROPERTY_PRIMARY_WEAPON
+			//	path here because it composes noun phrases through legacy variadic CString
+			//	formatting code that is not yet ABI-safe. Use the raw UNID field instead.
 
-			if (pClass->GetPropertyString(PROPERTY_PRIMARY_WEAPON).IsBlank())
+			if (strEquals(pClass->GetDataField(CONSTLIT("primaryWeaponUNID")), CONSTLIT("none")))
 				continue;
 
 			//	Add to our list, sorted by score
@@ -1001,6 +1004,13 @@ void CIntroSession::OnAnimate (CG32bitImage &Screen, bool bTopMost)
 //	Animate the session
 
 	{
+	static bool bLoggedFirstAnimate = false;
+	if (!bLoggedFirstAnimate)
+		{
+		::kernelDebugLogString(CONSTLIT("CIntroSession::OnAnimate first frame"));
+		bLoggedFirstAnimate = true;
+		}
+
 	CSmartLock Lock(g_pUniverse->GetSem());
 
 	bool bFailed = false;
@@ -1157,19 +1167,25 @@ ALERROR CIntroSession::OnInit (CString *retsError)
 //	Initialize the session
 	
 	{
+	::kernelDebugLogString(CONSTLIT("CIntroSession::OnInit start"));
 	const CVisualPalette &VI = m_HI.GetVisuals();
+	::kernelDebugLogString(CONSTLIT("CIntroSession::OnInit visuals OK"));
 
 	SetNoCursor(true);
+	::kernelDebugLogString(CONSTLIT("CIntroSession::OnInit cursor set"));
 
 	//	Options
 
 	m_bShowAllShips = m_Settings.GetBoolean(CGameSettings::introSpoilers);
+	::kernelDebugLogString(CONSTLIT("CIntroSession::OnInit options OK"));
 
 	//	Metrics
 
 	VI.GetWidescreenRect(&m_rcCenter);
+	::kernelDebugLogString(CONSTLIT("CIntroSession::OnInit widescreen rect OK"));
 
 	int cyBarHeight = Max(128, (g_cyScreen - INTRO_DISPLAY_HEIGHT) / 2);
+	::kernelDebugLogPattern("CIntroSession::OnInit screen=%dx%d bar=%d", g_cxScreen, g_cyScreen, cyBarHeight);
 	m_rcTop.top = 0;
 	m_rcTop.left = 0;
 	m_rcTop.bottom = cyBarHeight;
@@ -1417,6 +1433,13 @@ void CIntroSession::Paint (CG32bitImage &Screen, bool bTopMost)
 //	Paint the intro screen
 
 	{
+	static bool bLoggedFirstPaint = false;
+	if (!bLoggedFirstPaint)
+		{
+		::kernelDebugLogString(CONSTLIT("CIntroSession::Paint first frame"));
+		bLoggedFirstPaint = true;
+		}
+
 	const CVisualPalette &VI = m_HI.GetVisuals();
 	CG32bitPixel rgbBackgroundColor = VI.GetColor(colorAreaDeep);
 	CReanimator &Reanimator = GetReanimator();
@@ -1500,7 +1523,16 @@ void CIntroSession::Paint (CG32bitImage &Screen, bool bTopMost)
 	//	Update the screen
 
 	if (bTopMost)
+		{
+		static bool bLoggedFirstRender = false;
+		if (!bLoggedFirstRender)
+			{
+			::kernelDebugLogString(CONSTLIT("CIntroSession::Paint calling Render"));
+			bLoggedFirstRender = true;
+			}
+
 		m_HI.GetScreenMgr().Render();
+		}
 
 	//	Figure out how long it took to blt
 

@@ -51,7 +51,8 @@ bool CThreadPool::Boot (int iThreadCount)
 
 	AssertInOwnerThread();
 
-	ASSERT(iThreadCount > 0);
+	if (iThreadCount < 0)
+		iThreadCount = 0;
 
 	//	Create all our events
 
@@ -62,11 +63,18 @@ bool CThreadPool::Boot (int iThreadCount)
 
 	m_Quit.Create();
 
-	//	Start all the threads
+	//	Start all the worker threads. The owner thread also participates in
+	//	Run(), so iThreadCount is the number of additional workers. It is valid
+	//	for callers to request 0 extra workers on low-core systems.
 
-	m_Threads.InsertEmpty(iThreadCount - 1);
-	for (int i = 0; i < m_Threads.GetCount(); i++)
-		m_Threads[i].hThread = ::kernelCreateThread(WorkerThreadStub, this);
+	if (iThreadCount > 0)
+		{
+		m_Threads.InsertEmpty(iThreadCount);
+		for (int i = 0; i < m_Threads.GetCount(); i++)
+			m_Threads[i].hThread = ::kernelCreateThread(WorkerThreadStub, this);
+		}
+	else
+		m_Threads.DeleteAll();
 
 	m_iTasksRemaining = 0;
 

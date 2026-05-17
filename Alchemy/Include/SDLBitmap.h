@@ -7,7 +7,8 @@
 #include "Kernel.h"
 #include "Graphics.h"
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
+
+struct SDL_Surface;
 #include <map>
 
 struct SDLBitmap {
@@ -23,6 +24,7 @@ struct SDLBitmap {
 extern std::map<void*, SDLBitmap*>& GetSDLBitmapMap();
 
 SDLBitmap* SDLBitmapCreate(const char* pszFile, EBitmapTypes* retiType);
+SDLBitmap* SDLBitmapCreateFromSurface(SDL_Surface* pSurface, EBitmapTypes iType, bool bTakeOwnership = true);
 void SDLBitmapDestroy(SDLBitmap* pBitmap);
 ALERROR SDLBitmapGetInfo(SDLBitmap* pBitmap, int* retcxWidth, int* retcyHeight, void** retpBase, int* retiStride, BITMAPINFOHEADER* retpBMIH, void** retpBits);
 

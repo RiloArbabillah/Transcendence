@@ -32,6 +32,16 @@ Summary:
 
 ## Entries
 
+### 2026-05-17
+
+- Document: `execution-task-plan.md`, `../macOS_port_status.md`, `change-log.md`
+- Change Type: updated
+- Summary: recorded the first confirmed macOS loading-screen and intro first-paint milestone, the Apple Silicon object-reference hardening sweep, the SDL-backed JPEG/HBITMAP bridge fix for intro assets, and the new active blocker in `CalcViewportCtx` / `PaintViewport`
+
+- Document: `execution-task-plan.md`, `../macOS_port_status.md`, `change-log.md`
+- Change Type: updated
+- Summary: recorded the follow-up Apple Silicon object-reference sweep results, confirmed that the latest smoke run now reaches `CIntroSession::Paint calling Render` without reproducing the earlier intro viewport crash, and reclassified the next blocker to interactive visual/input validation
+
 ### 2026-05-16
 
 - Document: `execution-task-plan.md`, `../macOS_port_status.md`

@@ -622,10 +622,14 @@ CString CLanguage::ComposeNounPhrase (const CString &sNoun, int iCount, const CS
 
 	//	Compose
 
-	CString sNounPhrase = strPatternSubst(CONSTLIT("%s%s%s"), 
-				sArticle, 
-				sModifier, 
-				sNounForm);
+	CString sNounPhrase;
+	sNounPhrase.GrowToFit(sArticle.GetLength() + sModifier.GetLength() + sNounForm.GetLength() + 1);
+	if (!sArticle.IsBlank())
+		sNounPhrase.Append(sArticle.GetPointer(), sArticle.GetLength());
+	if (!sModifier.IsBlank())
+		sNounPhrase.Append(sModifier.GetPointer(), sModifier.GetLength());
+	if (!sNounForm.IsBlank())
+		sNounPhrase.Append(sNounForm.GetPointer(), sNounForm.GetLength());
 
 	if (dwComposeFlags & nounTokenize)
 		sNounPhrase = strConvertToToken(sNounPhrase, true);

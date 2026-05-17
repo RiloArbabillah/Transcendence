@@ -768,6 +768,9 @@ class CHumanInterface
 		ALERROR HICommand (const CString &sCmd, void *pData = NULL) { return m_pController->HICommand(sCmd, pData); }
 		void HIPostCommand (const CString &sCmd, void *pData = NULL);
 		void SetController (IHIController *pController) { m_pController = pController; }
+	#ifdef TARGET_PLATFORM_MACOS
+		bool InitFromSDL (HWND hWnd, const SHIOptions &Options, CString *retsError = NULL);
+	#endif
 		ALERROR HISessionCommand (const CString &sCmd, void *pData = NULL) { return (m_pCurSession ? m_pCurSession->HICommand(sCmd, pData) : NOERROR); }
         bool IsLButtonDown (void) const { return m_bLButtonDown; }
         bool IsMButtonDown (void) const { return m_bMButtonDown; }

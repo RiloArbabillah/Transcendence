@@ -117,12 +117,12 @@ ICCItem *CreateDamageSource (CCodeChain &CC, const CDamageSource &Source)
 	ICCItem *pResult = CC.CreateSymbolTable();
 
 	if (Source.GetObj())
-		pResult->SetIntegerAt(CONSTLIT("obj"), (intptr_t)Source.GetObj());
+		pResult->SetAt(CONSTLIT("obj"), CreateObjPointer(CC, Source.GetObj()));
 
 	pResult->SetStringAt(CONSTLIT("cause"), GetDestructionName(Source.GetCause()));
 
 	if (Source.GetSecondaryObj())
-		pResult->SetIntegerAt(CONSTLIT("secondaryObj"), (intptr_t)Source.GetSecondaryObj());
+		pResult->SetAt(CONSTLIT("secondaryObj"), CreateObjPointer(CC, Source.GetSecondaryObj()));
 
 	if (Source.GetObj() == NULL)
 		{
@@ -314,19 +314,32 @@ ICCItem *CreateListFromVector (const CVector &vVector)
 	return CreateListFromBinary(NULL_STR, &vVector, sizeof(vVector));
 	}
 
+uintptr_t GetObjPointerValue (const ICCItem *pItem)
+	{
+	if (pItem == NULL || pItem->IsNil())
+		return 0;
+
+	if (pItem->IsDouble())
+		return (uintptr_t)pItem->GetDoubleValue();
+	else if (pItem->IsInteger())
+		return (uintptr_t)(DWORD)pItem->GetIntegerValue();
+	else
+		return 0;
+	}
+
 CSpaceObject *CreateObjFromItem (const ICCItem *pItem, DWORD dwFlags)
 	{
 	if (pItem == NULL)
 		return NULL;
 
-	int iArg = pItem->GetIntegerValue();
-	if (iArg == 0)
+	uintptr_t dwObj = GetObjPointerValue(pItem);
+	if (dwObj == 0)
 		return NULL;
 
 	CSpaceObject *pObj;
 	try
 		{
-		pObj = reinterpret_cast<CSpaceObject *>(iArg);
+		pObj = reinterpret_cast<CSpaceObject *>(dwObj);
 		}
 	catch (...)
 		{
@@ -348,7 +361,13 @@ CSpaceObject *CreateObjFromItem (const ICCItem *pItem, DWORD dwFlags)
 ICCItem *CreateObjPointer (CCodeChain &CC, CSpaceObject *pObj)
 	{
 	if (pObj)
-		return CC.CreateInteger((intptr_t)pObj);
+		{
+#ifdef TARGET_64BIT
+		return CC.CreateDouble((double)(uintptr_t)pObj);
+#else
+		return CC.CreateInteger((int)(uintptr_t)pObj);
+#endif
+		}
 	else
 		return CC.CreateNil();
 	}

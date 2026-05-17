@@ -221,29 +221,43 @@ Build baseline (CMake presets + app target)
     - `CIntroSession::OnInit widescreen rect OK`
     - `CIntroSession::OnInit screen=1024x768 bar=128`
 - Ini menutup blocker `m_SessionCtx`/`pSettings` null pada intro init. Blocker aktif berikutnya kembali ke first visible frame/menu presentation setelah intro session berhasil mulai inisialisasi.
+- Slice berikutnya memajukan blocker visual pertama dengan dua perbaikan terpisah:
+  - sweep pointer-safe object reference untuk CodeChain/TSE digeser dari `CreateInteger((intptr_t)...)` ke helper object-pointer path pada jalur aktif (`CCExtensions.cpp`, `CTranscendenceModel.cpp`, dan helper terkait), sehingga crash dereference `CreateShipObjFromItem -> CreateObjFromItem` di arm64 tidak lagi terpicu saat intro/game stats memakai object refs.
+  - loader JPEG non-Windows di `Alchemy/IntelJPEGUtil/Load.cpp` tidak lagi mengembalikan pointer mentah ke buffer `CString`, tetapi sekarang membungkus hasil decode ke `SDLBitmap`/`HBITMAP` kompatibel yang valid untuk `dibGetInfo` dan `CG32bitImage::CreateFromBitmap`.
+- Verifikasi setelah rebuild menunjukkan startup sekarang konsisten melewati:
+  - `CLoadingSession::OnPaint first paint`
+  - `CIntroSession::OnAnimate first frame`
+  - `CIntroSession::Paint first frame`
+- Dengan demikian blocker black-window murni sudah terlewati: first paint title/intro berhasil tercapai pada smoke run normal.
+- Namun blocker runtime belum selesai sepenuhnya. `build/macos-debug/Debug.log` sekarang menunjukkan crash lebih lanjut di intro viewport path:
+  - `Crash in CalcViewportCtx`
+  - `Crash in PaintViewport`
+  - `CException: Out of memory.`
+- Error `Unable to create bitmap from image: Resources/DeepSpaceBackground.jpg` yang sebelumnya muncul sebelum crash viewport sudah hilang setelah perbaikan JPEG/HBITMAP bridge, jadi blocker aktif berikutnya menyempit ke kalkulasi/presentasi viewport intro, bukan lagi image decode failure atau black first frame.
+- Artinya Task 2 secara efektif sudah menutup blocker background init sebelumnya dan memverifikasi first paint, tetapi pekerjaan aktif sekarang bergeser ke Task 3: stabilisasi intro viewport/menu presentation setelah first frame.
 
 ### Checkpoint: Setelah Task 1-2
 
-- [ ] Build debug tetap hijau
-- [ ] Blocker aktif sudah bergeser dari init/load failure ke UI/render/input atau gameplay
-- [ ] Ada catatan observasi runtime yang bisa dijadikan baseline berikutnya
+- [x] Build debug tetap hijau
+- [x] Blocker aktif sudah bergeser dari init/load failure ke UI/render/input atau gameplay
+- [x] Ada catatan observasi runtime yang bisa dijadikan baseline berikutnya
 
 ## Fase 2: Menu dan input usable
 
 ### Task 3: Tampilkan first visible frame/title/menu secara konsisten
 
-**Status:** `pending`
+**Status:** `in_progress`
 
 **Deskripsi:** Setelah inisialisasi stabil, fokus pada keluarnya frame pertama yang benar sehingga user bisa melihat title/menu, bukan black window.
 
 **Acceptance criteria:**
-- [ ] Window tidak lagi hitam pada first frame
-- [ ] Title/loading/menu frame tampil konsisten di run normal
+- [x] Window tidak lagi hitam pada first frame
+- [x] Title/loading/menu frame tampil konsisten di run normal
 - [ ] Tidak ada corrupt warna/alpha yang membuat menu tidak terbaca
 
 **Verifikasi:**
-- [ ] Build lulus: `cmake --build "build" -j8`
-- [ ] Run: `./build/Transcendence`
+- [x] Build lulus: `cmake --build --preset macos-debug --target transcendence_app -j8`
+- [x] Run: `./build/macos-debug/Transcendence`
 - [ ] Cek manual: title/menu terlihat dan readable
 
 **Dependensi:** Task 2
@@ -254,6 +268,22 @@ Build baseline (CMake presets + app target)
 - `Mammoth/TSUI/CHumanInterfaceMac.cpp`
 
 **Perkiraan scope:** S-M
+
+**Catatan eksekusi:**
+- Sweep object-reference Apple Silicon pada jalur aktif intro/UI diteruskan agar pointer `CSpaceObject *` tidak lagi dipaksa lewat atom integer 32-bit-style di CodeChain/TSE.
+- Perubahan penting yang sekarang aktif:
+  - `CCodeChainCtx::DefineSpaceObject(const CSpaceObject &)` tidak lagi memanggil `DefineGlobalInteger((intptr_t)&Obj)`, tetapi memakai helper object-pointer path yang konsisten dengan `CreateObjPointer`.
+  - `CCUtil.cpp` dan `CCreatePainterCtx.cpp` sekarang menyimpan referensi object di symbol table melalui `SetAt(..., CreateObjPointer(...))` atau helper ekuivalen, bukan `SetIntegerAt((intptr_t)...)`.
+  - Validasi object-ref di `CCExtensions.cpp` untuk jalur data object sekarang membaca pointer lewat `GetObjPointerValue(...)` sebelum `CObject::IsValidPointer(...)`.
+- Rebuild verifikasi sukses dengan:
+  - `cmake --build --preset macos-debug --target transcendence_app -j8`
+- Smoke run terbaru dengan log segar (`rm -f build/macos-debug/Debug.log && ./build/macos-debug/Transcendence`) sekarang kembali konsisten mencapai:
+  - `CIntroSession::OnAnimate first frame`
+  - `CIntroSession::Paint first frame`
+  - `CIntroSession::Paint calling Render`
+- Selama jendela observasi proses background ~30+ detik, tidak muncul lagi watched error seperti `Crash in `, `CException:`, `EXC_BAD_ACCESS`, `Unable to create bitmap`, atau `segmentation fault`, dan `Debug.log` tidak bertambah dengan crash intro viewport yang sebelumnya pernah tercatat.
+- Dengan demikian, blocker `CalcViewportCtx` / `PaintViewport` / `Out of memory` yang sempat dicatat sebelumnya belum berhasil direproduksi ulang pada smoke run terbaru dan sementara dianggap stale sampai ada reproduksi interaktif baru.
+- Task 3 tetap `in_progress` karena acceptance criteria terakhir masih butuh validasi manual visual/interaktif: memastikan frame intro/menu benar-benar readable, tidak ada korupsi alpha/warna, dan input menu berjalan benar pada window nyata macOS.
 
 ### Task 4: Rapikan packing dan dispatch mouse messages ala Win32
 

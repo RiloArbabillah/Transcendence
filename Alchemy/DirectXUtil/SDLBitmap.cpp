@@ -5,6 +5,7 @@
 #include "PreComp.h"
 #include "SDLBitmap.h"
 #include "DirectXUtilCompat.h"
+#include <SDL2/SDL_image.h>
 #include <iostream>
 #include <cstring>
 
@@ -25,28 +26,36 @@ SDLBitmap* SDLBitmapCreate(const char* pszFile, EBitmapTypes* retiType) {
         return nullptr;
     }
 
-    SDLBitmap* pBitmap = new SDLBitmap();
-    pBitmap->cxWidth = loaded->w;
-    pBitmap->cyHeight = loaded->h;
-    pBitmap->iStride = loaded->pitch;
-    pBitmap->iType = bitmapRGB;
-
+    EBitmapTypes iType = bitmapRGB;
     Uint32 format = loaded->format->format;
 
     if (format == SDL_PIXELFORMAT_RGB565) {
-        pBitmap->iType = bitmapRGB;
+        iType = bitmapRGB;
     }
-    else if (format == SDL_PIXELFORMAT_RGB24 || format == SDL_PIXELFORMAT_BGR24) {
-        pBitmap->iType = bitmapRGB;
+    else if (format == SDL_PIXELFORMAT_RGB24) {
+        iType = bitmapRGB;
     }
     else if (SDL_ISPIXELFORMAT_ALPHA(format)) {
-        pBitmap->iType = bitmapAlpha;
+        iType = bitmapAlpha;
     }
 
-    if (retiType) *retiType = pBitmap->iType;
+    if (retiType) *retiType = iType;
+    return SDLBitmapCreateFromSurface(loaded, iType, true);
+}
 
-    pBitmap->surface = loaded;
-    pBitmap->pPixels = loaded->pixels;
+SDLBitmap* SDLBitmapCreateFromSurface(SDL_Surface* pSurface, EBitmapTypes iType, bool bTakeOwnership) {
+    if (!pSurface || !pSurface->pixels) {
+        return nullptr;
+    }
+
+    SDLBitmap* pBitmap = new SDLBitmap();
+    pBitmap->surface = pSurface;
+    pBitmap->cxWidth = pSurface->w;
+    pBitmap->cyHeight = pSurface->h;
+    pBitmap->iStride = pSurface->pitch;
+    pBitmap->pPixels = pSurface->pixels;
+    pBitmap->iType = iType;
+    pBitmap->bOwnsSurface = bTakeOwnership;
 
     void* hBitmap = (void*)pBitmap;
     GetBitmapMap()[hBitmap] = pBitmap;

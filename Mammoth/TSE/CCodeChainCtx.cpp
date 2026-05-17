@@ -308,7 +308,7 @@ CSpaceObject *CCodeChainCtx::AsSpaceObject (ICCItem *pItem)
 	CSpaceObject *pObj;
 	try
 		{
-		pObj = reinterpret_cast<CSpaceObject *>(pItem->GetIntegerValue());
+		pObj = reinterpret_cast<CSpaceObject *>(GetObjPointerValue(pItem));
 		if (pObj && ((DWORD)pObj->GetCategory() & ~CSpaceObject::catMask))
 			pObj = NULL;
 		}
@@ -590,6 +590,18 @@ void CCodeChainCtx::DefineSpaceObject (const CString &sVar, const CSpaceObject *
 		DefineSpaceObject(sVar, *pObj);
 	else
 		m_CC.DefineGlobal(sVar, m_CC.GetNil());
+	}
+
+void CCodeChainCtx::DefineSpaceObject (const CString &sVar, const CSpaceObject &Obj)
+
+//	DefineSpaceObject
+//
+//	Defines a global SpaceObject variable
+
+	{
+	ICCItem *pValue = CreateObjPointer(m_CC, const_cast<CSpaceObject *>(&Obj));
+	m_CC.DefineGlobal(sVar, pValue);
+	pValue->Discard();
 	}
 
 void CCodeChainCtx::DefineType (DWORD dwUNID)
