@@ -8452,11 +8452,11 @@ ICCItem *fnObjGetOld (CEvalContext *pEvalCtx, ICCItem *pArguments, DWORD dwData)
 	//	Evaluate the arguments and validate them
 
 	if (dwData == FN_OBJ_DISTANCE || dwData == FN_OBJ_NAME || dwData == FN_OBJ_INSTALLED_ITEM_DESC || dwData == FN_OBJ_ENEMY)
-		pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("i*"));
+		pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("**"));
 	else if (dwData == FN_OBJ_ATTRIBUTE)
-		pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("is"));
+		pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("*s"));
 	else
-		pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("i"));
+		pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("*"));
 	if (pArgs->IsError())
 		return pArgs;
 

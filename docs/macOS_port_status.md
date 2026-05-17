@@ -78,8 +78,11 @@ Result:
 - The non-Windows JPEG loader now returns a valid SDL-backed `HBITMAP`/`SDLBitmap` wrapper instead of a raw pointer into temporary decoded bytes, which removes the earlier `Unable to create bitmap from image: Resources/DeepSpaceBackground.jpg` failure before intro viewport setup.
 - The older loading stargate shadow/trail artifact is still non-blocking unless validation reopens it.
 - The latest Apple Silicon object-reference sweep and intro render-path follow-up no longer reproduce the older `CreateShipObjFromItem -> CreateObjFromItem` bad dereference on the normal smoke run.
+- macOS processor-count detection now has a native non-Windows path (`sysctl`/`sysconf`) instead of relying on Win32-only APIs during SFX thread planning.
+- Intro viewport stabilization is now additionally guarded by forcing background painting single-threaded on macOS while still booting a valid background-paint thread pool object for callers that assume a non-NULL pool.
 - Fresh smoke runs now consistently reach both `CLoadingSession::OnPaint first paint` and `CIntroSession::Paint calling Render` without new `Debug.log` crash lines or watched runtime errors during the observation window.
 - A 60-second PTY smoke run of `./build/macos-debug/Transcendence` also exits cleanly when the harness timeout ends, logging `App_Run: exit main loop` and `App_Shutdown: done` instead of a new crash signature.
+- A follow-up 60-second PTY smoke run after the thread-planning change still reaches `CLoadingSession::OnPaint first paint`, while `build/macos-debug/Debug.log` advances through `CIntroSession::Paint calling Render` with no new `Crash in`, `CException:`, `EXC_BAD_ACCESS`, `Unable to create bitmap`, or object-reference failure signatures.
 - The previously logged `Crash in CalcViewportCtx`, `Crash in PaintViewport`, and `CException: Out of memory.` intro-render failure is not reproduced by the latest smoke run and should be treated as a stale-but-worth-retesting report until interactive validation proves otherwise.
 - Menu/input bridge code exists, but M4 now primarily needs an interactive manual validation pass for keyboard, mouse, wheel, text input, Retina behavior, and sustained intro/menu rendering under real window interaction.
 

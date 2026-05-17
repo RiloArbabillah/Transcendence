@@ -207,5 +207,15 @@ void CSFXOptions::CalcPaintThreads(void)
 		}
 	else
 		m_bUseMTBkrndPaint = true;
+
+	#if defined(__APPLE__)
+	//	The macOS Apple Silicon port still hits an intro-render crash in the
+	//	background-image path when we split viewport background painting across
+	//	multiple workers. Keep this path single-threaded until the SDL/macOS
+	//	presenter is fully validated under interactive rendering.
+	m_iMaxBkrndPaintWorkers = 0;
+	m_bUseMTBkrndPaint = false;
+	kernelDebugLogString(CONSTLIT("Disabling multithreaded background painting on macOS pending intro viewport stabilization."));
+	#endif
 	}
 

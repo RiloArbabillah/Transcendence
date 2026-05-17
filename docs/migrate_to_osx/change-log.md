@@ -36,6 +36,10 @@ Summary:
 
 - Document: `execution-task-plan.md`, `../macOS_port_status.md`, `change-log.md`
 - Change Type: updated
+- Summary: recorded the macOS processor-count portability fix, the temporary single-threaded intro background-paint guardrail, and the follow-up 60-second smoke run that still reaches intro render entry without new runtime crash signatures
+
+- Document: `execution-task-plan.md`, `../macOS_port_status.md`, `change-log.md`
+- Change Type: updated
 - Summary: recorded the latest 60-second PTY smoke-run verification showing loading-screen first paint plus intro render entry remain stable with clean shutdown on harness timeout and no newly reproduced runtime crash signature
 
 - Document: `execution-task-plan.md`, `../macOS_port_status.md`, `change-log.md`

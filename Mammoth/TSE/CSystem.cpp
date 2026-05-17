@@ -565,13 +565,14 @@ void CSystem::CalcViewportCtx (SViewportPaintCtx &Ctx, const RECT &rcView, CSpac
 		Ctx.pThreadPool = m_pThreadPool;
 		}
 
-	//	If we don't have a background thread pool yet, create it
-	//	It is not currently safe to leave this NULL
+	//	If we don't have a background thread pool yet, create it.
+	//	Some callers still assume a non-NULL pool pointer, even when background
+	//	painting is intentionally forced single-threaded.
 
 	if (m_pBkrndThreadPool == NULL)
 		{
 		m_pBkrndThreadPool = new CThreadPool;
-		m_pBkrndThreadPool->Boot(GetUniverse().GetSFXOptions().GetMaxBkrndPaintWorkers());
+		m_pBkrndThreadPool->Boot(GetUniverse().GetSFXOptions().IsMTBkrndPaintEnabled() ? GetUniverse().GetSFXOptions().GetMaxBkrndPaintWorkers() : 0);
 		}
 
 	Ctx.pBkrndThreadPool = m_pBkrndThreadPool;

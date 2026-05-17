@@ -287,6 +287,13 @@ Build baseline (CMake presets + app target)
   - saat harness menghentikan proses karena timeout, log aplikasi menutup dengan `App_Run: exit main loop` dan `App_Shutdown: done`, bukan dengan signature crash baru
 - Selama jendela observasi proses background ~30+ detik, tidak muncul lagi watched error seperti `Crash in `, `CException:`, `EXC_BAD_ACCESS`, `Unable to create bitmap`, atau `segmentation fault`, dan `Debug.log` tidak bertambah dengan crash intro viewport yang sebelumnya pernah tercatat.
 - Dengan demikian, blocker `CalcViewportCtx` / `PaintViewport` / `Out of memory` yang sempat dicatat sebelumnya belum berhasil direproduksi ulang pada smoke run terbaru dan sementara dianggap stale sampai ada reproduksi interaktif baru.
+- Slice lanjutan menambahkan dua guardrail runtime khusus macOS untuk mencegah regresi intro viewport sambil menunggu validasi interaktif penuh:
+  - `Alchemy/Kernel/Utilities.cpp` sekarang menyediakan jalur `sysctl`/`sysconf` untuk `sysGetProcessorInfo` dan `sysGetProcessorCountLegacy`, sehingga perencanaan thread SFX di macOS tidak lagi bergantung pada API Win32.
+  - `CSFXOptions::CalcPaintThreads` sekarang memaksa background painting tetap single-threaded di macOS, sementara `CSystem::CalcViewportCtx` tetap membangun `CThreadPool` background yang valid dengan worker count `0` agar caller lama yang mengasumsikan pool non-NULL tidak crash.
+- Verifikasi setelah patch guardrail:
+  - `cmake --build --preset macos-debug --target transcendence_app -j8` tetap hijau (`ninja: no work to do` pada rebuild verifikasi terbaru).
+  - PTY smoke run 60 detik berikutnya tetap mencapai `CLoadingSession::OnPaint first paint` pada stdout.
+  - `build/macos-debug/Debug.log` untuk run yang sama mencapai lagi `CIntroSession::Paint calling Render` tanpa signature error baru seperti `Crash in`, `CException:`, `EXC_BAD_ACCESS`, `Unable to create bitmap`, `segmentation fault`, `CreateShipObjFromItem`, atau `CreateObjFromItem`.
 - Task 3 tetap `in_progress` karena acceptance criteria terakhir masih butuh validasi manual visual/interaktif: memastikan frame intro/menu benar-benar readable, tidak ada korupsi alpha/warna, dan input menu berjalan benar pada window nyata macOS.
 
 ### Task 4: Rapikan packing dan dispatch mouse messages ala Win32

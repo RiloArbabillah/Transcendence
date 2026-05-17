@@ -6,6 +6,12 @@
 #include "PreComp.h"
 #include <cstring>
 #include <bit>
+#if defined(__APPLE__)
+#include <sys/sysctl.h>
+#include <unistd.h>
+#elif !defined(WIN32)
+#include <unistd.h>
+#endif
 
 DWORD Kernel::sysGetTicksElapsed (DWORD dwTick, DWORD *retdwNow)
 
@@ -44,6 +50,60 @@ DWORD Kernel::sysGetProcessorsInMask(KAFFINITY &AffinityMask)
 //
 SProcessorInfo Kernel::sysGetProcessorInfo(void)
 	{
+	#if !defined(WIN32)
+	SProcessorInfo sInfo;
+
+	#if defined(__APPLE__)
+	int iLogical = 0;
+	size_t iLogicalLen = sizeof(iLogical);
+	if (::sysctlbyname("hw.logicalcpu", &iLogical, &iLogicalLen, NULL, 0) == 0 && iLogical > 0)
+		{
+		sInfo.dwNumLogical = (DWORD)iLogical;
+		sInfo.fReliableLogicalProcessorCount = 1;
+		}
+
+	int iPhysical = 0;
+	size_t iPhysicalLen = sizeof(iPhysical);
+	if (::sysctlbyname("hw.physicalcpu", &iPhysical, &iPhysicalLen, NULL, 0) == 0 && iPhysical > 0)
+		{
+		sInfo.dwNumPhysical = (DWORD)iPhysical;
+		sInfo.fReliablePhysicalProcessorCount = 1;
+		}
+	#endif
+
+	if (sInfo.dwNumLogical == 0)
+		{
+		long iOnline = ::sysconf(_SC_NPROCESSORS_ONLN);
+		if (iOnline > 0)
+			{
+			sInfo.dwNumLogical = (DWORD)iOnline;
+			sInfo.fReliableLogicalProcessorCount = 1;
+			}
+		}
+
+	if (sInfo.dwNumPhysical == 0)
+		{
+		if (sInfo.dwNumLogical > 0)
+			{
+			sInfo.dwNumPhysical = sInfo.dwNumLogical;
+			sInfo.fReliablePhysicalProcessorCount = sInfo.fReliableLogicalProcessorCount;
+			}
+		else
+			{
+			sInfo.dwNumPhysical = 1;
+			}
+		}
+
+	if (sInfo.dwNumLogical == 0)
+		sInfo.dwNumLogical = sInfo.dwNumPhysical;
+
+	sInfo.dwNumProcessorGroups = 1;
+	sInfo.fReliableProcessorGroups = 1;
+	sInfo.fCanAddProcessorGroups = 0;
+	sInfo.fSuccess = (sInfo.dwNumLogical > 0 && sInfo.dwNumPhysical > 0);
+
+	return sInfo;
+	#else
 	SProcessorInfo sInfo = SProcessorInfo();
 	DWORD dwLength = 0;
 	DWORD dwWinError = 0;
@@ -191,6 +251,7 @@ SProcessorInfo Kernel::sysGetProcessorInfo(void)
 	free(pBuffer);
 
 	return sInfo;
+	#endif
 	}
 
 //	sysGetProcessorCountLegacy
@@ -201,9 +262,14 @@ SProcessorInfo Kernel::sysGetProcessorInfo(void)
 //
 int Kernel::sysGetProcessorCountLegacy(void)
 	{
+	#if !defined(WIN32)
+	long iOnline = ::sysconf(_SC_NPROCESSORS_ONLN);
+	return (iOnline > 0 ? (int)iOnline : 1);
+	#else
 	SYSTEM_INFO si;
 	::GetSystemInfo(&si);
 	return si.dwNumberOfProcessors;
+	#endif
 	}
 
 
