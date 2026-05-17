@@ -36,6 +36,10 @@ Summary:
 
 - Document: `execution-task-plan.md`, `../macOS_port_status.md`, `change-log.md`
 - Change Type: updated
+- Summary: recorded the SDL_mixer-backed macOS soundtrack/resource-root follow-up and reclassified the top runtime blocker from the stale intro viewport OOM report to the newly reproduced `CEffectGroupCreator` / `CWeaponFireDesc::CreateHitEffect` crash during sustained intro-scene simulation
+
+- Document: `execution-task-plan.md`, `../macOS_port_status.md`, `change-log.md`
+- Change Type: updated
 - Summary: recorded the reproduced intro `PaintImage`/`PaintViewport` out-of-memory crash, the macOS single-threaded sprite-paint guardrail, and the follow-up 60-second smoke run that no longer reproduced the abort
 
 - Document: `execution-task-plan.md`, `../macOS_port_status.md`, `change-log.md`

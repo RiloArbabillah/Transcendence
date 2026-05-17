@@ -59,6 +59,19 @@ static bool FindResourceEntry (const SResourceEntry *pTable, int iCount, const C
 
 static CString FindResourcesRootCandidate (void)
 	{
+	TArray<CString> Candidates;
+
+	CString sExecutablePath = pathGetExecutablePath(NULL);
+	if (!sExecutablePath.IsBlank())
+		{
+		Candidates.Insert(pathAddComponent(sExecutablePath, CONSTLIT("../Resources")));
+		Candidates.Insert(pathAddComponent(sExecutablePath, CONSTLIT("../../Resources")));
+		Candidates.Insert(pathAddComponent(sExecutablePath, CONSTLIT("../../../Transcendence/Transcendence/Resources")));
+		Candidates.Insert(pathAddComponent(sExecutablePath, CONSTLIT("../../../Transcendence/TransCore/Resources")));
+		Candidates.Insert(pathAddComponent(sExecutablePath, CONSTLIT("../../../../Transcendence/Transcendence/Resources")));
+		Candidates.Insert(pathAddComponent(sExecutablePath, CONSTLIT("../../../../Transcendence/TransCore/Resources")));
+		}
+
 	static const char *CANDIDATES[] =
 		{
 		"Transcendence/Transcendence/Resources",
@@ -67,14 +80,15 @@ static CString FindResourcesRootCandidate (void)
 		"Transcendence/TransCore/Resources",
 		"../../Transcendence/TransCore/Resources",
 		"../Transcendence/TransCore/Resources",
+		"Contents/Resources",
 		};
 
 	for (int i = 0; i < (sizeof(CANDIDATES) / sizeof(CANDIDATES[0])); i++)
-		{
-		CString sCandidate = CString(CANDIDATES[i]);
-		if (pathExists(sCandidate))
-			return sCandidate;
-		}
+		Candidates.Insert(CString(CANDIDATES[i]));
+
+	for (int i = 0; i < Candidates.GetCount(); i++)
+		if (pathExists(Candidates[i]))
+			return Candidates[i];
 
 	return CONSTLIT("Transcendence/Transcendence/Resources");
 	}

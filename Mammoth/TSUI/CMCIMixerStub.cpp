@@ -9,6 +9,7 @@
 #ifdef TARGET_PLATFORM_MACOS
 
 #include <SDL2/SDL_mixer.h>
+#include <SDL2/SDL.h>
 #include <cstdio>
 
 static bool g_bInitialized = false;
@@ -16,6 +17,57 @@ static bool g_bMusicPlaying = false;
 static Mix_Music* g_pCurrentMusic = nullptr;
 static int g_iVolume = 1000;
 static bool g_bOwnsAudio = false;
+
+static CString ResolveMusicFilespec(const CString &sFilespec)
+	{
+	if (sFilespec.IsBlank() || pathExists(sFilespec))
+		return sFilespec;
+
+	CString sNormalized = sFilespec;
+	char *pPos = sNormalized.GetWritePointer(sNormalized.GetLength());
+	char *pEnd = pPos + sNormalized.GetLength();
+	while (pPos < pEnd)
+		{
+		if (*pPos == '\\')
+			*pPos = '/';
+		pPos++;
+		}
+
+	TArray<CString> Candidates;
+	Candidates.Insert(sNormalized);
+	Candidates.Insert(pathAddComponent(CONSTLIT("Transcendence/Game"), sNormalized));
+	Candidates.Insert(pathAddComponent(CONSTLIT("../Transcendence/Game"), sNormalized));
+	Candidates.Insert(pathAddComponent(CONSTLIT("../../Transcendence/Game"), sNormalized));
+	Candidates.Insert(pathAddComponent(CONSTLIT("Contents/Resources/Game"), sNormalized));
+
+	if (const char *pBasePath = SDL_GetBasePath())
+		{
+		CString sBasePath(pBasePath);
+		Candidates.Insert(pathAddComponent(sBasePath, sNormalized));
+		Candidates.Insert(pathAddComponent(pathAddComponent(sBasePath, CONSTLIT("Game")), sNormalized));
+		Candidates.Insert(pathAddComponent(pathAddComponent(sBasePath, CONSTLIT("../Resources/Game")), sNormalized));
+		}
+
+	for (int i = 0; i < Candidates.GetCount(); i++)
+		if (pathExists(Candidates[i]))
+			return Candidates[i];
+
+	return sNormalized;
+	}
+
+static void OnMusicFinished(void)
+	{
+	g_bMusicPlaying = false;
+
+	if (g_pCurrentMusic)
+		{
+		Mix_FreeMusic(g_pCurrentMusic);
+		g_pCurrentMusic = nullptr;
+		}
+
+	if (g_pHI)
+		g_pHI->HIPostCommand(CONSTLIT("cmdSoundtrackDone"));
+	}
 
 CMCIMixer::CMCIMixer(int iChannels) :
 		m_iDefaultVolume(1000),
@@ -42,6 +94,7 @@ CMCIMixer::CMCIMixer(int iChannels) :
 		else
 			g_bOwnsAudio = false;
 
+		Mix_HookMusicFinished(OnMusicFinished);
 		g_bInitialized = true;
 		}
 	}
@@ -55,6 +108,12 @@ CMCIMixer::~CMCIMixer(void)
 			Mix_HaltMusic();
 			g_bMusicPlaying = false;
 			}
+		if (g_pCurrentMusic)
+			{
+			Mix_FreeMusic(g_pCurrentMusic);
+			g_pCurrentMusic = nullptr;
+			}
+		Mix_HookMusicFinished(NULL);
 		if (g_bOwnsAudio)
 			Mix_CloseAudio();
 		Mix_Quit();
@@ -69,6 +128,11 @@ void CMCIMixer::AbortAllRequests(void)
 		{
 		Mix_HaltMusic();
 		g_bMusicPlaying = false;
+		}
+	if (g_pCurrentMusic)
+		{
+		Mix_FreeMusic(g_pCurrentMusic);
+		g_pCurrentMusic = nullptr;
 		}
 	}
 
@@ -98,8 +162,11 @@ int CMCIMixer::GetCurrentPlayLength(void)
 	if (!g_bInitialized || !g_pCurrentMusic)
 		return 0;
 
-	int ms = Mix_MusicDuration(g_pCurrentMusic);
-	return ms / 1000;
+	double rSeconds = Mix_MusicDuration(g_pCurrentMusic);
+	if (rSeconds <= 0.0)
+		return 0;
+
+	return (int)(rSeconds * 1000.0);
 	}
 
 int CMCIMixer::GetCurrentPlayPos(DWORD dwTimeout)
@@ -136,10 +203,16 @@ bool CMCIMixer::Play(CMusicResource *pTrack, int iPos)
 		Mix_HaltMusic();
 		g_bMusicPlaying = false;
 		}
+	if (g_pCurrentMusic)
+		{
+		Mix_FreeMusic(g_pCurrentMusic);
+		g_pCurrentMusic = nullptr;
+		}
 
 	CString sFilespec = pTrack->GetFilespec();
 	if (sFilespec.IsBlank())
 		sFilespec = pTrack->GetFilename();
+	sFilespec = ResolveMusicFilespec(sFilespec);
 
 	if (sFilespec.IsBlank())
 		return false;
@@ -173,10 +246,16 @@ bool CMCIMixer::PlayFadeIn(CMusicResource *pTrack, int iPos)
 		Mix_HaltMusic();
 		g_bMusicPlaying = false;
 		}
+	if (g_pCurrentMusic)
+		{
+		Mix_FreeMusic(g_pCurrentMusic);
+		g_pCurrentMusic = nullptr;
+		}
 
 	CString sFilespec = pTrack->GetFilespec();
 	if (sFilespec.IsBlank())
 		sFilespec = pTrack->GetFilename();
+	sFilespec = ResolveMusicFilespec(sFilespec);
 
 	if (sFilespec.IsBlank())
 		return false;
@@ -205,9 +284,9 @@ void CMCIMixer::SetPlayPaused(bool bPlay)
 	if (g_bInitialized)
 		{
 		if (bPlay)
-			Mix_PauseMusic();
-		else
 			Mix_ResumeMusic();
+		else
+			Mix_PauseMusic();
 		}
 	}
 
@@ -242,6 +321,11 @@ void CMCIMixer::Stop(void)
 		{
 		Mix_HaltMusic();
 		g_bMusicPlaying = false;
+		}
+	if (g_pCurrentMusic)
+		{
+		Mix_FreeMusic(g_pCurrentMusic);
+		g_pCurrentMusic = nullptr;
 		}
 	m_pNowPlaying = nullptr;
 	}

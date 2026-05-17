@@ -86,13 +86,17 @@ Result:
 - A follow-up 60-second PTY smoke run after the thread-planning change still reaches `CLoadingSession::OnPaint first paint`, while `build/macos-debug/Debug.log` advances through `CIntroSession::Paint calling Render` with no new `Crash in`, `CException:`, `EXC_BAD_ACCESS`, `Unable to create bitmap`, or object-reference failure signatures.
 - After reproducing the intro crash once more as `Crash in PaintImage` -> `Crash in PaintViewport` -> `CException: Out of memory.`, the latest guarded smoke run again survives a full 60-second PTY observation window and leaves `Debug.log` at `CIntroSession::Paint calling Render` with no new runtime error lines.
 - The previously logged `Crash in CalcViewportCtx`, `Crash in PaintViewport`, and `CException: Out of memory.` intro-render failure is not reproduced by the latest smoke run and should be treated as a stale-but-worth-retesting report until interactive validation proves otherwise.
+- The macOS soundtrack path is no longer purely stub-level for menu or intro music: `CMCIMixerStub.cpp` now uses `SDL_mixer`, resolves Windows-style music filespecs against build-tree and bundle candidates, and posts `cmdSoundtrackDone` on completion.
+- The resource-root resolver now also probes executable-relative and bundle-oriented candidates (`../Resources`, `../../Resources`, `Contents/Resources`, plus nearby source-tree fallbacks), improving the odds that JPEG/BMP UI assets will resolve correctly outside the original developer cwd.
+- A deeper sustained runtime check from `/tmp` advances the active crash site beyond first-frame intro rendering into intro-scene simulation or effects. The latest reproduced backtrace now runs through `CEffectGroupCreator::OnCreatePainter` -> `CEffectCreatorRef::CreatePainter` -> `CWeaponFireDesc::CreateHitEffect` -> `CMissile::OnDamage` / `CMissile::OnMove` during `CIntroSession::Update`.
+- This means the prior intro viewport `Out of memory` report is no longer the best current blocker to chase; the newer high-value blocker is effect-painter creation during longer-lived intro combat simulation.
 - Menu/input bridge code exists, but M4 now primarily needs an interactive manual validation pass for keyboard, mouse, wheel, text input, Retina behavior, and sustained intro/menu rendering under real window interaction.
 
 **Release readiness gaps still open:**
 
 - Interactive intro/menu validation on macOS (current smoke run confirms first render entry, but not full user-visible correctness under manual interaction).
 - Base/embedded extension loading stability during background universe init.
-- Native audio parity (current implementation is still stub-level behavior).
+- Native audio parity beyond basic SDL_mixer soundtrack playback (sound effects, timing parity, and broader runtime validation are still open).
 - Save/settings/resource path parity validation for packaged `.app` runtime.
 - Finder-launch packaging and full milestone QA gate execution.
 

@@ -304,6 +304,19 @@ Build baseline (CMake presets + app target)
   - Rebuild `cmake --build --preset macos-debug --target transcendence_app -j8` berhasil.
   - PTY smoke run 60 detik sesudah patch tetap mencapai `CLoadingSession::OnPaint first paint` pada stdout dan tetap hidup sampai dibunuh harness, alih-alih abort dengan exit code `133`.
   - `build/macos-debug/Debug.log` dari run yang sama berhenti bersih di `CIntroSession::Paint calling Render` tanpa `WARNING:` ataupun crash baru (`Crash in PaintImage`, `Crash in PaintViewport`, `CException:`, `EXC_BAD_ACCESS`, `Unable to create bitmap`).
+- Slice lanjutan untuk prioritas runtime aset menutup dua gap portability yang masih terbuka di jalur audio/resource macOS:
+  - `Mammoth/TSUI/CMCIMixerStub.cpp` tidak lagi murni no-op untuk soundtrack. Backend macOS sekarang memakai `SDL_mixer`, me-resolve filespec musik dari path Windows-style ke kandidat path build tree / bundle (`Transcendence/Game`, `Contents/Resources/Game`, dan base path SDL), membebaskan `Mix_Music` lama secara aman, dan mem-post `cmdSoundtrackDone` saat track selesai.
+  - `Transcendence/Transcendence/CResourcePathResolver.cpp` sekarang menambah kandidat root resource yang diturunkan dari `pathGetExecutablePath(NULL)`, termasuk jalur `../Resources`, `../../Resources`, dan fallback bundle `Contents/Resources`, sehingga lookup resource lebih dekat ke parity untuk layout `.app` selain sekadar build tree developer.
+- Rebuild verifikasi sesudah slice audio/resource tetap hijau (`ninja: no work to do`).
+- Verifikasi runtime lanjutan mengubah blocker aktif lagi. Run normal dari `/tmp` tidak lagi berhenti pada blocker viewport yang lebih lama, tetapi sekarang crash lebih jauh di update intro-world/effect path. Backtrace proses menunjukkan rantai aktif:
+  - `CEffectGroupCreator::OnCreatePainter`
+  - `CEffectCreator::CreatePainter`
+  - `CEffectCreatorRef::CreatePainter`
+  - `CWeaponFireDesc::CreateHitEffect`
+  - `CMissile::OnDamage` / `CMissile::OnMove`
+  - `CSystem::UpdatePhysics` / `CUniverse::Update`
+  - `CIntroSession::Update` / `CIntroSession::OnAnimate`
+- Artinya blocker aktif berikutnya bukan lagi base-file init, lookup resource title, maupun crash `PaintViewport` yang lama, tetapi crash effect painter pada simulasi intro yang berjalan lebih lama saat missile/hit-effect diproduksi di intro scene.
 - Task 3 tetap `in_progress` karena acceptance criteria terakhir masih butuh validasi manual visual/interaktif: memastikan frame intro/menu benar-benar readable, tidak ada korupsi alpha/warna, dan input menu berjalan benar pada window nyata macOS.
 
 ### Task 4: Rapikan packing dan dispatch mouse messages ala Win32
