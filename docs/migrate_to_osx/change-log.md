@@ -36,6 +36,10 @@ Summary:
 
 - Document: `execution-task-plan.md`, `../macOS_port_status.md`, `change-log.md`
 - Change Type: updated
+- Summary: recorded the reproduced intro `PaintImage`/`PaintViewport` out-of-memory crash, the macOS single-threaded sprite-paint guardrail, and the follow-up 60-second smoke run that no longer reproduced the abort
+
+- Document: `execution-task-plan.md`, `../macOS_port_status.md`, `change-log.md`
+- Change Type: updated
 - Summary: recorded the macOS processor-count portability fix, the temporary single-threaded intro background-paint guardrail, and the follow-up 60-second smoke run that still reaches intro render entry without new runtime crash signatures
 
 - Document: `execution-task-plan.md`, `../macOS_port_status.md`, `change-log.md`

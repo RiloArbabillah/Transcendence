@@ -189,6 +189,7 @@
 				enemyExclusionRadius=	"120"
 
 				maxAppearing=			"1"
+				maxInSystem=			"1"
 				/>
 
 		<Ships>

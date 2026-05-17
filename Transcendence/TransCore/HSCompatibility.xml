@@ -2270,6 +2270,7 @@
 			level=				"9"
 			attributes=			"fleet,friendly,primary,envAir,envEarth,envFire,envWater"
 			maxAppearing=		"1"
+			maxInSystem=		"1"
 			>
 
 		<Ships>
@@ -2293,6 +2294,7 @@
 			level=				"10"
 			attributes=			"friendly"
 			maxAppearing=		"1"
+			maxInSystem=		"1"
 			>
 
 		<Ships>

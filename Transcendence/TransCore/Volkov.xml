@@ -87,6 +87,7 @@
 				locationCriteria=		"-planetary"
 
 				maxAppearing=			"1"
+				maxInSystem=			"1"
 				/>
 
 		<ImageShipwreck class="&scEI500;"/>

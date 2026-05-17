@@ -184,6 +184,7 @@
 			canAttack=			"false"
 			attributes=			"arcoVaughn, centauriWarlords, enemy, human, populated, questTarget, uncharted, warlords"
 			maxAppearing=		"1"
+			maxInSystem=		"1"
 			>
 
 		<ImageVariants>

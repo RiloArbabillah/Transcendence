@@ -294,6 +294,16 @@ Build baseline (CMake presets + app target)
   - `cmake --build --preset macos-debug --target transcendence_app -j8` tetap hijau (`ninja: no work to do` pada rebuild verifikasi terbaru).
   - PTY smoke run 60 detik berikutnya tetap mencapai `CLoadingSession::OnPaint first paint` pada stdout.
   - `build/macos-debug/Debug.log` untuk run yang sama mencapai lagi `CIntroSession::Paint calling Render` tanpa signature error baru seperti `Crash in`, `CException:`, `EXC_BAD_ACCESS`, `Unable to create bitmap`, `segmentation fault`, `CreateShipObjFromItem`, atau `CreateObjFromItem`.
+- Reproduksi lanjutan berhasil memunculkan blocker intro yang lebih spesifik dari run normal, bukan hanya dari laporan lama:
+  - `Crash in PaintImage`
+  - `Crash in PaintViewport`
+  - `CException: Out of memory.`
+- Ini mempersempit akar masalah aktif ke jalur paint objek atau sprite di viewport intro (`CObjectImageArray::PaintImage` lewat `CSystem::PaintViewport`), bukan lagi ke background init, object-reference CodeChain, atau background thread pool viewport.
+- Guardrail berikutnya dipasang di `CSystem::CalcViewportCtx` dengan memaksa `SViewportPaintCtx::bForceSTPaint = true` pada macOS, sehingga object/sprite image paint tidak lagi menjadwalkan worker paint image multithreaded selama port Apple Silicon masih distabilkan.
+- Verifikasi setelah guardrail sprite-paint:
+  - Rebuild `cmake --build --preset macos-debug --target transcendence_app -j8` berhasil.
+  - PTY smoke run 60 detik sesudah patch tetap mencapai `CLoadingSession::OnPaint first paint` pada stdout dan tetap hidup sampai dibunuh harness, alih-alih abort dengan exit code `133`.
+  - `build/macos-debug/Debug.log` dari run yang sama berhenti bersih di `CIntroSession::Paint calling Render` tanpa `WARNING:` ataupun crash baru (`Crash in PaintImage`, `Crash in PaintViewport`, `CException:`, `EXC_BAD_ACCESS`, `Unable to create bitmap`).
 - Task 3 tetap `in_progress` karena acceptance criteria terakhir masih butuh validasi manual visual/interaktif: memastikan frame intro/menu benar-benar readable, tidak ada korupsi alpha/warna, dan input menu berjalan benar pada window nyata macOS.
 
 ### Task 4: Rapikan packing dan dispatch mouse messages ala Win32

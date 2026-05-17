@@ -524,7 +524,15 @@ void CSystem::CalcViewportCtx (SViewportPaintCtx &Ctx, const RECT &rcView, CSpac
 	Ctx.fNoStarshine = !m_Universe.GetSFXOptions().IsStarshineEnabled();
 	Ctx.fNoSpaceBackground = !m_Universe.GetSFXOptions().IsSpaceBackgroundEnabled();
 	Ctx.bNo3DExtras = !m_Universe.GetSFXOptions().Is3DExtrasEnabled();
-	Ctx.bForceSTPaint = m_Universe.GetDebugOptions().IsForceSTPaintEnabled(); //TODO: add an or condition with GetSFXOptions
+	Ctx.bForceSTPaint = m_Universe.GetDebugOptions().IsForceSTPaintEnabled();
+
+	#if defined(__APPLE__)
+	//	The Apple Silicon port still reproduces intro-session crashes in sprite or
+	//	viewport image paint paths (`PaintImage`/`PaintViewport`) under the normal
+	//	smoke run. Force single-threaded object painting on macOS until the SDL
+	//	presenter and intro viewport are fully stable under interactive validation.
+	Ctx.bForceSTPaint = true;
+	#endif
 
 	//	Debug options
 
