@@ -35,13 +35,7 @@
 static ICCItem *CreateObjPointerItem (CSpaceObject *pObj)
 	{
 	if (pObj)
-		{
-	#ifdef TARGET_64BIT
-		return CCodeChain::CreateDouble((double)(uintptr_t)pObj);
-	#else
-		return CCodeChain::CreateInteger((int)(uintptr_t)pObj);
-	#endif
-		}
+		return CreateObjPointer(pObj->GetUniverse().GetCC(), pObj);
 	else
 		return CCodeChain::CreateNil();
 	}

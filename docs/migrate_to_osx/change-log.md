@@ -36,6 +36,10 @@ Summary:
 
 - Document: `execution-task-plan.md`, `../macOS_port_status.md`, `change-log.md`
 - Change Type: updated
+- Summary: recorded the `CCreatePainterCtx` object-pointer follow-up for hit-effect script data, the `/tmp` `lldb --batch` validation that still reaches intro first paint from a non-repo cwd, and the source audit result that asset portability work currently covers image/audio paths but no dedicated video backend
+
+- Document: `execution-task-plan.md`, `../macOS_port_status.md`, `change-log.md`
+- Change Type: updated
 - Summary: recorded the latest Apple Silicon object-reference and SDL bitmap portability hardening slice, plus rebuild/log verification that still leaves the sustained intro-scene `CEffectGroupCreator` / `CWeaponFireDesc::CreateHitEffect` path as the top runtime blocker
 
 ### 2026-05-17
