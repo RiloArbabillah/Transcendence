@@ -284,7 +284,7 @@ ICCItem *CShip::GetPropertyCompatible (CCodeChainCtx &Ctx, const CString &sName)
 	else if (strEquals(sName, PROPERTY_AUTO_TARGET))
 		{
 		CSpaceObject *pTarget = GetTarget();
-		return (pTarget ? CC.CreateInteger((int)(uintptr_t)pTarget) : CC.CreateNil());
+		return (pTarget ? CreateObjPointer(CC, pTarget) : CC.CreateNil());
 		}
 
 	else if (strEquals(sName, PROPERTY_AVAILABLE_DEVICE_SLOTS))
@@ -544,7 +544,7 @@ ICCItem *CShip::GetPropertyCompatible (CCodeChainCtx &Ctx, const CString &sName)
 	else if (strEquals(sName, PROPERTY_TARGET))
 		{
 		CSpaceObject *pTarget = GetTarget(IShipController::FLAG_ACTUAL_TARGET);
-		return (pTarget ? CC.CreateInteger((int)(uintptr_t)pTarget) : CC.CreateNil());
+		return (pTarget ? CreateObjPointer(CC, pTarget) : CC.CreateNil());
 		}
 
 	else if (strEquals(sName, PROPERTY_THRUST))

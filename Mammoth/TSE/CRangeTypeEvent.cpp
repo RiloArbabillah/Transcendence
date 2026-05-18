@@ -130,7 +130,7 @@ void CRangeTypeEvent::DoEvent (DWORD dwTick, CSystem &System)
 	if (m_pType)
 		{
 		ICCItem *pData = CCodeChain::CreateSymbolTable();
-		pData->SetIntegerAt(FIELD_OBJ, (intptr_t)pFound);
+		pData->SetAt(FIELD_OBJ, CreateObjPointer(pFound->GetUniverse().GetCC(), pFound));
 
 		m_pType->FireCustomEvent(m_sEvent, eventNone, pData);
 

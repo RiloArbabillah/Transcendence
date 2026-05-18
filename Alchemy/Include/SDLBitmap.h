@@ -7,9 +7,9 @@
 #include "Kernel.h"
 #include "Graphics.h"
 #include <SDL2/SDL.h>
+#include <map>
 
 struct SDL_Surface;
-#include <map>
 
 struct SDLBitmap {
     SDL_Surface* surface = nullptr;
@@ -18,6 +18,8 @@ struct SDLBitmap {
     int iStride = 0;
     void* pPixels = nullptr;
     EBitmapTypes iType = bitmapNone;
+    int iBitCount = 0;
+    Uint32 dwPixelFormat = SDL_PIXELFORMAT_UNKNOWN;
     bool bOwnsSurface = true;
 };
 

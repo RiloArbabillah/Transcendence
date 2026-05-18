@@ -317,6 +317,13 @@ Build baseline (CMake presets + app target)
   - `CSystem::UpdatePhysics` / `CUniverse::Update`
   - `CIntroSession::Update` / `CIntroSession::OnAnimate`
 - Artinya blocker aktif berikutnya bukan lagi base-file init, lookup resource title, maupun crash `PaintViewport` yang lama, tetapi crash effect painter pada simulasi intro yang berjalan lebih lama saat missile/hit-effect diproduksi di intro scene.
+- Slice lanjutan berikutnya merapikan dua seam portability yang masih relevan dengan blocker Apple Silicon aktif:
+  - jalur object-reference CodeChain/TSE diperketat lagi di `CCUtil.cpp`, `CCodeChainCtx.cpp`, `CTLispConvert.cpp`, `CRangeTypeEvent.cpp`, `CUniverse.cpp`, `ShipProperties.cpp`, `CDockScreen.cpp`, dan signature argumen `obj@`/`msn@` di `CCExtensions.cpp`, sehingga pointer `CSpaceObject *` tidak lagi diam-diam jatuh ke integer 32-bit-style atau diterima kembali dari nilai rendah/truncated saat callback effect/property berjalan;
+  - bridge `SDLBitmap` sekarang menormalkan surface non-16-bit ke `BGR24` bila perlu, menyimpan metadata `BitsPerPixel`, dan mengembalikan `dibIs16bit`/`dibIs24bit` sesuai bit depth nyata, sehingga caller DIB lama tidak lagi salah membaca surface 24/32-bit sebagai bitmap 16-bit saat asset JPEG/BMP atau mask dipakai di macOS.
+- Verifikasi lokal pada slice ini masih sebatas rebuild dan inspeksi log karena rerun PTY dari `/tmp` dibatalkan sebelum eksekusi penuh. Hasil yang terkonfirmasi:
+  - `cmake --build --preset macos-debug --target transcendence_app -j8` tetap hijau (`ninja: no work to do`);
+  - `build/macos-debug/Debug.log` terbaru tetap menunjukkan startup mencapai `CIntroSession::OnAnimate first frame`, `CIntroSession::Paint first frame`, `CIntroSession::Paint calling Render`, lalu lanjut ke `Initializing adventure: ../../Transcendence/TransCore/Transcendence.xml`.
+- Karena itu blocker aktif belum bergeser lagi: kandidat crash bernilai tertinggi tetap jalur `CEffectGroupCreator` / `CWeaponFireDesc::CreateHitEffect` pada simulasi intro yang berjalan lebih lama, sementara validasi manual visual/interaktif menu masih tetap dibutuhkan.
 - Task 3 tetap `in_progress` karena acceptance criteria terakhir masih butuh validasi manual visual/interaktif: memastikan frame intro/menu benar-benar readable, tidak ada korupsi alpha/warna, dan input menu berjalan benar pada window nyata macOS.
 
 ### Task 4: Rapikan packing dan dispatch mouse messages ala Win32

@@ -26,21 +26,42 @@ SDLBitmap* SDLBitmapCreate(const char* pszFile, EBitmapTypes* retiType) {
         return nullptr;
     }
 
+    SDL_Surface* normalized = loaded;
     EBitmapTypes iType = bitmapRGB;
     Uint32 format = loaded->format->format;
 
     if (format == SDL_PIXELFORMAT_RGB565) {
         iType = bitmapRGB;
     }
-    else if (format == SDL_PIXELFORMAT_RGB24) {
-        iType = bitmapRGB;
-    }
     else if (SDL_ISPIXELFORMAT_ALPHA(format)) {
+        //  Most legacy DIB call sites in the engine only understand 16-bit or
+        //  24-bit bitmaps. For image files with alpha, preserve opacity in a
+        //  24-bit grayscale-compatible surface so mask consumers don't read a
+        //  32-bit buffer as WORD-aligned 16-bit data.
+        normalized = SDL_ConvertSurfaceFormat(loaded, SDL_PIXELFORMAT_BGR24, 0);
+        if (!normalized) {
+            SDL_FreeSurface(loaded);
+            if (retiType) *retiType = bitmapNone;
+            return nullptr;
+        }
+
+        SDL_FreeSurface(loaded);
         iType = bitmapAlpha;
+    }
+    else if (format != SDL_PIXELFORMAT_BGR24) {
+        normalized = SDL_ConvertSurfaceFormat(loaded, SDL_PIXELFORMAT_BGR24, 0);
+        if (!normalized) {
+            SDL_FreeSurface(loaded);
+            if (retiType) *retiType = bitmapNone;
+            return nullptr;
+        }
+
+        SDL_FreeSurface(loaded);
+        iType = bitmapRGB;
     }
 
     if (retiType) *retiType = iType;
-    return SDLBitmapCreateFromSurface(loaded, iType, true);
+    return SDLBitmapCreateFromSurface(normalized, iType, true);
 }
 
 SDLBitmap* SDLBitmapCreateFromSurface(SDL_Surface* pSurface, EBitmapTypes iType, bool bTakeOwnership) {
@@ -55,6 +76,8 @@ SDLBitmap* SDLBitmapCreateFromSurface(SDL_Surface* pSurface, EBitmapTypes iType,
     pBitmap->iStride = pSurface->pitch;
     pBitmap->pPixels = pSurface->pixels;
     pBitmap->iType = iType;
+    pBitmap->iBitCount = pSurface->format->BitsPerPixel;
+    pBitmap->dwPixelFormat = pSurface->format->format;
     pBitmap->bOwnsSurface = bTakeOwnership;
 
     void* hBitmap = (void*)pBitmap;
@@ -86,7 +109,7 @@ ALERROR SDLBitmapGetInfo(SDLBitmap* pBitmap, int* retcxWidth, int* retcyHeight, 
         retpBMIH->biWidth = pBitmap->cxWidth;
         retpBMIH->biHeight = -pBitmap->cyHeight;
         retpBMIH->biPlanes = 1;
-        retpBMIH->biBitCount = 32;
+        retpBMIH->biBitCount = (WORD)(pBitmap->iBitCount > 0 ? pBitmap->iBitCount : 32);
         retpBMIH->biCompression = 0;
         retpBMIH->biSizeImage = pBitmap->iStride * pBitmap->cyHeight;
     }
@@ -114,13 +137,13 @@ ALERROR dibGetInfo(void* hDIB, int* retcxWidth, int* retcyHeight, void** retpBas
 bool dibIs16bit(void* hDIB) {
     SDLBitmap* pBitmap = LookupBitmap(hDIB);
     if (!pBitmap) return false;
-    return pBitmap->iType == bitmapRGB;
+    return pBitmap->iBitCount == 16;
 }
 
 bool dibIs24bit(void* hDIB) {
     SDLBitmap* pBitmap = LookupBitmap(hDIB);
     if (!pBitmap) return false;
-    return false;
+    return pBitmap->iBitCount == 24;
 }
 
 ALERROR dibLoadFromFile(Kernel::CString sFilename, void** rethDIB, EBitmapTypes* retiType) {

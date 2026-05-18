@@ -32,6 +32,12 @@ Summary:
 
 ## Entries
 
+### 2026-05-18
+
+- Document: `execution-task-plan.md`, `../macOS_port_status.md`, `change-log.md`
+- Change Type: updated
+- Summary: recorded the latest Apple Silicon object-reference and SDL bitmap portability hardening slice, plus rebuild/log verification that still leaves the sustained intro-scene `CEffectGroupCreator` / `CWeaponFireDesc::CreateHitEffect` path as the top runtime blocker
+
 ### 2026-05-17
 
 - Document: `execution-task-plan.md`, `../macOS_port_status.md`, `change-log.md`

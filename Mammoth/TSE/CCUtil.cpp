@@ -320,9 +320,28 @@ uintptr_t GetObjPointerValue (const ICCItem *pItem)
 		return 0;
 
 	if (pItem->IsDouble())
-		return (uintptr_t)pItem->GetDoubleValue();
+		{
+		uintptr_t dwValue = (uintptr_t)pItem->GetDoubleValue();
+#ifdef TARGET_64BIT
+		//	On 64-bit Apple Silicon builds, valid live pointers are expected to sit
+		//	above the 32-bit address space. Low values are almost certainly stale
+		//	object IDs or truncated references encoded through legacy script paths.
+		if (dwValue <= (uintptr_t)DWORD_MAX)
+			return 0;
+#endif
+		return dwValue;
+		}
 	else if (pItem->IsInteger())
+		{
+#ifdef TARGET_64BIT
+		//	On 64-bit builds, live object references are encoded as doubles.
+		//	Integer values are often object IDs, UNIDs, or other scalar values;
+		//	treating them as raw pointers causes bad dereferences on Apple Silicon.
+		return 0;
+#else
 		return (uintptr_t)(DWORD)pItem->GetIntegerValue();
+#endif
+		}
 	else
 		return 0;
 	}
@@ -340,11 +359,22 @@ CSpaceObject *CreateObjFromItem (const ICCItem *pItem, DWORD dwFlags)
 	try
 		{
 		pObj = reinterpret_cast<CSpaceObject *>(dwObj);
+#ifdef TARGET_64BIT
+		if ((uintptr_t)pObj <= (uintptr_t)DWORD_MAX)
+			pObj = NULL;
+#endif
 		}
 	catch (...)
 		{
 		pObj = NULL;
 		}
+
+	//	Make sure the pointer is still a live object before we dereference it.
+	//	This is especially important on Apple Silicon, where legacy script paths
+	//	may surface stale or truncated object references during effect callbacks.
+
+	if (pObj && !CObject::IsValidPointer((CObject *)pObj))
+		return NULL;
 
 	//	Make sure it is not destroyed
 
@@ -920,7 +950,11 @@ void DefineGlobalSpaceObject (CCodeChain &CC, const CString &sVar, const CSpaceO
 
 	{
 	if (pObj)
-		CC.DefineGlobalInteger(sVar, (intptr_t)pObj);
+		{
+		ICCItem *pValue = CreateObjPointer(CC, const_cast<CSpaceObject *>(pObj));
+		CC.DefineGlobal(sVar, pValue);
+		pValue->Discard();
+		}
 	else
 		CC.DefineGlobal(sVar, CC.GetNil());
 	}

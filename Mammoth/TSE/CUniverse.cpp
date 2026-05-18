@@ -2443,7 +2443,7 @@ void CUniverse::PutPlayerInSystem (CShip *pPlayerShip, const CVector &vPos, CSys
 
 	//	Set globals
 
-	m_CC.DefineGlobalInteger(STR_G_PLAYER_SHIP, (intptr_t)pPlayerShip);
+	DefineGlobalSpaceObject(m_CC, STR_G_PLAYER_SHIP, pPlayerShip);
 
 	//	POV
 

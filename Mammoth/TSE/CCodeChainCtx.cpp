@@ -309,7 +309,13 @@ CSpaceObject *CCodeChainCtx::AsSpaceObject (ICCItem *pItem)
 	try
 		{
 		pObj = reinterpret_cast<CSpaceObject *>(GetObjPointerValue(pItem));
-		if (pObj && ((DWORD)pObj->GetCategory() & ~CSpaceObject::catMask))
+#ifdef TARGET_64BIT
+		if ((uintptr_t)pObj <= (uintptr_t)DWORD_MAX)
+			pObj = NULL;
+#endif
+		if (pObj && !CObject::IsValidPointer((CObject *)pObj))
+			pObj = NULL;
+		else if (pObj && ((DWORD)pObj->GetCategory() & ~CSpaceObject::catMask))
 			pObj = NULL;
 		}
 	catch (...)

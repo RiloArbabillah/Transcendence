@@ -2343,15 +2343,15 @@ static PRIMITIVEPROCDEF g_Extensions[] =
 			"\n"
 			"NOTE: All type properties (accessed via typ@) are also valid object properties.",
 
-			"i*s",	0,	},
+			"**s",	0,	},
 
 		{	"objGetProperty",				fnObjGet,		FN_OBJ_GET_ITEM_PROPERTY,
 			"DEPRECATED: Use (obj@ ...) instead.",
-			"is",	0,	},
+			"*s",	0,	},
 
 		{	"obj@Keys",						fnObjGet,		FN_OBJ_GET_ITEM_PROPERTY_KEYS,
 			"(obj@Keys obj) -> list of custom property keys",
-			"i",	0,	},
+			"*",	0,	},
 
 		{	"objGetRefuelItemAndPrice",		fnObjGet,		FN_OBJ_GET_REFUEL_ITEM,	
 			"(objGetRefuelItemAndPrice obj objToRefuel) -> (item price)",
@@ -3022,7 +3022,7 @@ static PRIMITIVEPROCDEF g_Extensions[] =
 
 		{	"msnGetProperty",				fnObjGet,		FN_OBJ_GET_ITEM_PROPERTY,
 			"DEPRECATED: Use (msn@ ...) instead.",
-			"is",	0,	},
+			"*s",	0,	},
 
 		{	"msnGetStaticData",				fnObjData,		FN_OBJ_GET_STATIC_DATA,
 			"(msnGetStaticData missionObj attrib) -> data",

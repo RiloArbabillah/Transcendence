@@ -238,7 +238,7 @@ CVector CTLispConvert::AsVector (const ICCItem *pItem)
 		CreateBinaryFromList(NULL_STR, *pItem, &vVec);
 		return vVec;
 		}
-	else if (pItem->IsInteger())
+	else
 		{
 		CSpaceObject *pObj = CreateObjFromItem(pItem);
 		if (pObj)
@@ -282,7 +282,7 @@ ICCItemPtr CTLispConvert::CreateObject (const CSpaceObject *pObj)
 
 	{
 	if (pObj)
-		return ICCItemPtr((int)(uintptr_t)pObj);
+		return ICCItemPtr(::CreateObjPointer(pObj->GetUniverse().GetCC(), const_cast<CSpaceObject *>(pObj)));
 	else
 		return ICCItemPtr::Nil();
 	}
