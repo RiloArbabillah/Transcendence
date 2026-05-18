@@ -5,6 +5,7 @@
 #include "DirectXUtil.h"
 
 #ifdef TARGET_PLATFORM_MACOS
+#include <SDL2/SDL.h>
 #include <SDL2/SDL_mixer.h>
 
 static bool g_bOwnsAudio = false;
@@ -24,6 +25,108 @@ static int CalcSDLEffectVolume(int iDSVolume, int iMasterLevel)
 
     return (iMaster * iAtten) / 10000;
 }
+
+static CString NormalizeAudioFilespec(const CString &sFilespec)
+{
+    CString sNormalized = sFilespec;
+    const int iLen = sNormalized.GetLength();
+    char *pPos = sNormalized.GetWritePointer(iLen);
+    char *pEnd = pPos + iLen;
+    while (pPos < pEnd)
+        {
+        if (*pPos == '\\')
+            *pPos = '/';
+        pPos++;
+        }
+
+    return sNormalized;
+}
+
+static CString ResolveAudioFilespec(const CString &sFilespec)
+{
+    CString sNormalized = NormalizeAudioFilespec(sFilespec);
+    if (sNormalized.IsBlank() || pathExists(sNormalized))
+        return sNormalized;
+
+    TArray<CString> Candidates;
+    Candidates.Insert(sNormalized);
+
+    CString sFilename = pathGetFilename(sNormalized);
+    if (!sFilename.IsBlank() && !strEquals(sFilename, sNormalized))
+        Candidates.Insert(sFilename);
+
+    Candidates.Insert(pathAddComponent(CONSTLIT("Transcendence/Game"), sNormalized));
+    Candidates.Insert(pathAddComponent(CONSTLIT("../Transcendence/Game"), sNormalized));
+    Candidates.Insert(pathAddComponent(CONSTLIT("../../Transcendence/Game"), sNormalized));
+    Candidates.Insert(pathAddComponent(CONSTLIT("Contents/Resources/Game"), sNormalized));
+
+    if (!sFilename.IsBlank())
+        {
+        Candidates.Insert(pathAddComponent(CONSTLIT("Transcendence/Game"), sFilename));
+        Candidates.Insert(pathAddComponent(CONSTLIT("../Transcendence/Game"), sFilename));
+        Candidates.Insert(pathAddComponent(CONSTLIT("../../Transcendence/Game"), sFilename));
+        Candidates.Insert(pathAddComponent(CONSTLIT("Contents/Resources/Game"), sFilename));
+        }
+
+    if (const char *pBasePath = SDL_GetBasePath())
+        {
+        CString sBasePath(pBasePath);
+        Candidates.Insert(pathAddComponent(sBasePath, sNormalized));
+        Candidates.Insert(pathAddComponent(pathAddComponent(sBasePath, CONSTLIT("Game")), sNormalized));
+        Candidates.Insert(pathAddComponent(pathAddComponent(sBasePath, CONSTLIT("../Resources/Game")), sNormalized));
+        Candidates.Insert(pathAddComponent(pathAddComponent(sBasePath, CONSTLIT("../../Resources/Game")), sNormalized));
+
+        if (!sFilename.IsBlank())
+            {
+            Candidates.Insert(pathAddComponent(sBasePath, sFilename));
+            Candidates.Insert(pathAddComponent(pathAddComponent(sBasePath, CONSTLIT("Game")), sFilename));
+            Candidates.Insert(pathAddComponent(pathAddComponent(sBasePath, CONSTLIT("../Resources/Game")), sFilename));
+            Candidates.Insert(pathAddComponent(pathAddComponent(sBasePath, CONSTLIT("../../Resources/Game")), sFilename));
+            }
+        }
+
+    for (int i = 0; i < Candidates.GetCount(); i++)
+        if (pathExists(Candidates[i]))
+            return Candidates[i];
+
+    return sNormalized;
+}
+
+static void ApplyPanToChannel(int iChannel, int iPan)
+{
+    if (iChannel < 0)
+        return;
+
+    const int iClampedPan = Max(-10000, Min(iPan, 10000));
+    Uint8 byLeft = 255;
+    Uint8 byRight = 255;
+
+    if (iClampedPan < 0)
+        byRight = (Uint8)(255 + ((255 * iClampedPan) / 10000));
+    else if (iClampedPan > 0)
+        byLeft = (Uint8)(255 - ((255 * iClampedPan) / 10000));
+
+    Mix_SetPanning(iChannel, byLeft, byRight);
+}
+
+static int MillisecondsFromSeconds(double rSeconds)
+{
+    if (rSeconds <= 0.0)
+        return 0;
+
+    return (int)(rSeconds * 1000.0);
+}
+
+static double SecondsFromMilliseconds(int iMilliseconds)
+{
+    if (iMilliseconds <= 0)
+        return 0.0;
+
+    return ((double)iMilliseconds / 1000.0);
+}
+
+static CString g_sCurrentMusicFilename;
+static double g_rCurrentMusicLength = 0.0;
 
 void CSoundMgr::AddMusicFolder(const CString &sFolder, TArray<CString> *retCatalog)
 {
@@ -125,7 +228,8 @@ void CSoundMgr::Delete(int iChannel)
 
 ALERROR CSoundMgr::LoadWaveFile(const CString &sFilename, int *retiChannel)
 {
-    Mix_Chunk *pChunk = Mix_LoadWAV(sFilename.GetASCIIZPointer());
+    CString sResolved = ResolveAudioFilespec(sFilename);
+    Mix_Chunk *pChunk = Mix_LoadWAV(sResolved.GetASCIIZPointer());
     if (!pChunk)
         return ERR_FAIL;
 
@@ -173,7 +277,10 @@ void CSoundMgr::Play(int iChannel, int iVolume, int iPan, bool bLoop)
     Mix_Chunk *pChunk = reinterpret_cast<Mix_Chunk *>(pChannel->pBuffer);
     int iPlayChannel = Mix_PlayChannel(-1, pChunk, (bLoop ? -1 : 0));
     if (iPlayChannel >= 0)
+        {
         Mix_Volume(iPlayChannel, CalcSDLEffectVolume(iVolume, m_iSoundVolume));
+        ApplyPanToChannel(iPlayChannel, iPan);
+        }
 }
 
 void CSoundMgr::Stop(int iChannel)
@@ -214,35 +321,55 @@ bool CSoundMgr::GetMusicPlayState(SMusicPlayState *retState)
     if (!retState)
         return false;
 
+    retState->sFilename = g_sCurrentMusicFilename;
     retState->bPlaying = (Mix_PlayingMusic() != 0);
     retState->bPaused = (Mix_PausedMusic() != 0);
-    retState->iPos = 0;
-    retState->iLength = 0;
+    retState->iLength = MillisecondsFromSeconds(g_rCurrentMusicLength);
+
+    if (m_hMusic)
+        {
+        double rPos = Mix_GetMusicPosition(reinterpret_cast<Mix_Music *>(m_hMusic));
+        retState->iPos = (rPos >= 0.0 ? MillisecondsFromSeconds(rPos) : 0);
+        }
+    else
+        retState->iPos = 0;
+
     return true;
 }
 
 bool CSoundMgr::PlayMusic(const CString &sFilename, int iPos, CString *retsError)
 {
-    (void)iPos;
-
-    Mix_Music *pMusic = Mix_LoadMUS(sFilename.GetASCIIZPointer());
+    CString sResolved = ResolveAudioFilespec(sFilename);
+    Mix_Music *pMusic = Mix_LoadMUS(sResolved.GetASCIIZPointer());
     if (!pMusic)
         {
         if (retsError)
-            *retsError = CONSTLIT("Unable to load music file.");
+            *retsError = strPatternSubst(CONSTLIT("Unable to load music file: %s."), sResolved);
         return false;
         }
 
     StopMusic();
     m_hMusic = reinterpret_cast<HWND>(pMusic);
+    g_sCurrentMusicFilename = sResolved;
+    g_rCurrentMusicLength = Mix_MusicDuration(pMusic);
 
     if (Mix_PlayMusic(pMusic, 0) != 0)
         {
         Mix_FreeMusic(pMusic);
         m_hMusic = NULL;
+        g_sCurrentMusicFilename = NULL_STR;
+        g_rCurrentMusicLength = 0.0;
         if (retsError)
             *retsError = CONSTLIT("Unable to play music file.");
         return false;
+        }
+
+    if (iPos > 0)
+        {
+        if (Mix_SetMusicPosition(SecondsFromMilliseconds(iPos)) != 0)
+            {
+            // Some codecs do not support seeking; keep playback running from start.
+            }
         }
 
     Mix_VolumeMusic(CalcSDLMixerVolume(m_iMusicVolume));
@@ -265,6 +392,9 @@ void CSoundMgr::StopMusic(void)
         Mix_FreeMusic(reinterpret_cast<Mix_Music *>(m_hMusic));
         m_hMusic = NULL;
         }
+
+    g_sCurrentMusicFilename = NULL_STR;
+    g_rCurrentMusicLength = 0.0;
 }
 
 void CSoundMgr::TogglePlayPaused(void)

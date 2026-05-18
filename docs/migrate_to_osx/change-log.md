@@ -36,6 +36,14 @@ Summary:
 
 - Document: `execution-task-plan.md`, `../macOS_port_status.md`, `change-log.md`
 - Change Type: updated
+- Summary: recorded the `CSoundMgrSDL.cpp` follow-up that closes most source-level macOS audio parity gaps by adding external SFX path fallback, SDL_mixer pan support, and music seek/play-state reporting, while keeping runtime audio validation and intro-effect stability as open follow-up work
+
+- Document: `execution-task-plan.md`, `../macOS_port_status.md`, `change-log.md`
+- Change Type: updated
+- Summary: expanded the asset portability audit to distinguish image loading, soundtrack playback, gameplay/UI sound-effect loading, and the absence of any dedicated video backend; also recorded the remaining macOS audio parity gaps around external SFX path fallback, pan, and music play-position reporting
+
+- Document: `execution-task-plan.md`, `../macOS_port_status.md`, `change-log.md`
+- Change Type: updated
 - Summary: recorded the `CCreatePainterCtx` object-pointer follow-up for hit-effect script data, the `/tmp` `lldb --batch` validation that still reaches intro first paint from a non-repo cwd, and the source audit result that asset portability work currently covers image/audio paths but no dedicated video backend
 
 - Document: `execution-task-plan.md`, `../macOS_port_status.md`, `change-log.md`
