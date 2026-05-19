@@ -6870,9 +6870,19 @@ bool CShip::PointInObject (SPointInObjectCtx &Ctx, const CVector &vObjPos, const
 	int x = mathRound(vOffset.GetX() / g_KlicksPerPixel);
 	int y = -mathRound(vOffset.GetY() / g_KlicksPerPixel);
 
-	//	Ask the image if the point is inside or not
+	//	Ask the image if the point is inside or not.
+	//	
+	//	On some 64-bit code paths the cached PointInObject context can fail to
+	//	initialize its hit-mask pointer even though the ship image itself is
+	//	valid. When that happens the optimized path silently returns false for
+	//	every probe, which disables direct weapon hits against ship bodies.
+	//	Fall back to the non-cached test so collision/hit effects/audio still
+	//	flow through the normal damage path.
 
-	return GetImage().PointInImage(Ctx, x, y);
+	if (Ctx.pImage)
+		return GetImage().PointInImage(Ctx, x, y);
+	else
+		return GetImage().PointInImage(x, y, GetSystem()->GetTick(), m_Rotation.GetFrameIndex());
 
 	DEBUG_CATCH
 	}

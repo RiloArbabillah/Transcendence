@@ -6269,7 +6269,7 @@ ICCItem *fnObjAddRandomItems (CEvalContext *pEvalCtx, ICCItem *pArguments, DWORD
 
 	//	Evaluate the arguments and validate them
 
-	pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("iii"));
+	pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("vii"));
 	if (pArgs->IsError())
 		return pArgs;
 
@@ -6336,19 +6336,19 @@ ICCItem *fnObjData (CEvalContext *pEvalCtx, ICCItem *pArguments, DWORD dwData)
 	if (dwData == FN_OBJ_GETDATA_KEYS
 			|| dwData == FN_OBJ_GET_STATIC_DATA_KEYS
 			|| dwData == FN_OBJ_GET_GLOBAL_DATA_KEYS)
-		pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("i"));
+		pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("v"));
 	else if (dwData == FN_OBJ_GETDATA 
 			|| dwData == FN_OBJ_GET_OBJREF_DATA 
 			|| dwData == FN_OBJ_GET_STATIC_DATA
 			|| dwData == FN_OBJ_GET_STATIC_DATA_FOR_STATION_TYPE
 			|| dwData == FN_OBJ_GET_GLOBAL_DATA)
-		pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("is"));
+		pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("vs"));
 	else if (dwData == FN_OBJ_SET_OBJREF_DATA)
-		pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("isi"));
+		pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("vsv"));
 	else if (dwData == FN_OBJ_INCREMENT_DATA)
-		pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("is*"));
+		pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("vs*"));
 	else
-		pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("isv"));
+		pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("vsv"));
 	if (pArgs->IsError())
 		return pArgs;
 
@@ -6612,7 +6612,7 @@ ICCItem *fnObjEnumItems (CEvalContext *pEvalCtx, ICCItem *pArguments, DWORD dwDa
 
 	//	Evaluate the arguments and validate them
 
-	pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("isqu"));
+	pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("vsqu"));
 	if (pArgs->IsError())
 		return pArgs;
 
@@ -6715,7 +6715,7 @@ ICCItem *fnObjGateTo (CEvalContext *pEvalCtx, ICCItem *pArguments, DWORD dwData)
 
 	//	Evaluate the arguments and validate them
 
-	ICCItem *pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("iss*"));
+	ICCItem *pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("vss*"));
 	if (pArgs->IsError())
 		return pArgs;
 
@@ -6882,7 +6882,7 @@ ICCItem *fnObjGetArmor (CEvalContext *pEvalCtx, ICCItem *pArguments, DWORD dwDat
 
 	//	Evaluate the arguments and validate them
 
-	pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("iv*"));
+	pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("vv*"));
 	if (pArgs->IsError())
 		return pArgs;
 
@@ -7019,9 +7019,17 @@ ICCItem *fnObjGet (CEvalContext *pEvalCtx, ICCItem *pArgs, DWORD dwData)
 	if (pCtx == NULL)
 		return pCC->CreateError(ERR_NO_CODE_CHAIN_CTX);
 
-	//	Get the object
+	//	Get the object. For property-style accessors, reject destroyed objects
+	//	up front so legacy script callbacks such as hit-effect GetParameters
+	//	don't dereference stale targets on 64-bit macOS after the damage event
+	//	has already torn the object down.
 
-	CSpaceObject *pObj = CreateObjFromItem(pArgs->GetElement(0));
+	DWORD dwObjFlags = 0;
+	if (dwData == FN_OBJ_GET_ITEM_PROPERTY
+			|| dwData == FN_OBJ_GET_ITEM_PROPERTY_KEYS)
+		dwObjFlags |= CCUTIL_FLAG_CHECK_DESTROYED;
+
+	CSpaceObject *pObj = CreateObjFromItem(pArgs->GetElement(0), dwObjFlags);
 	if (pObj == NULL)
 		return pCC->CreateNil();
 
@@ -8468,9 +8476,13 @@ ICCItem *fnObjGetOld (CEvalContext *pEvalCtx, ICCItem *pArguments, DWORD dwData)
 	else
 		bRequireValidObj = true;
 
-	//	Convert the first argument into a space object
+	//	Convert the first argument into a space object. On 64-bit macOS we need
+	//	to reject destroyed/stale object references here too, not just in the
+	//	newer property accessor path, because intro/new-game scripts still hit
+	//	legacy getters such as objGetSovereign during OnCreate.
 
-	CSpaceObject *pObj = CreateObjFromItem(pArgs->GetElement(0));
+	DWORD dwObjFlags = CCUTIL_FLAG_CHECK_DESTROYED;
+	CSpaceObject *pObj = CreateObjFromItem(pArgs->GetElement(0), dwObjFlags);
 	if (bRequireValidObj && pObj == NULL)
 		{
 		pArgs->Discard();
@@ -10161,7 +10173,7 @@ ICCItem *fnObjSetOld (CEvalContext *pEvalCtx, ICCItem *pArguments, DWORD dwData)
 
 	//	Evaluate the arguments and validate them
 
-	pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("i*"));
+	pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("v*"));
 	if (pArgs->IsError())
 		return pArgs;
 
@@ -10410,9 +10422,9 @@ ICCItem *fnObjItemOld (CEvalContext *pEvalCtx, ICCItem *pArguments, DWORD dwData
 	//	Evaluate the arguments and validate them
 
 	if (dwData == FN_OBJ_ENUM_ITEMS)
-		pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("is"));
+		pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("vs"));
 	else
-		pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("il*"));
+		pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("vl*"));
 	if (pArgs->IsError())
 		return pArgs;
 
@@ -10474,7 +10486,7 @@ ICCItem *fnProgramDamage (CEvalContext *pEvalCtx, ICCItem *pArguments, DWORD dwD
 
 	//	Evaluate the arguments and validate them
 
-	ICCItem *pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("iisiu"));
+	ICCItem *pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("vvsiu"));
 	if (pArgs->IsError())
 		return pArgs;
 
@@ -11172,7 +11184,7 @@ ICCItem *fnShipGetOld (CEvalContext *pEvalCtx, ICCItem *pArguments, DWORD dwData
 
 	//	Evaluate the arguments and validate them
 
-	pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("i"));
+	pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("v"));
 	if (pArgs->IsError())
 		return pArgs;
 
@@ -11828,16 +11840,16 @@ ICCItem *fnShipSetOld (CEvalContext *pEvalCtx, ICCItem *pArguments, DWORD dwData
 	if (dwData == FN_SHIP_REMOVE_DEVICE 
 			|| dwData == FN_SHIP_ITEM_CHARGES 
 			|| dwData == FN_SHIP_DAMAGE_ITEM)
-		pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("iv"));
+		pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("vv"));
 	else if (dwData == FN_SHIP_ADD_ENERGY_FIELD)
-		pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("iii"));
+		pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("vii"));
 	else if (dwData == FN_SHIP_RECHARGE_ITEM)
-		pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("ivi"));
+		pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("vvi"));
 	else if (dwData == FN_SHIP_FUEL_NEEDED 
 			|| dwData == FN_SHIP_REFUEL_FROM_ITEM 
 			|| dwData == FN_SHIP_ITEM_DEVICE_NAME
 			|| dwData == FN_SHIP_IS_FUEL_COMPATIBLE)
-		pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("il"));
+		pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("vl"));
 	else if (dwData == FN_SHIP_ORDER_GATE 
 			|| dwData == FN_SHIP_ORDER_PATROL 
 			|| dwData == FN_SHIP_ORDER_ESCORT 
@@ -11845,9 +11857,9 @@ ICCItem *fnShipSetOld (CEvalContext *pEvalCtx, ICCItem *pArguments, DWORD dwData
 			|| dwData == FN_SHIP_ORDER_MINE
 			|| dwData == FN_SHIP_ORDER_HOLD
 			|| dwData == FN_SHIP_CONTROLLER)
-		pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("i*"));
+		pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("v*"));
 	else
-		pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("iv"));
+		pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("vv"));
 	if (pArgs->IsError())
 		return pArgs;
 
@@ -12438,7 +12450,7 @@ ICCItem *fnStationGetOld (CEvalContext *pEvalCtx, ICCItem *pArguments, DWORD dwD
 
 	//	Evaluate the arguments and validate them
 
-	pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("i"));
+	pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("v"));
 	if (pArgs->IsError())
 		return pArgs;
 
@@ -12625,7 +12637,7 @@ ICCItem *fnStationSetOld (CEvalContext *pEvalCtx, ICCItem *pArguments, DWORD dwD
 
 	//	Evaluate the arguments and validate them
 
-	pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("ii"));
+	pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("vi"));
 	if (pArgs->IsError())
 		return pArgs;
 

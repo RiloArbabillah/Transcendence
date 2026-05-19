@@ -48,7 +48,7 @@ static void sigabrt_handler(int sig) {
     _exit(1);
 }
 
-void InitGameUI(SAppState& state)
+void InitGameUI(SAppState& state, const char *pszCommandLine)
 {
     signal(SIGSEGV, sigsegv_handler);
     signal(SIGABRT, sigabrt_handler);
@@ -60,8 +60,8 @@ void InitGameUI(SAppState& state)
     Options.m_bWindowedMode = true;
     Options.m_bNoGPUAcceleration = false;
     CString sError;
-    char szCmdLine[1] = { '\0' };
-    ALERROR error = g_pController->OnBoot(szCmdLine, &Options, &sError);
+    const char *pCmdLine = (pszCommandLine ? pszCommandLine : "");
+    ALERROR error = g_pController->OnBoot(const_cast<char *>(pCmdLine), &Options, &sError);
 
     if (error == NOERROR)
     {

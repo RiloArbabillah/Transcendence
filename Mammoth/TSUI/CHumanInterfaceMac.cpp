@@ -36,6 +36,7 @@ bool CHumanInterface::WMCreate (HWND hWnd, CString *retsError)
 		::kernelDebugLogPattern("Unable to initialize sound manager.");
 
 	m_SoundMgr.SetWaveVolume(m_Options.m_iSoundVolume);
+	m_SoundMgr.SetMusicVolume(m_Options.m_iSoundVolume);
 
 	if (m_Background.Init(m_hWnd, ID_BACKGROUND_PROCESSOR_MAC) != NOERROR)
 		{

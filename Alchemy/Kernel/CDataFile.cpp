@@ -222,9 +222,6 @@ ALERROR CDataFile::Create (const CString &sFilename,
 //	Creates a new data file
 
 	{
-	#ifndef _WIN32
-	return ERR_FAIL;
-	#else
 	ALERROR error;
 	HEADERSTRUCT header;
 	HANDLE hFile;
@@ -323,7 +320,6 @@ Fail:
 		}
 
 	return error;
-	#endif
 	}
 
 ALERROR CDataFile::DeleteEntry (int iEntry)
@@ -663,9 +659,6 @@ ALERROR CDataFile::Open (const CString &sFilename, DWORD dwFlags)
 //		ERR_MEMORY: Out of memory
 
 	{
-	#ifndef _WIN32
-	return ERR_FAIL;
-	#else
 	ALERROR error;
 
 	//	Get the filename (we deal with previous versions in which
@@ -729,7 +722,6 @@ Fail:
 		}
 
 	return error;
-	#endif
 	}
 
 ALERROR CDataFile::OpenFromResource (HMODULE hInst, char *pszRes, DWORD dwFlags)
@@ -893,9 +885,6 @@ ALERROR CDataFile::ReadBuffer (DWORD dwFilePos, DWORD dwLen, void *pBuffer)
 		}
 	else if (m_hFile != INVALID_HANDLE_VALUE)
 		{
-	#ifndef _WIN32
-		return ERR_FAIL;
-	#else
 		//	Set the proper position
 
 		if (::SetFilePointer(m_hFile, dwFilePos, NULL, FILE_BEGIN) == 0xFFFFFFFF)
@@ -912,7 +901,6 @@ ALERROR CDataFile::ReadBuffer (DWORD dwFilePos, DWORD dwLen, void *pBuffer)
 			::kernelDebugLogPattern("I/O Error [%s]: Cannot read %d bytes at %d.", m_sFilename, dwLen, dwFilePos);
 			return ERR_FAIL;
 			}
-	#endif
 		}
 	else
 		ASSERT(false);
@@ -1151,9 +1139,6 @@ ALERROR CDataFile::WriteBlockChain (DWORD dwStartingBlock, char *pData, DWORD dw
 //	has been previously allocated to the correct size
 
 	{
-	#ifndef _WIN32
-	return ERR_FAIL;
-	#else
 	DWORD dwPos;
 	DWORD dwWritten;
 
@@ -1172,7 +1157,6 @@ ALERROR CDataFile::WriteBlockChain (DWORD dwStartingBlock, char *pData, DWORD dw
 		return ERR_FAIL;
 
 	return NOERROR;
-	#endif
 	}
 
 ALERROR CDataFile::WriteEntry (int iEntry, const CString &sData)

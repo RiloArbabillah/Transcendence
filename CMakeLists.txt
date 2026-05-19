@@ -964,5 +964,65 @@ set_target_properties(transcendence_app PROPERTIES
     OUTPUT_NAME "Transcendence"
 )
 
+add_executable(asset_validation_tool
+    "Transcendence/Tools/AssetValidationMain.cpp"
+)
+
+target_include_directories(asset_validation_tool PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/Alchemy/Include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Mammoth/Include"
+)
+
+target_link_libraries(asset_validation_tool PRIVATE
+    alchemy_kernel
+    alchemy_codechain
+    alchemy_xmlutil
+    alchemy_graphics
+    alchemy_jpeg
+    mammoth_tse
+    mammoth_tsui
+    SDL2_mixer::SDL2_mixer
+    SDL2::SDL2
+    "-framework CoreGraphics"
+    "-framework ImageIO"
+    "-framework ApplicationServices"
+    "-framework CoreFoundation"
+)
+
+set_target_properties(asset_validation_tool PROPERTIES
+    OUTPUT_NAME "trans-asset-validate"
+)
+
+add_executable(transcompiler_tool
+    "Transcendence/TransCompiler/CTDBCompiler.cpp"
+    "Transcendence/TransCompiler/main.cpp"
+)
+
+target_include_directories(transcompiler_tool PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/Alchemy/Include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Mammoth/Include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Transcendence/TransCompiler"
+)
+
+target_link_libraries(transcompiler_tool PRIVATE
+    alchemy_kernel
+    alchemy_codechain
+    alchemy_xmlutil
+    alchemy_graphics
+    alchemy_jpeg
+    mammoth_tse
+    mammoth_tsui
+    SDL2_mixer::SDL2_mixer
+    SDL2::SDL2
+    "-framework CoreGraphics"
+    "-framework ImageIO"
+    "-framework ApplicationServices"
+    "-framework CoreFoundation"
+)
+
+set_target_properties(transcompiler_tool PROPERTIES
+    OUTPUT_NAME "trans-compiler"
+)
+
 message(STATUS "Configured bounded milestone-1 macOS scaffold.")
 message(STATUS "Targets are placeholders for the audited menu-path graph and are not yet full source manifests.")

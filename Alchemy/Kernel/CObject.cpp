@@ -3,13 +3,49 @@
 
 #include "Kernel.h"
 
+#include <mutex>
+#include <unordered_set>
+
 namespace Kernel
 {
 
 static IObjectClass *g_Classes[10][1000];
+static std::mutex g_csLiveObjects;
+static std::unordered_set<CObject *> g_LiveObjects;
 
-CObject::CObject (IObjectClass *pClass) : m_pClass(pClass) { }
-CObject::~CObject (void) { }
+static inline size_t GetDataDescFieldSize(const DATADESCSTRUCT &Desc)
+{
+    switch (Desc.iOpCode)
+        {
+        case DATADESC_OPCODE_INT:
+        case DATADESC_OPCODE_ZERO:
+        case DATADESC_OPCODE_ALLOC_SIZE32:
+            return sizeof(DWORD) * Desc.iCount;
+
+        case DATADESC_OPCODE_REFERENCE:
+        case DATADESC_OPCODE_VTABLE:
+            return sizeof(LPVOID) * Desc.iCount;
+
+        case DATADESC_OPCODE_ALLOC_MEMORY:
+        case DATADESC_OPCODE_ALLOC_OBJ:
+            return sizeof(LPVOID);
+
+        default:
+            return 0;
+        }
+}
+
+CObject::CObject (IObjectClass *pClass) : m_pClass(pClass)
+    {
+    std::lock_guard<std::mutex> lock(g_csLiveObjects);
+    g_LiveObjects.insert(this);
+    }
+
+CObject::~CObject (void)
+    {
+    std::lock_guard<std::mutex> lock(g_csLiveObjects);
+    g_LiveObjects.erase(this);
+    }
 
 CObject *CObject::Copy (void) { return Clone(); }
 
@@ -25,11 +61,11 @@ BOOL CObject::CopyData (PDATADESCSTRUCT pPos, BYTE **iopSource, BYTE **iopDest) 
             case DATADESC_OPCODE_ALLOC_SIZE32: {
                 if (pPos->iOpCode == DATADESC_OPCODE_ALLOC_SIZE32)
                     iAllocSize = sizeof(DWORD) * (*((int *)pSource));
-                for (int i = 0; i < pPos->iCount; i++) {
-                    *((DWORD *)pDest) = *((DWORD *)pSource);
-                    pDest += sizeof(int);
-                    pSource += sizeof(int);
-                }
+
+                const size_t iSize = GetDataDescFieldSize(*pPos);
+                memcpy(pDest, pSource, iSize);
+                pDest += iSize;
+                pSource += iSize;
                 break;
             }
             case DATADESC_OPCODE_ALLOC_MEMORY: {
@@ -67,22 +103,18 @@ BOOL CObject::CopyData (PDATADESCSTRUCT pPos, BYTE **iopSource, BYTE **iopDest) 
                 CObject *pObjDest = (CObject *)pDest;
                 PDATADESCSTRUCT pObjPos = pObj->DataDescStart();
                 ASSERT(sizeof(CObject) == 2 * sizeof(LPVOID));
-                *((DWORD *)pDest) = *((DWORD *)pSource);
-                pDest += sizeof(LPVOID);
-                pSource += sizeof(LPVOID);
-                *((DWORD *)pDest) = *((DWORD *)pSource);
-                pDest += sizeof(LPVOID);
-                pSource += sizeof(LPVOID);
+                memcpy(pDest, pSource, sizeof(CObject));
+                pDest += sizeof(CObject);
+                pSource += sizeof(CObject);
                 if (!CopyData(pObjPos, &pSource, &pDest)) return FALSE;
                 pObjDest->CopyHandler(pObj);
                 break;
             }
             case DATADESC_OPCODE_ZERO: {
-                pSource += pPos->iCount * sizeof(DWORD);
-                for (int i = 0; i < pPos->iCount; i++) {
-                    *((DWORD *)pDest) = 0;
-                    pDest += sizeof(int);
-                }
+                const size_t iSize = sizeof(DWORD) * pPos->iCount;
+                pSource += iSize;
+                memset(pDest, 0, iSize);
+                pDest += iSize;
                 break;
             }
             case DATADESC_OPCODE_VTABLE: {
@@ -125,10 +157,10 @@ ALERROR CObject::LoadDone (void) {
             case DATADESC_OPCODE_REFERENCE:
             case DATADESC_OPCODE_ZERO:
             case DATADESC_OPCODE_VTABLE:
-                pDest += pPos->iCount * sizeof(LPVOID);
+                pDest += GetDataDescFieldSize(*pPos);
                 break;
             case DATADESC_OPCODE_ALLOC_MEMORY:
-                pDest += sizeof(LPVOID);
+                pDest += GetDataDescFieldSize(*pPos);
                 break;
             case DATADESC_OPCODE_ALLOC_OBJ: {
                 CObject *pObj = *(CObject **)pDest;
@@ -170,10 +202,11 @@ ALERROR CObject::LoadHandler (CUnarchiver *pUnarchiver) {
             }
             case DATADESC_OPCODE_INT:
             case DATADESC_OPCODE_ALLOC_SIZE32: {
-                if ((error = pUnarchiver->ReadData((char *)pDest, sizeof(int) * pPos->iCount)) != NOERROR) goto Fail;
+                const size_t iSize = sizeof(DWORD) * pPos->iCount;
+                if ((error = pUnarchiver->ReadData((char *)pDest, iSize)) != NOERROR) goto Fail;
                 if (pPos->iOpCode == DATADESC_OPCODE_ALLOC_SIZE32)
                     iAllocSize = sizeof(DWORD) * (*((int *)pDest));
-                pDest += sizeof(int) * pPos->iCount;
+                pDest += iSize;
                 break;
             }
             case DATADESC_OPCODE_ALLOC_MEMORY: {
@@ -219,7 +252,7 @@ ALERROR CObject::LoadHandler (CUnarchiver *pUnarchiver) {
             }
             case DATADESC_OPCODE_ZERO:
             case DATADESC_OPCODE_VTABLE:
-                pDest += sizeof(DWORD) * pPos->iCount;
+                pDest += GetDataDescFieldSize(*pPos);
                 break;
             default:
                 ASSERT(FALSE);
@@ -260,8 +293,9 @@ ALERROR CObject::SaveHandler (CArchiver *pArchiver) {
             case DATADESC_OPCODE_ALLOC_SIZE32: {
                 if (pPos->iOpCode == DATADESC_OPCODE_ALLOC_SIZE32)
                     iAllocSize = sizeof(DWORD) * (*((int *)pSource));
-                if ((error = pArchiver->WriteData((char *)pSource, sizeof(int) * pPos->iCount)) != NOERROR) goto Fail;
-                pSource += sizeof(int) * pPos->iCount;
+                const size_t iSize = sizeof(DWORD) * pPos->iCount;
+                if ((error = pArchiver->WriteData((char *)pSource, iSize)) != NOERROR) goto Fail;
+                pSource += iSize;
                 break;
             }
             case DATADESC_OPCODE_ALLOC_MEMORY: {
@@ -294,7 +328,7 @@ ALERROR CObject::SaveHandler (CArchiver *pArchiver) {
             }
             case DATADESC_OPCODE_ZERO:
             case DATADESC_OPCODE_VTABLE:
-                pSource += sizeof(DWORD) * pPos->iCount;
+                pSource += GetDataDescFieldSize(*pPos);
                 break;
             default:
                 ASSERT(FALSE);
@@ -314,15 +348,19 @@ void CObject::VerifyDataDesc (void) {
         while (pPos) {
             switch (pPos->iOpCode) {
                 case DATADESC_OPCODE_INT:
-                case DATADESC_OPCODE_REFERENCE:
                 case DATADESC_OPCODE_ZERO:
-                case DATADESC_OPCODE_VTABLE:
-                    iTotalSize += sizeof(int) * pPos->iCount;
-                    break;
-                case DATADESC_OPCODE_ALLOC_MEMORY:
                 case DATADESC_OPCODE_ALLOC_SIZE32:
+                    iTotalSize += sizeof(DWORD) * pPos->iCount;
+                    break;
+
+                case DATADESC_OPCODE_REFERENCE:
+                case DATADESC_OPCODE_VTABLE:
+                    iTotalSize += sizeof(LPVOID) * pPos->iCount;
+                    break;
+
+                case DATADESC_OPCODE_ALLOC_MEMORY:
                 case DATADESC_OPCODE_ALLOC_OBJ:
-                    iTotalSize += sizeof(int);
+                    iTotalSize += sizeof(LPVOID);
                     break;
                 case DATADESC_OPCODE_EMBED_OBJ: {
                     CObject *pObj = (CObject *)(((BYTE *)this) + iTotalSize);
@@ -353,7 +391,14 @@ IObjectClass *CObjectClassFactory::GetClass (OBJCLASSID ObjID) {
         throw CException(ERR_FAIL);
 }
 
-bool CObject::IsValidPointer (CObject *pObj) { return pObj != nullptr; }
+bool CObject::IsValidPointer (CObject *pObj)
+    {
+    if (pObj == nullptr)
+        return false;
+
+    std::lock_guard<std::mutex> lock(g_csLiveObjects);
+    return (g_LiveObjects.find(pObj) != g_LiveObjects.end());
+    }
 
 void CObjectClassFactory::NewClass (IObjectClass *pClass) {
     int iModule = OBJCLASSIDGetModule(pClass->GetObjID());

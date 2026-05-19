@@ -654,7 +654,7 @@ class CTranscendenceWnd : public CUniverse::IHost, public IAniCommand
 		void ShowErrorMessage (const CString &sError);
 
 		void DoCommsMenu (int iIndex);
-		void DoCommsSquadronMenu (const CString &sName, MessageTypes iOrder, DWORD dwData2);
+		void DoCommsSquadronMenu (const CString &sName, MessageTypes iOrder, DWORD_PTR dwData2);
 		DWORD GetCommsStatus (void);
 		void HideCommsMenu (void);
 		void HideCommsTargetMenu (CSpaceObject *pExlude = NULL);

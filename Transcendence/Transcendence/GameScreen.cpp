@@ -109,7 +109,7 @@ void CTranscendenceWnd::DoCommsMenu (int iIndex)
 		}
 	}
 
-void CTranscendenceWnd::DoCommsSquadronMenu (const CString &sName, MessageTypes iOrder, DWORD dwData2)
+void CTranscendenceWnd::DoCommsSquadronMenu (const CString &sName, MessageTypes iOrder, DWORD_PTR dwData2)
 
 //	DoCommsSquadronMenu
 //
@@ -421,7 +421,7 @@ bool CTranscendenceWnd::ShowCommsTargetMenu (void)
 							sKey,
 							pObj->GetNounPhrase(),
 							CMenuData::FLAG_SORT_BY_KEY,
-							(DWORD)(intptr_t)pObj);
+							(DWORD_PTR)pObj);
 
 					pObj->SetHighlightChar(*sKey.GetASCIIZPointer());
 					KeyMap.SetAt(sKey, true);
@@ -453,7 +453,7 @@ bool CTranscendenceWnd::ShowCommsTargetMenu (void)
 							sKey,
 							pObj->GetNounPhrase(),
 							CMenuData::FLAG_SORT_BY_KEY,
-							(DWORD)(intptr_t)pObj);
+							(DWORD_PTR)pObj);
 
 					pObj->SetHighlightChar(*sKey.GetASCIIZPointer());
 					KeyMap.SetAt(sKey, true);

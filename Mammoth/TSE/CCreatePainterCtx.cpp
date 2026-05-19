@@ -40,6 +40,14 @@ static ICCItem *CreateObjPointerItem (CSpaceObject *pObj)
 		return CCodeChain::CreateNil();
 	}
 
+static ICCItem *CreateObjCompatItem (CSpaceObject *pObj)
+	{
+	if (pObj)
+		return CCodeChain::CreateInteger((int)pObj->GetID());
+	else
+		return CCodeChain::CreateNil();
+	}
+
 void CCreatePainterCtx::AddDataInteger (const CString &sField, int iValue)
 
 //	AddDataInteger
@@ -104,18 +112,18 @@ void CCreatePainterCtx::SetDamageCtxData (ICCItem *pTable, SDamageCtx &DamageCtx
 //	Sets the data from a damage context to the data block
 
 	{
-	pTable->SetAt(FIELD_OBJ_HIT, CreateObjPointerItem(DamageCtx.pObj));
+	pTable->SetAt(FIELD_OBJ_HIT, CreateObjCompatItem(DamageCtx.pObj));
 	pTable->SetIntegerAt(FIELD_ARMOR_SEG, DamageCtx.iSectHit);
 	if (DamageCtx.pCause)
-		pTable->SetAt(FIELD_CAUSE, CreateObjPointerItem(DamageCtx.pCause));
+		pTable->SetAt(FIELD_CAUSE, CreateObjCompatItem(DamageCtx.pCause));
 
 	CSpaceObject *pAttacker = DamageCtx.Attacker.GetObj();
 	if (pAttacker)
-		pTable->SetAt(FIELD_ATTACKER, CreateObjPointerItem(pAttacker));
+		pTable->SetAt(FIELD_ATTACKER, CreateObjCompatItem(pAttacker));
 
 	CSpaceObject *pOrderGiver = DamageCtx.GetOrderGiver();
 	if (pOrderGiver)
-		pTable->SetAt(FIELD_ORDER_GIVER, CreateObjPointerItem(pOrderGiver));
+		pTable->SetAt(FIELD_ORDER_GIVER, CreateObjCompatItem(pOrderGiver));
 
 	ICCItemPtr pHitPos(CreateListFromVector(DamageCtx.vHitPos));
 	pTable->SetAt(FIELD_HIT_POS, pHitPos);

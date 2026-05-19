@@ -274,6 +274,181 @@ Kernel::CString strPatternSubst (Kernel::CString sLine, const Kernel::CString &s
 Kernel::CString strPatternSubst (Kernel::CString sLine, const Kernel::CString &s1, int i2, const Kernel::CString &s3, int i4, const Kernel::CString &s5);
 Kernel::CString strPatternSubst (Kernel::CString sLine, ...);
 
+namespace KernelDetail
+	{
+	template <typename T, typename ENABLE = void>
+	struct SPatternArgEncoder;
+
+	template <typename T>
+	struct SPatternArgEncoder<T, typename std::enable_if<std::is_integral<T>::value && (sizeof(T) <= sizeof(int))>::type>
+		{
+		static const size_t SIZE = sizeof(LPVOID);
+
+		static void Encode (char *pDest, T Value)
+			{
+			::memset(pDest, 0, SIZE);
+			*reinterpret_cast<int *>(pDest) = (int)Value;
+			}
+
+		static void Destroy (char *pDest)
+			{
+			}
+		};
+
+	template <typename T>
+	struct SPatternArgEncoder<T, typename std::enable_if<std::is_integral<T>::value && (sizeof(T) > sizeof(int))>::type>
+		{
+		static const size_t SIZE = sizeof(INT64) + ((sizeof(INT64) % sizeof(LPVOID)) ? (sizeof(LPVOID) - (sizeof(INT64) % sizeof(LPVOID))) : 0);
+
+		static void Encode (char *pDest, T Value)
+			{
+			::memset(pDest, 0, SIZE);
+			*reinterpret_cast<INT64 *>(pDest) = (INT64)Value;
+			}
+
+		static void Destroy (char *pDest)
+			{
+			}
+		};
+
+	template <typename T>
+	struct SPatternArgEncoder<T, typename std::enable_if<std::is_enum<T>::value>::type>
+		{
+		typedef typename std::underlying_type<T>::type TValue;
+		typedef SPatternArgEncoder<TValue> TBase;
+		static const size_t SIZE = TBase::SIZE;
+
+		static void Encode (char *pDest, T Value)
+			{
+			TBase::Encode(pDest, (TValue)Value);
+			}
+
+		static void Destroy (char *pDest)
+			{
+			TBase::Destroy(pDest);
+			}
+		};
+
+	template <typename T>
+	struct SPatternArgEncoder<T, typename std::enable_if<std::is_floating_point<T>::value>::type>
+		{
+		static const size_t SIZE = sizeof(double) + ((sizeof(double) % sizeof(LPVOID)) ? (sizeof(LPVOID) - (sizeof(double) % sizeof(LPVOID))) : 0);
+
+		static void Encode (char *pDest, T Value)
+			{
+			::memset(pDest, 0, SIZE);
+			*reinterpret_cast<double *>(pDest) = (double)Value;
+			}
+
+		static void Destroy (char *pDest)
+			{
+			}
+		};
+	template <>
+	struct SPatternArgEncoder<Kernel::CString, void>
+		{
+		static const size_t SIZE = sizeof(Kernel::CString) + ((sizeof(Kernel::CString) % sizeof(LPVOID)) ? (sizeof(LPVOID) - (sizeof(Kernel::CString) % sizeof(LPVOID))) : 0);
+
+		static void Encode (char *pDest, const Kernel::CString &Value)
+			{
+			new (pDest) Kernel::CString(Value);
+			}
+
+		static void Destroy (char *pDest)
+			{
+			reinterpret_cast<Kernel::CString *>(pDest)->~CString();
+			}
+		};
+
+	template <>
+	struct SPatternArgEncoder<const char *, void>
+		{
+		static const size_t SIZE = sizeof(Kernel::CString) + ((sizeof(Kernel::CString) % sizeof(LPVOID)) ? (sizeof(LPVOID) - (sizeof(Kernel::CString) % sizeof(LPVOID))) : 0);
+
+		static void Encode (char *pDest, const char *Value)
+			{
+			new (pDest) Kernel::CString(Value);
+			}
+
+		static void Destroy (char *pDest)
+			{
+			reinterpret_cast<Kernel::CString *>(pDest)->~CString();
+			}
+		};
+
+	template <>
+	struct SPatternArgEncoder<char *, void> : SPatternArgEncoder<const char *, void>
+		{ }
+		;
+
+	template <typename T>
+	struct SPatternArgEncoder<T, typename std::enable_if<std::is_pointer<T>::value
+			&& !std::is_same<typename std::decay<T>::type, const char *>::value
+			&& !std::is_same<typename std::decay<T>::type, char *>::value>::type>
+		{
+		static const size_t SIZE = SPatternArgEncoder<uintptr_t>::SIZE;
+
+		static void Encode (char *pDest, T Value)
+			{
+			SPatternArgEncoder<uintptr_t>::Encode(pDest, (uintptr_t)Value);
+			}
+
+		static void Destroy (char *pDest)
+			{
+			SPatternArgEncoder<uintptr_t>::Destroy(pDest);
+			}
+		};
+
+	inline size_t CalcPatternArgBlockSize ()
+		{
+		return 0;
+		}
+
+	template <typename T, typename... ARGS>
+	inline size_t CalcPatternArgBlockSize (const T &Arg, const ARGS &... Args)
+		{
+		return SPatternArgEncoder<typename std::decay<T>::type>::SIZE + CalcPatternArgBlockSize(Args...);
+		}
+
+	inline void EncodePatternArgBlock (char *pDest)
+		{
+		}
+
+	template <typename T, typename... ARGS>
+	inline void EncodePatternArgBlock (char *pDest, const T &Arg, const ARGS &... Args)
+		{
+		typedef SPatternArgEncoder<typename std::decay<T>::type> TEncoder;
+		TEncoder::Encode(pDest, Arg);
+		EncodePatternArgBlock(pDest + TEncoder::SIZE, Args...);
+		}
+
+	inline void DestroyPatternArgBlock (char *pDest)
+		{
+		}
+
+	template <typename T, typename... ARGS>
+	inline void DestroyPatternArgBlock (char *pDest, const T &Arg, const ARGS &... Args)
+		{
+		typedef SPatternArgEncoder<typename std::decay<T>::type> TEncoder;
+		TEncoder::Destroy(pDest);
+		DestroyPatternArgBlock(pDest + TEncoder::SIZE, Args...);
+		}
+	}
+
+template <typename... ARGS>
+inline Kernel::CString strPatternSubst (Kernel::CString sLine, const ARGS &... Args)
+	{
+	const size_t iSize = KernelDetail::CalcPatternArgBlockSize(Args...);
+	char *pStorage = new char [iSize];
+	KernelDetail::EncodePatternArgBlock(pStorage, Args...);
+
+	Kernel::CString sResult = strPattern(sLine, (void **)pStorage);
+
+	KernelDetail::DestroyPatternArgBlock(pStorage, Args...);
+	delete [] pStorage;
+	return sResult;
+	}
+
 constexpr DWORD STRPROC_NO_DOUBLE_QUOTES =			0x00000001;
 constexpr DWORD STRPROC_ESCAPE_DOUBLE_QUOTES =		0x00000002;
 Kernel::CString strProcess (const Kernel::CString &sValue, DWORD dwFlags);

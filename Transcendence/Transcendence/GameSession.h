@@ -129,13 +129,13 @@ class CGameSession : public IHISession
 		bool ShowMenu (EMenuTypes iMenu);
 		void SyncMouseToPlayerShip (void);
 
-		void DoEnableDisableMenu (DWORD dwEntry);
+		void DoEnableDisableMenu (DWORD_PTR dwEntry);
 		bool ShowEnableDisableMenu ();
 
-		void DoInvokeMenu (DWORD dwEntry);
+		void DoInvokeMenu (DWORD_PTR dwEntry);
 		bool ShowInvokeMenu ();
 
-		void DoUseMenu (DWORD dwEntry);
+		void DoUseMenu (DWORD_PTR dwEntry);
 		bool ShowUseMenu ();
 
 		CGameSettings &m_Settings;

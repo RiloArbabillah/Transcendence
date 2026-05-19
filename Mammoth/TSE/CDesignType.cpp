@@ -3770,6 +3770,8 @@ IEffectPainter *CEffectCreatorRef::CreatePainter (CCreatePainterCtx &Ctx, CEffec
 	//	Create the painter
 
 	IEffectPainter *pPainter = pCreator->CreatePainter(Ctx);
+	if (pPainter == NULL)
+		return NULL;
 
 	//	If we're an owner singleton then we only need to create this once.
 

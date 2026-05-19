@@ -455,15 +455,34 @@ bool CG32bitImage::CreateFromBitmap (HBITMAP hImage, HBITMAP hMask, EBitmapTypes
 				}
 			}
 
-		//	Otherwise, we don't know
+		//	If 32-bit image, preserve alpha directly.
 
-		else
+		else if (dibIs32bit(hImage))
 			{
-			ASSERT(false);
-			return false;
-			}
+			CG32bitPixel *pDestRow = m_pRGBA;
+			CG32bitPixel *pDestRowEnd = pDestRow + iSize;
+			BYTE *pSrcRow = (BYTE *)pImageBase;
 
-		//	Now load the mask. If no mask, then we're done
+			while (pDestRow < pDestRowEnd)
+				{
+				CG32bitPixel *pDest = pDestRow;
+				CG32bitPixel *pDestEnd = pDest + cxWidth;
+				BYTE *pSrc = pSrcRow;
+
+				while (pDest < pDestEnd)
+					{
+					BYTE byBlue = *pSrc++;
+					BYTE byGreen = *pSrc++;
+					BYTE byRed = *pSrc++;
+					BYTE byAlpha = *pSrc++;
+
+					*pDest++ = CG32bitPixel(byRed, byGreen, byBlue, byAlpha);
+					}
+
+				pDestRow = NextRow(pDestRow);
+				pSrcRow += iImageStride;
+				}
+			}
 
 		if (hMask == NULL)
 			m_AlphaType = alphaNone;
@@ -496,8 +515,6 @@ bool CG32bitImage::CreateFromBitmap (HBITMAP hImage, HBITMAP hMask, EBitmapTypes
 						BYTE byBlue = pAlpha[pDest->GetBlue()];
 
 						*pDest++ = CG32bitPixel(byRed, byGreen, byBlue, byAlpha);
-
-						pDest++;
 						pSrc++;
 						}
 
@@ -608,6 +625,77 @@ bool CG32bitImage::CreateFromBitmap (HBITMAP hImage, HBITMAP hMask, EBitmapTypes
 
 				m_AlphaType = (bHas8BitMask ? alpha8 : alpha1);
 				}
+			}
+
+		//	32-bit mask
+
+		else if (dibIs32bit(hMask))
+			{
+			if (dwFlags & FLAG_PRE_MULT_ALPHA)
+				{
+				CG32bitPixel *pDestRow = m_pRGBA;
+				CG32bitPixel *pDestRowEnd = pDestRow + iSize;
+				BYTE *pSrcRow = (BYTE *)pMaskBase;
+
+				while (pDestRow < pDestRowEnd)
+					{
+					CG32bitPixel *pDest = pDestRow;
+					CG32bitPixel *pDestEnd = pDest + cxWidth;
+					BYTE *pSrc = pSrcRow;
+
+					while (pDest < pDestEnd)
+						{
+						pSrc += 3;
+						BYTE byAlpha = *pSrc++;
+						BYTE *pAlpha = CG32bitPixel::AlphaTable(byAlpha);
+
+						BYTE byOutRed = pAlpha[pDest->GetRed()];
+						BYTE byOutGreen = pAlpha[pDest->GetGreen()];
+						BYTE byOutBlue = pAlpha[pDest->GetBlue()];
+
+						*pDest++ = CG32bitPixel(byOutRed, byOutGreen, byOutBlue, byAlpha);
+						}
+
+					pDestRow = NextRow(pDestRow);
+					pSrcRow += iMaskStride;
+					}
+
+				m_AlphaType = alpha8;
+				}
+			else
+				{
+				CG32bitPixel *pDestRow = m_pRGBA;
+				CG32bitPixel *pDestRowEnd = pDestRow + iSize;
+				BYTE *pSrcRow = (BYTE *)pMaskBase;
+
+				while (pDestRow < pDestRowEnd)
+					{
+					CG32bitPixel *pDest = pDestRow;
+					CG32bitPixel *pDestEnd = pDest + cxWidth;
+					BYTE *pSrc = pSrcRow;
+
+					while (pDest < pDestEnd)
+						{
+						pSrc += 3;
+						BYTE byAlpha = *pSrc++;
+						pDest->SetAlpha(byAlpha);
+						pDest++;
+						}
+
+					pDestRow = NextRow(pDestRow);
+					pSrcRow += iMaskStride;
+					}
+
+				m_AlphaType = alpha8;
+				}
+			}
+
+		//	Otherwise, we don't know
+
+		else
+			{
+			ASSERT(false);
+			return false;
 			}
 
 		return true;

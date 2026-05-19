@@ -763,13 +763,13 @@ CString CLanguage::ComposeNumber (ENumberFormatTypes iFormat, Metric rNumber, SN
 				{
 				if (Desc.iDecimal)
 					{
-					sFStr = iFormat == numberMetricUnitless ? "%d.%s%s" : "%d.%s%s ";
-					return strPatternSubst(sFStr, Desc.iWhole, sDecimal, Desc.sPrefix);
+					sFStr = iFormat == numberMetricUnitless ? CONSTLIT("%s.%s%s") : CONSTLIT("%s.%s%s ");
+					return strPatternSubst(sFStr, strFromInt(Desc.iWhole), sDecimal, Desc.sPrefix);
 					}
 				else
 					{
-					sFStr =  iFormat == numberMetricUnitless ? "%d%s" : "%d%s ";
-					return strPatternSubst(sFStr, Desc.iWhole, Desc.sPrefix);
+					sFStr =  iFormat == numberMetricUnitless ? CONSTLIT("%s%s") : CONSTLIT("%s%s ");
+					return strPatternSubst(sFStr, strFromInt(Desc.iWhole), Desc.sPrefix);
 					}
 				}
 
@@ -778,13 +778,13 @@ CString CLanguage::ComposeNumber (ENumberFormatTypes iFormat, Metric rNumber, SN
 
 			if (Desc.iDecimal)
 				{
-				sFStr = iFormat == numberMetricUnitless ? CONSTLIT("%d.%s%s") : CONSTLIT("%d.%s %s");
-				return strPatternSubst(sFStr, Desc.iWhole, sDecimal, iFormat == numberMetricFull ? Desc.sPrefixName : Desc.sPrefix);
+				sFStr = iFormat == numberMetricUnitless ? CONSTLIT("%s.%s%s") : CONSTLIT("%s.%s %s");
+				return strPatternSubst(sFStr, strFromInt(Desc.iWhole), sDecimal, iFormat == numberMetricFull ? Desc.sPrefixName : Desc.sPrefix);
 				}
 			else
 				{
-				sFStr = iFormat == numberMetricUnitless ? CONSTLIT("%d%s") : CONSTLIT("%d %s");
-				return strPatternSubst(sFStr, Desc.iWhole, iFormat == numberMetricFull ? Desc.sPrefixName : Desc.sPrefix);
+				sFStr = iFormat == numberMetricUnitless ? CONSTLIT("%s%s") : CONSTLIT("%s %s");
+				return strPatternSubst(sFStr, strFromInt(Desc.iWhole), iFormat == numberMetricFull ? Desc.sPrefixName : Desc.sPrefix);
 				}
 			}
 

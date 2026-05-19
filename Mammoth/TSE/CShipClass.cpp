@@ -2840,13 +2840,16 @@ CString CShipClass::GetPlayerSortString (void) const
 	else
 		iDomain = 9;
 
-	//	Combine
+	//	Combine. Avoid the mixed CString/varargs formatting path on Apple
+	//	Silicon; we've seen it trap in sustained intro/menu startup when ship
+	//	class lists are sorted for player-facing UI.
 
-	return strPatternSubst(CONSTLIT("%d-%06d-%s-%08x"), 
-			iDomain, 
-			(pPlayerSettings ? pPlayerSettings->GetSortOrder() : 10000),
-			GetShortName(), 
-			GetUNID());
+	CString sResult = strPatternSubst(CONSTLIT("%d-%06d-"),
+			iDomain,
+			(pPlayerSettings ? pPlayerSettings->GetSortOrder() : 10000));
+	sResult.Append(GetShortName());
+	sResult.Append(strPatternSubst(CONSTLIT("-%08x"), GetUNID()));
+	return sResult;
 	}
 
 CVector CShipClass::GetPosOffset (int iAngle, int iRadius, int iPosZ, bool b3DPos) const

@@ -314,13 +314,48 @@ inline DWORD GetLastError() { return errno; }
 #define OPEN_EXISTING 3
 #endif
 
+#ifndef OPEN_ALWAYS
+#define OPEN_ALWAYS 4
+#endif
+
 #ifndef CreateFile
 inline HANDLE CreateFile(const char* pFilename, DWORD dwAccess, DWORD dwShareMode, void* pSecurity, DWORD dwCreationDisposition, DWORD dwFlags, HANDLE hTemplate) {
     (void)pSecurity; (void)hTemplate; (void)dwShareMode; (void)dwFlags;
-    int flags = O_RDONLY;
-    if (dwAccess & GENERIC_WRITE) flags = O_WRONLY | O_CREAT | O_TRUNC;
-    if (dwCreationDisposition == OPEN_EXISTING && access(pFilename, F_OK) != 0) return INVALID_HANDLE_VALUE;
-    int fd = open(pFilename, flags, 0666);
+
+    std::string sFilename = (pFilename ? pFilename : "");
+    std::replace(sFilename.begin(), sFilename.end(), '\\', '/');
+
+    int flags = 0;
+    if ((dwAccess & GENERIC_READ) && (dwAccess & GENERIC_WRITE))
+        flags |= O_RDWR;
+    else if (dwAccess & GENERIC_WRITE)
+        flags |= O_WRONLY;
+    else
+        flags |= O_RDONLY;
+
+    switch (dwCreationDisposition)
+        {
+        case CREATE_ALWAYS:
+            flags |= O_CREAT | O_TRUNC;
+            break;
+
+        case OPEN_ALWAYS:
+            flags |= O_CREAT;
+            break;
+
+        case OPEN_EXISTING:
+            if (access(sFilename.c_str(), F_OK) != 0)
+                return INVALID_HANDLE_VALUE;
+            break;
+
+        default:
+            break;
+        }
+
+    int fd = open(sFilename.c_str(), flags, 0666);
+    if (fd < 0)
+        return INVALID_HANDLE_VALUE;
+
     return (HANDLE)(intptr_t)fd;
 }
 #endif
@@ -377,6 +412,14 @@ inline DWORD GetFileSize(HANDLE hFile, DWORD* pHighWord) {
 }
 #endif
 
+#ifndef DeleteFile
+inline BOOL DeleteFile(const char* pFilename) {
+    std::string sFilename = (pFilename ? pFilename : "");
+    std::replace(sFilename.begin(), sFilename.end(), '\\', '/');
+    return (unlink(sFilename.c_str()) == 0);
+}
+#endif
+
 #ifndef CreateFileMapping
 inline HANDLE CreateFileMapping(HANDLE hFile, void* pAttr, DWORD flProtect, DWORD dwMaxSizeHigh, DWORD dwMaxSizeLow, const char* pName) {
     (void)pAttr; (void)pName;
@@ -423,6 +466,8 @@ struct SIZE
 	};
 
 #ifdef TARGET_PLATFORM_MACOS
+bool PlatformDestroyWindow(HWND hWnd);
+LRESULT PlatformSendMessage(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
 inline HDC GetDC(HWND hWnd) { return nullptr; }
 inline int ReleaseDC(HWND hWnd, HDC hDC) { return 0; }
 inline int ShowCursor(BOOL bShow) { return 0; }
@@ -435,7 +480,7 @@ inline BOOL SetForegroundWindow(HWND hWnd) { return TRUE; }
 inline BOOL SetWindowPos(HWND hWnd, HWND hWndInsertAfter, int X, int Y, int cx, int cy, UINT uFlags) { return TRUE; }
 inline BOOL GetWindowRect(HWND hWnd, RECT* pRect) { if (pRect) { pRect->left = pRect->top = pRect->right = pRect->bottom = 0; } return TRUE; }
 inline BOOL IsWindow(HWND hWnd) { return hWnd != nullptr; }
-inline BOOL DestroyWindow(HWND hWnd) { return TRUE; }
+inline BOOL DestroyWindow(HWND hWnd) { return PlatformDestroyWindow(hWnd) ? TRUE : FALSE; }
 inline int GetSystemMetrics(int nIndex) { return 0; }
 
 inline HICON LoadIcon(HINSTANCE hInstance, LPCSTR lpIconName) { return nullptr; }
@@ -521,7 +566,7 @@ inline int RegisterClassEx(const void* pWndClass) { return 1; }
 inline HWND CreateWindowEx(DWORD dwExStyle, LPCSTR lpClassName, LPCSTR lpWindowName, DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, void* pParam) { return nullptr; }
 inline HWND GetCapture() { return nullptr; }
 inline HWND SetFocus(HWND hWnd) { return nullptr; }
-inline LRESULT SendMessage(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) { return 0; }
+inline LRESULT SendMessage(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) { return PlatformSendMessage(hWnd, Msg, wParam, lParam); }
 bool PlatformPostMessage(int msg, int wParam, void* lParam);
 inline bool PostMessage(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) { PlatformPostMessage((int)Msg, (int)wParam, (void*)lParam); return true; }
 inline bool PostQuitMessage(int nExitCode) { return true; }
@@ -676,7 +721,6 @@ inline char* CharLowerA(char* s) { if (s) while (*s) { *s = tolower(*s); s++; } 
 inline int LoadString(HINSTANCE hInstance, UINT uID, char* pBuffer, int cchBuffer) { return 0; }
 inline BOOL CharLowerBuff(char* s, DWORD n) { for (DWORD i = 0; i < n && s[i]; i++) s[i] = tolower(s[i]); return TRUE; }
 
-#define OPEN_ALWAYS 4
 #define ERROR_SHARING_VIOLATION 32
 inline BOOL SetEndOfFile(HANDLE hFile) { return TRUE; }
 inline BOOL FlushFileBuffers(HANDLE hFile) { return TRUE; }

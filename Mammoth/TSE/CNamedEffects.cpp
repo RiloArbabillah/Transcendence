@@ -5,6 +5,11 @@
 
 #include "PreComp.h"
 
+const DWORD CNamedEffects::UNID_FIRST_DEFAULT_EFFECT;
+const DWORD CNamedEffects::UNID_FIRST_DEFAULT_FIRE_EFFECT;
+const DWORD CNamedEffects::UNID_BASIC_HIT_EFFECT;
+const DWORD CNamedEffects::UNID_NULL_EFFECT;
+
 DWORD CNamedEffects::m_NamedPainterUNID[painterCount] = 
 	{
 	MEDIUM_STATION_DAMAGE_UNID,

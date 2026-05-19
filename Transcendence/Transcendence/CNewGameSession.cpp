@@ -780,7 +780,11 @@ void CNewGameSession::SetShipClassDetails (const CShipClass &Class, int x, int y
 		CDeviceClass *pDevice = Devices.GetDeviceClass(i);
 		if (pDevice->GetCategory() == itemcatWeapon ||
 				pDevice->GetCategory() == itemcatLauncher)
-			RightSide.Insert(strPatternSubst(CONSTLIT("%02d_%02d_%s"), 1, DevItem.GetLevel(), DevItem.GetNounPhrase()), DevItem);
+			{
+			CString sSort = strPatternSubst(CONSTLIT("%02d_%02d_"), 1, DevItem.GetLevel());
+			sSort.Append(DevItem.GetNounPhrase());
+			RightSide.Insert(sSort, DevItem);
+			}
 		}
 
 	//	Add shields
@@ -788,7 +792,11 @@ void CNewGameSession::SetShipClassDetails (const CShipClass &Class, int x, int y
 	TSortMap<CString, CItem> LeftSide;
     const SDeviceDesc *pShields = Devices.GetDeviceDescByName(devShields);
 	if (pShields)
-		RightSide.Insert(strPatternSubst(CONSTLIT("%02d_%02d_%s"), 2, pShields->Item.GetLevel(), pShields->Item.GetNounPhrase()), pShields->Item);
+		{
+		CString sSort = strPatternSubst(CONSTLIT("%02d_%02d_"), 2, pShields->Item.GetLevel());
+		sSort.Append(pShields->Item.GetNounPhrase());
+		RightSide.Insert(sSort, pShields->Item);
+		}
 
 	//	Add armor
 
@@ -813,7 +821,11 @@ void CNewGameSession::SetShipClassDetails (const CShipClass &Class, int x, int y
         const CItem &DevItem = Devices.GetDeviceDesc(i).Item;
 		CDeviceClass *pDevice = Devices.GetDeviceClass(i);
 		if (pDevice->GetCategory() == itemcatMiscDevice)
-			LeftSide.Insert(strPatternSubst(CONSTLIT("%02d_%02d_%s"), 4, DevItem.GetLevel(), DevItem.GetNounPhrase()), DevItem);
+			{
+			CString sSort = strPatternSubst(CONSTLIT("%02d_%02d_"), 4, DevItem.GetLevel());
+			sSort.Append(DevItem.GetNounPhrase());
+			LeftSide.Insert(sSort, DevItem);
+			}
 		}
 
 	//	Add device slots

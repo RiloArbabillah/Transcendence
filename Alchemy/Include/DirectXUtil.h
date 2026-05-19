@@ -27,6 +27,7 @@
 
 #else
 #include "DirectXUtilCompat.h"
+#include "SDLBitmap.h"
 #endif
 
 #ifndef INCL_EUCLID
@@ -287,7 +288,7 @@ class CSoundMgr
 		ALERROR LoadWaveFile (const CString &sFilename, int *retiChannel);
 		ALERROR LoadWaveFromBuffer (IReadBlock &Data, int *retiChannel);
 		void Play (int iChannel, int iVolume, int iPan, bool bLoop = false);
-		void SetWaveVolume (int iVolumeLevel) { m_iSoundVolume = iVolumeLevel; }
+		void SetWaveVolume (int iVolumeLevel);
 		void Stop (int iChannel);
 
 		bool CanPlayMusic (const CString &sFilename);

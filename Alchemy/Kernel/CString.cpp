@@ -2848,14 +2848,17 @@ CString Kernel::strTitleCapitalize (const CString &sString, const char **pExcept
 		pDest++;
 		}
 
-	//	The first word is capitalized
+	//	The first word is capitalized. Avoid the Win32-style CharUpper(char *)
+	//	overload here because this code is passing a single character value, not a
+	//	mutable string pointer; on 64-bit macOS that can turn into a bogus low
+	//	address dereference (e.g. 0x68 for 'h').
 
-	*Words[0] = (char)(uintptr_t)::CharUpper((LPSTR)(uintptr_t)*Words[0]);
+	*Words[0] = (char)toupper((unsigned char)*Words[0]);
 
 	//	The last word is capitalized
 
 	if (Words.GetCount() > 1)
-		*Words[Words.GetCount() - 1] = (char)(uintptr_t)::CharUpper((LPSTR)(uintptr_t)*Words[Words.GetCount() - 1]);
+		*Words[Words.GetCount() - 1] = (char)toupper((unsigned char)*Words[Words.GetCount() - 1]);
 
 	//	All the words in between are capitalized if they are not on the
 	//	exception list.
@@ -2873,7 +2876,7 @@ CString Kernel::strTitleCapitalize (const CString &sString, const char **pExcept
 				}
 
 		if (!bException)
-			*Words[i] = (char)(uintptr_t)::CharUpper((LPSTR)(uintptr_t)*Words[i]);
+			*Words[i] = (char)toupper((unsigned char)*Words[i]);
 		}
 
 	//	Don

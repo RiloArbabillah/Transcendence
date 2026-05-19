@@ -536,6 +536,9 @@ ALERROR CEffectGroupCreator::CreateEffect (CSystem *pSystem,
 
 	for (int i = 0; i < m_iCount; i++)
 		{
+		if (m_pCreators == NULL)
+			continue;
+
 		if (IsLooping())
 			m_pCreators[i]->SetLooping();
 
@@ -564,7 +567,12 @@ IEffectPainter *CEffectGroupCreator::OnCreatePainter (CCreatePainterCtx &Ctx)
 //	Creates a painter
 
 	{
+	if (m_iCount <= 0 || m_pCreators == NULL)
+		return NULL;
+
 	IEffectPainter *pPainter = new CEffectGroupPainter(this, Ctx);
+	if (pPainter == NULL)
+		return NULL;
 
 	//	Initialize via GetParameters, if necessary
 
@@ -585,6 +593,9 @@ int CEffectGroupCreator::GetLifetime (void)
 	int iTotalLifetime = 0;
 	for (int i = 0; i < m_iCount; i++)
 		{
+		if (m_pCreators == NULL)
+			continue;
+
 		int iLifetime = m_pCreators[i]->GetLifetime();
 		if (iLifetime == -1)
 			{
@@ -679,7 +690,8 @@ ALERROR CEffectGroupCreator::OnEffectBindDesign (SDesignLoadCtx &Ctx)
 	ALERROR error;
 
 	for (int i = 0; i < m_iCount; i++)
-		if (error = m_pCreators[i].Bind(Ctx))
+		if (m_pCreators
+				&& (error = m_pCreators[i].Bind(Ctx)))
 			return error;
 
 	return NOERROR;
@@ -699,7 +711,8 @@ void CEffectGroupCreator::OnEffectPlaySound (CSpaceObject *pSource, SSoundOption
 	//	Play additional sounds
 
 	for (int i = 0; i < m_iCount; i++)
-		m_pCreators[i]->PlaySound(pSource, pOptions);
+		if (m_pCreators)
+			m_pCreators[i]->PlaySound(pSource, pOptions);
 	}
 
 void CEffectGroupCreator::OnEffectMarkResources (void)
@@ -710,7 +723,8 @@ void CEffectGroupCreator::OnEffectMarkResources (void)
 
 	{
 	for (int i = 0; i < m_iCount; i++)
-		m_pCreators[i]->MarkImages();
+		if (m_pCreators)
+			m_pCreators[i]->MarkImages();
 	}
 
 void CEffectGroupCreator::SetLifetime (int iLifetime)
@@ -721,7 +735,8 @@ void CEffectGroupCreator::SetLifetime (int iLifetime)
 
 	{
 	for (int i = 0; i < m_iCount; i++)
-		m_pCreators[i]->SetLifetime(iLifetime);
+		if (m_pCreators)
+			m_pCreators[i]->SetLifetime(iLifetime);
 	}
 
 void CEffectGroupCreator::SetVariants (int iVariants)
@@ -732,7 +747,8 @@ void CEffectGroupCreator::SetVariants (int iVariants)
 
 	{
 	for (int i = 0; i < m_iCount; i++)
-		m_pCreators[i]->SetVariants(iVariants);
+		if (m_pCreators)
+			m_pCreators[i]->SetVariants(iVariants);
 	}
 
 bool CEffectGroupPainter::UsesOrigin (void) const

@@ -10,6 +10,29 @@
 
 static bool g_bOwnsAudio = false;
 
+static void LogSoundMgrEvent(const CString &sMessage)
+{
+    ::kernelDebugLogString(sMessage);
+}
+
+static void LogSoundMgrPattern(const char *pszPrefix, const CString &sValue)
+{
+    CString sMessage(pszPrefix);
+    sMessage.Append(sValue);
+    ::kernelDebugLogString(sMessage);
+}
+
+static void LogSoundMgrSDLString(const char *pszPrefix, const char *pszValue)
+{
+    CString sMessage(pszPrefix);
+    if (pszValue)
+        sMessage.Append(CString(pszValue));
+    else
+        sMessage.Append(CONSTLIT("<null>"));
+
+    ::kernelDebugLogString(sMessage);
+}
+
 static int CalcSDLMixerVolume(int iLevel)
 {
     int iClamped = Max(0, Min(iLevel, 10));
@@ -58,6 +81,9 @@ static CString ResolveAudioFilespec(const CString &sFilespec)
     Candidates.Insert(pathAddComponent(CONSTLIT("Transcendence/Game"), sNormalized));
     Candidates.Insert(pathAddComponent(CONSTLIT("../Transcendence/Game"), sNormalized));
     Candidates.Insert(pathAddComponent(CONSTLIT("../../Transcendence/Game"), sNormalized));
+    Candidates.Insert(pathAddComponent(CONSTLIT("Transcendence/TransCore/Resources"), sFilename.IsBlank() ? sNormalized : sFilename));
+    Candidates.Insert(pathAddComponent(CONSTLIT("../Transcendence/TransCore/Resources"), sFilename.IsBlank() ? sNormalized : sFilename));
+    Candidates.Insert(pathAddComponent(CONSTLIT("../../Transcendence/TransCore/Resources"), sFilename.IsBlank() ? sNormalized : sFilename));
     Candidates.Insert(pathAddComponent(CONSTLIT("Contents/Resources/Game"), sNormalized));
 
     if (!sFilename.IsBlank())
@@ -75,6 +101,8 @@ static CString ResolveAudioFilespec(const CString &sFilespec)
         Candidates.Insert(pathAddComponent(pathAddComponent(sBasePath, CONSTLIT("Game")), sNormalized));
         Candidates.Insert(pathAddComponent(pathAddComponent(sBasePath, CONSTLIT("../Resources/Game")), sNormalized));
         Candidates.Insert(pathAddComponent(pathAddComponent(sBasePath, CONSTLIT("../../Resources/Game")), sNormalized));
+        Candidates.Insert(pathAddComponent(pathAddComponent(sBasePath, CONSTLIT("../TransCore/Resources")), sFilename.IsBlank() ? sNormalized : sFilename));
+        Candidates.Insert(pathAddComponent(pathAddComponent(sBasePath, CONSTLIT("../../TransCore/Resources")), sFilename.IsBlank() ? sNormalized : sFilename));
 
         if (!sFilename.IsBlank())
             {
@@ -177,15 +205,57 @@ ALERROR CSoundMgr::Init(HWND hWnd)
 {
     (void)hWnd;
 
+    if ((SDL_WasInit(SDL_INIT_AUDIO) & SDL_INIT_AUDIO) == 0)
+        {
+        if (SDL_InitSubSystem(SDL_INIT_AUDIO) != 0)
+            {
+            LogSoundMgrPattern("CSoundMgr::Init SDL_InitSubSystem(SDL_INIT_AUDIO) failed: ", CString(SDL_GetError()));
+            return ERR_FAIL;
+            }
+        }
+
+    LogSoundMgrSDLString("CSoundMgr::Init SDL audio driver: ", SDL_GetCurrentAudioDriver());
+
     int iInitFlags = MIX_INIT_OGG | MIX_INIT_MP3 | MIX_INIT_FLAC;
-    Mix_Init(iInitFlags);
+    int iMixerFlags = Mix_Init(iInitFlags);
+    if ((iMixerFlags & iInitFlags) != iInitFlags)
+        LogSoundMgrPattern("CSoundMgr::Init Mix_Init partial support: ", CString(Mix_GetError()));
 
     int iFreq;
     Uint16 iFormat;
     int iChannels;
     if (Mix_QuerySpec(&iFreq, &iFormat, &iChannels) == 0)
         {
-        if (Mix_OpenAudio(44100, AUDIO_S16SYS, 2, 1024) != 0)
+        struct SAudioSpec
+            {
+            int iFrequency;
+            Uint16 wFormat;
+            int iChannels;
+            int iChunkSize;
+            };
+
+        static constexpr SAudioSpec OPEN_SPECS[] =
+            {
+                { 44100, AUDIO_S16SYS, 2, 1024 },
+                { 48000, AUDIO_S16SYS, 2, 1024 },
+                { 44100, AUDIO_S16SYS, 2, 2048 },
+                { 48000, AUDIO_S16SYS, 2, 2048 },
+                { 22050, AUDIO_S16SYS, 2, 1024 },
+            };
+
+        bool bOpened = false;
+        for (const auto &Spec : OPEN_SPECS)
+            {
+            if (Mix_OpenAudio(Spec.iFrequency, Spec.wFormat, Spec.iChannels, Spec.iChunkSize) == 0)
+                {
+                bOpened = true;
+                break;
+                }
+
+            LogSoundMgrPattern("CSoundMgr::Init Mix_OpenAudio failed: ", CString(Mix_GetError()));
+            }
+
+        if (!bOpened)
             return ERR_FAIL;
 
         g_bOwnsAudio = true;
@@ -229,9 +299,14 @@ void CSoundMgr::Delete(int iChannel)
 ALERROR CSoundMgr::LoadWaveFile(const CString &sFilename, int *retiChannel)
 {
     CString sResolved = ResolveAudioFilespec(sFilename);
+    LogSoundMgrPattern("CSoundMgr::LoadWaveFile resolved filespec: ", sResolved);
+
     Mix_Chunk *pChunk = Mix_LoadWAV(sResolved.GetASCIIZPointer());
     if (!pChunk)
+        {
+        LogSoundMgrPattern("CSoundMgr::LoadWaveFile Mix_LoadWAV failed: ", CString(Mix_GetError()));
         return ERR_FAIL;
+        }
 
     int iChannel = AllocChannel();
     SChannel *pChannel = GetChannel(iChannel);
@@ -281,6 +356,8 @@ void CSoundMgr::Play(int iChannel, int iVolume, int iPan, bool bLoop)
         Mix_Volume(iPlayChannel, CalcSDLEffectVolume(iVolume, m_iSoundVolume));
         ApplyPanToChannel(iPlayChannel, iPan);
         }
+    else
+        LogSoundMgrPattern("CSoundMgr::Play Mix_PlayChannel failed: ", CString(Mix_GetError()));
 }
 
 void CSoundMgr::Stop(int iChannel)
@@ -340,9 +417,12 @@ bool CSoundMgr::GetMusicPlayState(SMusicPlayState *retState)
 bool CSoundMgr::PlayMusic(const CString &sFilename, int iPos, CString *retsError)
 {
     CString sResolved = ResolveAudioFilespec(sFilename);
+    LogSoundMgrPattern("CSoundMgr::PlayMusic resolved filespec: ", sResolved);
+
     Mix_Music *pMusic = Mix_LoadMUS(sResolved.GetASCIIZPointer());
     if (!pMusic)
         {
+        LogSoundMgrPattern("CSoundMgr::PlayMusic Mix_LoadMUS failed: ", CString(Mix_GetError()));
         if (retsError)
             *retsError = strPatternSubst(CONSTLIT("Unable to load music file: %s."), sResolved);
         return false;
@@ -374,6 +454,12 @@ bool CSoundMgr::PlayMusic(const CString &sFilename, int iPos, CString *retsError
 
     Mix_VolumeMusic(CalcSDLMixerVolume(m_iMusicVolume));
     return true;
+}
+
+void CSoundMgr::SetWaveVolume(int iVolumeLevel)
+{
+    m_iSoundVolume = Max(0, Min(iVolumeLevel, 10));
+    Mix_Volume(-1, CalcSDLMixerVolume(m_iSoundVolume));
 }
 
 int CSoundMgr::SetMusicVolume(int iVolumeLevel)

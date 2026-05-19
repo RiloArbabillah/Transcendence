@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <cstdarg>
 #include <queue>
 #include <map>
 #include <mutex>
@@ -57,6 +58,22 @@
 #endif
 #ifndef WM_MBUTTONUP
 #define WM_MBUTTONUP 0x0208
+#endif
+
+#ifndef MK_LBUTTON
+#define MK_LBUTTON 0x0001
+#endif
+#ifndef MK_RBUTTON
+#define MK_RBUTTON 0x0002
+#endif
+#ifndef MK_SHIFT
+#define MK_SHIFT 0x0004
+#endif
+#ifndef MK_CONTROL
+#define MK_CONTROL 0x0008
+#endif
+#ifndef MK_MBUTTON
+#define MK_MBUTTON 0x0010
 #endif
 
 #ifndef VK_UP
@@ -204,6 +221,15 @@ static void log_msg(const char* pMsg) {
     fflush(stderr);
 }
 
+static void log_va(const char* fmt, ...) {
+    char buf[512];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(buf, sizeof(buf), fmt, args);
+    va_end(args);
+    log_msg(buf);
+}
+
 SAppState g_AppState;
 static std::mutex g_MessageQueueCS;
 static std::mutex g_TimerCS;
@@ -215,6 +241,86 @@ static Uint32 TimerThunk(Uint32 interval, void *param)
     const unsigned int dwTimerID = (unsigned int)(uintptr_t)param;
     PlatformPostMessage(PLATFORM_WM_TIMER, (int)dwTimerID, nullptr);
     return interval;
+}
+
+static DWORD SDLModToMKFlags(SDL_Keymod mod)
+{
+    DWORD dwFlags = 0;
+
+    if (mod & KMOD_SHIFT)
+        dwFlags |= MK_SHIFT;
+
+    if (mod & KMOD_CTRL)
+        dwFlags |= MK_CONTROL;
+
+    return dwFlags;
+}
+
+static DWORD SDLMouseStateToMKFlags(Uint32 dwButtons)
+{
+    DWORD dwFlags = SDLModToMKFlags(SDL_GetModState());
+
+    if (dwButtons & SDL_BUTTON(SDL_BUTTON_LEFT))
+        dwFlags |= MK_LBUTTON;
+
+    if (dwButtons & SDL_BUTTON(SDL_BUTTON_RIGHT))
+        dwFlags |= MK_RBUTTON;
+
+    if (dwButtons & SDL_BUTTON(SDL_BUTTON_MIDDLE))
+        dwFlags |= MK_MBUTTON;
+
+    return dwFlags;
+}
+
+static DWORD SDLMouseButtonEventToMKFlags(const SDL_MouseButtonEvent &Event, bool bIncludeCurrentButton)
+{
+    Uint32 dwButtons = SDL_GetMouseState(nullptr, nullptr);
+
+    if (bIncludeCurrentButton)
+        dwButtons |= SDL_BUTTON(Event.button);
+    else
+        dwButtons &= ~SDL_BUTTON(Event.button);
+
+    return SDLMouseStateToMKFlags(dwButtons);
+}
+
+static void RecreateFrameBuffer(int cxWidth, int cyHeight)
+{
+    if (cxWidth <= 0 || cyHeight <= 0)
+        return;
+
+    if (g_AppState.pTexture)
+        {
+        SDL_DestroyTexture(g_AppState.pTexture);
+        g_AppState.pTexture = nullptr;
+        }
+
+    if (g_AppState.pFrameBuffer)
+        {
+        delete[] g_AppState.pFrameBuffer;
+        g_AppState.pFrameBuffer = nullptr;
+        }
+
+    g_AppState.cxWidth = cxWidth;
+    g_AppState.cyHeight = cyHeight;
+
+    g_AppState.pTexture = SDL_CreateTexture(
+        g_AppState.pRenderer,
+        SDL_PIXELFORMAT_BGRA32,
+        SDL_TEXTUREACCESS_STREAMING,
+        g_AppState.cxWidth,
+        g_AppState.cyHeight
+    );
+
+    if (!g_AppState.pTexture)
+        {
+        log_msg("RecreateFrameBuffer: CreateTexture failed");
+        g_AppState.bRunning = false;
+        return;
+        }
+
+    g_AppState.pFrameBuffer = new uint32_t[g_AppState.cxWidth * g_AppState.cyHeight];
+    memset(g_AppState.pFrameBuffer, 0, g_AppState.cxWidth * g_AppState.cyHeight * sizeof(uint32_t));
 }
 
 int App_Init(void)
@@ -282,25 +388,15 @@ int App_Init(void)
 
 	log_msg("App_Init: using SDL software renderer");
 
-	g_AppState.pTexture = SDL_CreateTexture(
-		g_AppState.pRenderer,
-		SDL_PIXELFORMAT_BGRA32,
-		SDL_TEXTUREACCESS_STREAMING,
-		g_AppState.cxWidth,
-		g_AppState.cyHeight
-	);
-
-    if (!g_AppState.pTexture)
+    RecreateFrameBuffer(g_AppState.cxWidth, g_AppState.cyHeight);
+    if (!g_AppState.pTexture || !g_AppState.pFrameBuffer)
     {
-        log_msg("App_Init: CreateTexture failed");
+        log_msg("App_Init: RecreateFrameBuffer failed");
         SDL_DestroyRenderer(g_AppState.pRenderer);
         SDL_DestroyWindow(g_AppState.pWindow);
         SDL_Quit();
         return 0;
     }
-
-    g_AppState.pFrameBuffer = new uint32_t[g_AppState.cxWidth * g_AppState.cyHeight];
-    memset(g_AppState.pFrameBuffer, 0, g_AppState.cxWidth * g_AppState.cyHeight * sizeof(uint32_t));
 
     g_AppState.lastTick = SDL_GetTicks();
     g_AppState.fpsTick = SDL_GetTicks();
@@ -433,7 +529,11 @@ int App_PumpEvents(void)
     SDL_Event event;
     while (SDL_PollEvent(&event))
     {
-        if (event.type == SDL_QUIT) { g_AppState.bRunning = false; return 0; }
+        if (event.type == SDL_QUIT) {
+            log_msg("App_PumpEvents: received SDL_QUIT");
+            g_AppState.bRunning = false;
+            return 0;
+        }
 
         switch (event.type)
         {
@@ -449,43 +549,78 @@ int App_PumpEvents(void)
             break;
         case SDL_MOUSEMOTION:
             PlatformPostMessage(WM_MOUSEMOVE,
-                (int)(uintptr_t)event.motion.state,
+                (int)SDLMouseStateToMKFlags(event.motion.state),
                 (void*)(uintptr_t)MAKELONG(event.motion.x, event.motion.y));
             break;
         case SDL_MOUSEBUTTONDOWN:
             {
                 int msg = WM_LBUTTONDOWN;
-                if (event.button.button == 3) msg = WM_RBUTTONDOWN;
-                else if (event.button.button == 2) msg = WM_MBUTTONDOWN;
+                if (event.button.button == SDL_BUTTON_RIGHT) msg = WM_RBUTTONDOWN;
+                else if (event.button.button == SDL_BUTTON_MIDDLE) msg = WM_MBUTTONDOWN;
                 int x = event.button.x;
                 int y = event.button.y;
                 PlatformPostMessage(msg,
-                    (int)(uintptr_t)event.button.button,
+                    (int)SDLMouseButtonEventToMKFlags(event.button, true),
                     (void*)(uintptr_t)MAKELONG(x, y));
             }
             break;
         case SDL_MOUSEBUTTONUP:
             {
                 int msg = WM_LBUTTONUP;
-                if (event.button.button == 3) msg = WM_RBUTTONUP;
-                else if (event.button.button == 2) msg = WM_MBUTTONUP;
+                if (event.button.button == SDL_BUTTON_RIGHT) msg = WM_RBUTTONUP;
+                else if (event.button.button == SDL_BUTTON_MIDDLE) msg = WM_MBUTTONUP;
                 int x = event.button.x;
                 int y = event.button.y;
                 PlatformPostMessage(msg,
-                    (int)(uintptr_t)event.button.button,
+                    (int)SDLMouseButtonEventToMKFlags(event.button, false),
                     (void*)(uintptr_t)MAKELONG(x, y));
             }
             break;
         case SDL_MOUSEWHEEL:
-            PlatformPostMessage(WM_MOUSEWHEEL,
-                (int)(uintptr_t)MAKELONG(0, event.wheel.y),
-                (void*)(uintptr_t)MAKELONG(event.wheel.x, event.wheel.y));
+            {
+                int x = 0;
+                int y = 0;
+                SDL_GetMouseState(&x, &y);
+
+                const int iDelta = (event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -event.wheel.y : event.wheel.y);
+                PlatformPostMessage(WM_MOUSEWHEEL,
+                    (int)(uintptr_t)MAKELONG(SDLMouseStateToMKFlags(SDL_GetMouseState(nullptr, nullptr)), (short)(iDelta * 120)),
+                    (void*)(uintptr_t)MAKELONG(x, y));
+            }
             break;
         case SDL_WINDOWEVENT:
             if (event.window.event == SDL_WINDOWEVENT_RESIZED)
+                {
+                log_va("App_PumpEvents: SDL_WINDOWEVENT_RESIZED %d x %d", event.window.data1, event.window.data2);
+                RecreateFrameBuffer(event.window.data1, event.window.data2);
                 PlatformPostMessage(WM_SIZE, 0, (void*)(uintptr_t)MAKELONG(event.window.data1, event.window.data2));
+                }
             else if (event.window.event == SDL_WINDOWEVENT_MOVED)
+                {
+                log_va("App_PumpEvents: SDL_WINDOWEVENT_MOVED %d,%d", event.window.data1, event.window.data2);
                 PlatformPostMessage(WM_MOVE, 0, (void*)(uintptr_t)MAKELONG(event.window.data1, event.window.data2));
+                }
+            else if (event.window.event == SDL_WINDOWEVENT_CLOSE)
+                {
+                log_msg("App_PumpEvents: SDL_WINDOWEVENT_CLOSE");
+                PlatformSendMessage((HWND)g_AppState.pWindow, WM_CLOSE, 0, 0);
+                }
+            else if (event.window.event == SDL_WINDOWEVENT_FOCUS_LOST)
+                {
+                log_msg("App_PumpEvents: SDL_WINDOWEVENT_FOCUS_LOST");
+                }
+            else if (event.window.event == SDL_WINDOWEVENT_FOCUS_GAINED)
+                {
+                log_msg("App_PumpEvents: SDL_WINDOWEVENT_FOCUS_GAINED");
+                }
+            else if (event.window.event == SDL_WINDOWEVENT_MINIMIZED)
+                {
+                log_msg("App_PumpEvents: SDL_WINDOWEVENT_MINIMIZED");
+                }
+            else if (event.window.event == SDL_WINDOWEVENT_RESTORED)
+                {
+                log_msg("App_PumpEvents: SDL_WINDOWEVENT_RESTORED");
+                }
             break;
         }
     }
@@ -526,6 +661,30 @@ bool PlatformPostMessage(int msg, int wParam, void* lParam)
     message.wParam = wParam;
     message.lParam = lParam;
     g_AppState.msgQueue.push(message);
+    return true;
+}
+
+LRESULT PlatformSendMessage(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
+{
+    (void)hWnd;
+
+    switch (Msg)
+    {
+    case WM_CLOSE:
+    case WM_DESTROY:
+        App_SetRunning(0);
+        return 0;
+
+    default:
+        PlatformPostMessage((int)Msg, (int)wParam, (void*)lParam);
+        return 0;
+    }
+}
+
+bool PlatformDestroyWindow(HWND hWnd)
+{
+    (void)hWnd;
+    App_SetRunning(0);
     return true;
 }
 
@@ -585,7 +744,7 @@ int PlatformKillTimerCompat(void* hWnd, unsigned int timerID)
     return 1;
 }
 
-int App_Run(void)
+int App_Run(const char *pszCommandLine)
 {
     log_msg("App_Run: start");
 
@@ -597,20 +756,37 @@ int App_Run(void)
     }
 
 	log_msg("App_Run: App_Init OK, calling InitGameUI");
-	InitGameUI(g_AppState);
+	InitGameUI(g_AppState, pszCommandLine);
 
 	log_msg("App_Run: entering main loop");
 	while (g_AppState.bRunning)
 	{
-		if (!App_PumpEvents()) break;
+		if (!App_PumpEvents()) {
+            log_msg("App_Run: App_PumpEvents requested exit");
+            break;
+        }
 		UpdateGameUI(g_AppState);
 		App_PresentFrameBuffer();
 		SDL_Delay(16);
 	}
 
-    log_msg("App_Run: exit main loop");
+    log_va("App_Run: exit main loop (bRunning=%d)", (g_AppState.bRunning ? 1 : 0));
     App_Shutdown();
     return 0;
 }
 
 SAppState& GetAppState(void) { return g_AppState; }
+
+int App_IsRunning(void) { return g_AppState.bRunning ? 1 : 0; }
+void App_SetRunning(int bRunning) { g_AppState.bRunning = (bRunning != 0); }
+void App_SetTitle(const char* pTitle) { if (g_AppState.pWindow) SDL_SetWindowTitle(g_AppState.pWindow, (pTitle ? pTitle : "")); }
+void App_GetWindowSize(int* pcxWidth, int* pcyHeight)
+{
+    if (g_AppState.pWindow)
+        SDL_GetWindowSize(g_AppState.pWindow, pcxWidth, pcyHeight);
+    else
+        {
+        if (pcxWidth) *pcxWidth = g_AppState.cxWidth;
+        if (pcyHeight) *pcyHeight = g_AppState.cyHeight;
+        }
+}

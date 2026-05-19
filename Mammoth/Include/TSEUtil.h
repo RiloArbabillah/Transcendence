@@ -1064,16 +1064,18 @@ class CTileMapSection;
 class CTile
 	{
 	public:
-		CTile (void) : m_dwData(0) { }
+		CTile (void) : m_dwTile(0), m_pMapSection(0), m_bMapSection(false) { }
 
-		DWORD GetTile (void) { return m_dwData; }
-		DWORD *GetTilePointer (void) { return &m_dwData; }
-		CTileMapSection *GetTileMapSection (void) { return (CTileMapSection *)m_dwData; }
-		void SetTile (DWORD dwTile) { m_dwData = dwTile; }
-		void SetTileMapSection (CTileMapSection *pMap) { m_dwData = (uintptr_t)pMap; }
+		DWORD GetTile (void) { return m_dwTile; }
+		DWORD *GetTilePointer (void) { m_bMapSection = false; return &m_dwTile; }
+		CTileMapSection *GetTileMapSection (void) { return (m_bMapSection ? reinterpret_cast<CTileMapSection *>(m_pMapSection) : NULL); }
+		void SetTile (DWORD dwTile) { m_dwTile = dwTile; m_pMapSection = 0; m_bMapSection = false; }
+		void SetTileMapSection (CTileMapSection *pMap) { m_pMapSection = reinterpret_cast<uintptr_t>(pMap); m_bMapSection = (pMap != NULL); m_dwTile = 0; }
 
 	private:
-		DWORD m_dwData;
+		DWORD m_dwTile;
+		uintptr_t m_pMapSection;
+		bool m_bMapSection;
 	};
 
 class CTileMapSection
@@ -1085,10 +1087,26 @@ class CTileMapSection
 		DWORD GetTile (int iIndex) { return m_pMap[iIndex].GetTile(); }
 		DWORD *GetTilePointer (int iIndex) { return m_pMap[iIndex].GetTilePointer(); }
 		CTileMapSection *GetTileMapSection (int iIndex) { return m_pMap[iIndex].GetTileMapSection(); }
-		ALERROR ReadFromStream (int iCount, IReadStream *pStream) { return pStream->Read((char *)m_pMap, iCount * sizeof(CTile)); }
+		ALERROR ReadFromStream (int iCount, IReadStream *pStream)
+			{
+			for (int i = 0; i < iCount; i++)
+				{
+				DWORD dwTile;
+				if (pStream->Read(dwTile) != NOERROR)
+					return ERR_FAIL;
+
+				m_pMap[i].SetTile(dwTile);
+				}
+
+			return NOERROR;
+			}
 		void SetTile (int iIndex, DWORD dwTile) { m_pMap[iIndex].SetTile(dwTile); }
 		void SetTileMapSection (int iIndex, CTileMapSection *pMap) { m_pMap[iIndex].SetTileMapSection(pMap); }
-		void WriteToStream (int iCount, IWriteStream *pStream) const { pStream->Write((char *)m_pMap, iCount * sizeof(CTile)); }
+		void WriteToStream (int iCount, IWriteStream *pStream) const
+			{
+			for (int i = 0; i < iCount; i++)
+				pStream->Write(m_pMap[i].GetTile());
+			}
 
 	private:
 		CTile *m_pMap;

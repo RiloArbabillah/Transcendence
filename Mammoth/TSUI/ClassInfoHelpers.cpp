@@ -351,25 +351,28 @@ void CUIHelper::CreateClassInfoItem (const CItem &Item, int x, int y, int cxWidt
 	//	Create a small item icon
 
 	const CObjectImageArray &Image = pType->GetImage();
-	RECT rcImage = Image.GetImageRect();
 	if (Image.IsLoaded())
 		{
-		CG32bitImage *pIcon = new CG32bitImage;
-		pIcon->CreateFromImageTransformed(Image.GetImage(pType->GetNounPhrase()), 
-				rcImage.left, 
-				rcImage.top, 
-				RectWidth(rcImage), 
-				RectHeight(rcImage), 
-				(Metric)SMALL_ICON_WIDTH / RectWidth(rcImage),
-				(Metric)SMALL_ICON_HEIGHT / RectHeight(rcImage),
-				0.0);
+		RECT rcImage = Image.GetImageRect();
+		if (RectWidth(rcImage) > 0 && RectHeight(rcImage) > 0)
+			{
+			CG32bitImage *pIcon = new CG32bitImage;
+			pIcon->CreateFromImageTransformed(Image.GetImage(pType->GetNounPhrase()), 
+					rcImage.left, 
+					rcImage.top, 
+					RectWidth(rcImage), 
+					RectHeight(rcImage), 
+					(Metric)SMALL_ICON_WIDTH / RectWidth(rcImage),
+					(Metric)SMALL_ICON_HEIGHT / RectHeight(rcImage),
+					0.0);
 
-		IAnimatron *pImageFrame = new CAniRect;
-		pImageFrame->SetPropertyVector(PROP_POSITION, CVector(xIcon, yIcon));
-		pImageFrame->SetPropertyVector(PROP_SCALE, CVector(SMALL_ICON_WIDTH, SMALL_ICON_HEIGHT));
-		pImageFrame->SetFillMethod(new CAniImageFill(pIcon, true));
+			IAnimatron *pImageFrame = new CAniRect;
+			pImageFrame->SetPropertyVector(PROP_POSITION, CVector(xIcon, yIcon));
+			pImageFrame->SetPropertyVector(PROP_SCALE, CVector(SMALL_ICON_WIDTH, SMALL_ICON_HEIGHT));
+			pImageFrame->SetFillMethod(new CAniImageFill(pIcon, true));
 
-		pRoot->AddTrack(pImageFrame, 0);
+			pRoot->AddTrack(pImageFrame, 0);
+			}
 		}
 
 	//	Create text
@@ -463,11 +466,14 @@ void CUIHelper::CreateClassInfoReactor (const CShipClass &Class, const CDeviceDe
 
 	//	Create the info
 
-	CString sText = strPatternSubst(CONSTLIT("{/rtf {/f:LargeBold;/c:%d; %s} {/f:MediumBold;/c:%d; %s}}"),
+	CString sPowerText = CTextBlock::Escape(CLanguage::ComposeNumber(CLanguage::numberPower, ReactorDesc.GetMaxPower() * 100.0));
+	CString sPowerRTF = strPatternSubst(CONSTLIT("{/f:LargeBold;/c:%d; %s}"),
 			(COLORREF)VI.GetColor(colorTextDialogLabel),
-			CTextBlock::Escape(CLanguage::ComposeNumber(CLanguage::numberPower, ReactorDesc.GetMaxPower() * 100.0)),
+			sPowerText);
+	CString sHeaderRTF = strPatternSubst(CONSTLIT("{/f:MediumBold;/c:%d; %s}"),
 			(COLORREF)VI.GetColor(colorTextDialogInput),
 			sHeader);
+	CString sText = strPatternSubst(CONSTLIT("{/rtf %s %s}"), sPowerRTF, sHeaderRTF);
 
 	CreateClassInfoSpecialItem(pItemIcon, sText, x, y, cxWidth, dwOptions, retcyHeight, retpInfo);
 	}
@@ -503,25 +509,28 @@ void CUIHelper::CreateClassInfoSpecialItem (CItemType *pItemIcon, const CString 
 	if (pItemIcon)
 		{
 		const CObjectImageArray &Image = pItemIcon->GetImage();
-		RECT rcImage = Image.GetImageRect();
 		if (Image.IsLoaded())
 			{
-			CG32bitImage *pIcon = new CG32bitImage;
-			pIcon->CreateFromImageTransformed(Image.GetImage(pItemIcon->GetNounPhrase()), 
-					rcImage.left, 
-					rcImage.top, 
-					RectWidth(rcImage), 
-					RectHeight(rcImage), 
-					(Metric)SMALL_ICON_WIDTH / RectWidth(rcImage),
-					(Metric)SMALL_ICON_HEIGHT / RectHeight(rcImage),
-					0.0);
+			RECT rcImage = Image.GetImageRect();
+			if (RectWidth(rcImage) > 0 && RectHeight(rcImage) > 0)
+				{
+				CG32bitImage *pIcon = new CG32bitImage;
+				pIcon->CreateFromImageTransformed(Image.GetImage(pItemIcon->GetNounPhrase()), 
+						rcImage.left, 
+						rcImage.top, 
+						RectWidth(rcImage), 
+						RectHeight(rcImage), 
+						(Metric)SMALL_ICON_WIDTH / RectWidth(rcImage),
+						(Metric)SMALL_ICON_HEIGHT / RectHeight(rcImage),
+						0.0);
 
-			IAnimatron *pImageFrame = new CAniRect;
-			pImageFrame->SetPropertyVector(PROP_POSITION, CVector(xIcon, yIcon));
-			pImageFrame->SetPropertyVector(PROP_SCALE, CVector(SMALL_ICON_WIDTH, SMALL_ICON_HEIGHT));
-			pImageFrame->SetFillMethod(new CAniImageFill(pIcon, true));
+				IAnimatron *pImageFrame = new CAniRect;
+				pImageFrame->SetPropertyVector(PROP_POSITION, CVector(xIcon, yIcon));
+				pImageFrame->SetPropertyVector(PROP_SCALE, CVector(SMALL_ICON_WIDTH, SMALL_ICON_HEIGHT));
+				pImageFrame->SetFillMethod(new CAniImageFill(pIcon, true));
 
-			pRoot->AddTrack(pImageFrame, 0);
+				pRoot->AddTrack(pImageFrame, 0);
+				}
 			}
 		}
 

@@ -58,7 +58,7 @@ void PlatformPresentScreen(void);
 
 int App_Init(void);
 void App_Shutdown(void);
-int App_Run(void);
+int App_Run(const char *pszCommandLine = nullptr);
 
 struct SFrameBufferInfo App_GetFrameBufferInfo(void);
 void App_PresentFrameBuffer(void);
@@ -88,5 +88,5 @@ int App_GetFrameBufferHeight(void);
 
 struct SAppState& GetAppState(void);
 
-void InitGameUI(SAppState& state);
+void InitGameUI(SAppState& state, const char *pszCommandLine = nullptr);
 void UpdateGameUI(SAppState& state);

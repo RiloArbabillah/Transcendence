@@ -100,8 +100,8 @@ void CGameSession::OnChar (char chChar, DWORD dwKeyData)
 				int iIndex;
 				if ((iIndex = g_pTrans->m_MenuData.FindItemByKey(sKey)) != -1)
 					{
-					DWORD dwData = g_pTrans->m_MenuData.GetItemData(iIndex);
-					DWORD dwData2 = g_pTrans->m_MenuData.GetItemData2(iIndex);
+					auto dwData = g_pTrans->m_MenuData.GetItemData(iIndex);
+					auto dwData2 = g_pTrans->m_MenuData.GetItemData2(iIndex);
 
 					switch (m_CurrentMenu)
 						{
@@ -116,7 +116,7 @@ void CGameSession::OnChar (char chChar, DWORD dwKeyData)
 							{
 							g_pUniverse->PlaySound(NULL, g_pUniverse->FindSound(UNID_DEFAULT_SELECT));
 
-							m_pCurrentComms = (CSpaceObject *)dwData;
+							m_pCurrentComms = (CSpaceObject *)dwData;	// LATER: safe because dwData is DWORD_PTR; audit remaining casts.
 							HideMenu();
 							if (m_pCurrentComms)
 								ShowMenu(menuComms);
@@ -155,7 +155,7 @@ void CGameSession::OnChar (char chChar, DWORD dwKeyData)
 				else if (iEntry != -1
 						&& g_pTrans->m_MenuData.IsItemEnabled(iEntry, g_pUniverse->GetTicks()))
 					{
-					DWORD dwData = g_pTrans->m_MenuData.GetItemData(iEntry);
+					auto dwData = g_pTrans->m_MenuData.GetItemData(iEntry);
 
 					switch (m_CurrentMenu)
 						{

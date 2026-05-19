@@ -2527,10 +2527,14 @@ ALERROR CTranscendenceModel::StartGame (bool bNewGame)
 	m_Universe.SetPlayerShip(m_pPlayer->GetShip());
 	m_Universe.SetPOV(m_pPlayer->GetShip());
 
-	//	Set sound
+	//	Set sound. The intro session disables universe sound while it runs,
+	//	so we must always restore the intended gameplay state here.
 
+	m_Universe.SetSound(!m_bNoSound);
 	if (m_bNoSound)
-		m_Universe.SetSound(false);
+		::kernelDebugLogPattern("Gameplay sound disabled by settings.");
+	else
+		::kernelDebugLogPattern("Gameplay sound enabled.");
 
 	//	Set Accessibility Settings
 	m_Universe.InitAccessibilitySettings();

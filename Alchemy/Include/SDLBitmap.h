@@ -33,5 +33,6 @@ ALERROR SDLBitmapGetInfo(SDLBitmap* pBitmap, int* retcxWidth, int* retcyHeight, 
 ALERROR dibGetInfo(void* hDIB, int* retcxWidth, int* retcyHeight, void** retpBase, int* retiStride, BITMAPINFOHEADER* retpBMIH, void** retpBits);
 bool dibIs16bit(void* hDIB);
 bool dibIs24bit(void* hDIB);
+bool dibIs32bit(void* hDIB);
 ALERROR dibLoadFromFile(Kernel::CString sFilename, void** rethDIB, EBitmapTypes* retiType);
 ALERROR dibLoadToBufferFromFile(Kernel::CString sFilespec, struct SBMPImageLoad* retImage);

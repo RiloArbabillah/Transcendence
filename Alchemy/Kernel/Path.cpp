@@ -35,7 +35,6 @@ struct WIN32_FIND_DATA { DWORD dwFileAttributes; FILETIME ftCreationTime; FILETI
 struct SHFILEOPSTRUCT { void* hwnd; UINT wFunc; char* pFrom; char* pTo; FILEOP_FLAGS fFlags; BOOL fAnyOperationsAborted; void* hNameMappings; char* lpszProgressTitle; };
 inline HRESULT SHGetFolderPath(void* pToken, int iCSIDL, void* pReserved, DWORD dwFlags, char* pDest) { return E_FAIL; }
 inline int SHFileOperation(SHFILEOPSTRUCT* lpFileOp) { return 1; }
-inline BOOL DeleteFile(const char* pFile) { return unlink(pFile) == 0; }
 inline BOOL CopyFile(const char* pSrc, const char* pDst, BOOL bFailIfExists) { return copyfile(pSrc, pDst, nullptr, COPYFILE_ALL) == 0; }
 inline void* FindFirstFile(const char* pPattern, WIN32_FIND_DATA* pData) { return nullptr; }
 inline BOOL FindNextFile(void* hFind, WIN32_FIND_DATA* pData) { return FALSE; }

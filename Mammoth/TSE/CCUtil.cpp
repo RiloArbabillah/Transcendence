@@ -320,30 +320,33 @@ uintptr_t GetObjPointerValue (const ICCItem *pItem)
 		return 0;
 
 	if (pItem->IsDouble())
-		{
-		uintptr_t dwValue = (uintptr_t)pItem->GetDoubleValue();
-#ifdef TARGET_64BIT
-		//	On 64-bit Apple Silicon builds, valid live pointers are expected to sit
-		//	above the 32-bit address space. Low values are almost certainly stale
-		//	object IDs or truncated references encoded through legacy script paths.
-		if (dwValue <= (uintptr_t)DWORD_MAX)
-			return 0;
-#endif
-		return dwValue;
-		}
+		return (uintptr_t)pItem->GetDoubleValue();
 	else if (pItem->IsInteger())
-		{
-#ifdef TARGET_64BIT
-		//	On 64-bit builds, live object references are encoded as doubles.
-		//	Integer values are often object IDs, UNIDs, or other scalar values;
-		//	treating them as raw pointers causes bad dereferences on Apple Silicon.
-		return 0;
-#else
 		return (uintptr_t)(DWORD)pItem->GetIntegerValue();
-#endif
-		}
 	else
 		return 0;
+	}
+
+static CSpaceObject *ResolveCompatObjReference (const ICCItem *pItem)
+	{
+	if (pItem == NULL || pItem->IsNil() || g_pUniverse == NULL)
+		return NULL;
+
+	DWORD dwObjID = OBJID_NULL;
+
+	if (pItem->IsInteger())
+		dwObjID = (DWORD)pItem->GetIntegerValue();
+	else if (pItem->IsDouble())
+		{
+		uintptr_t dwValue = (uintptr_t)pItem->GetDoubleValue();
+		if (dwValue <= (uintptr_t)0xffffffff)
+			dwObjID = (DWORD)dwValue;
+		}
+
+	if (dwObjID == OBJID_NULL)
+		return NULL;
+
+	return g_pUniverse->FindObject(dwObjID);
 	}
 
 CSpaceObject *CreateObjFromItem (const ICCItem *pItem, DWORD dwFlags)
@@ -352,29 +355,45 @@ CSpaceObject *CreateObjFromItem (const ICCItem *pItem, DWORD dwFlags)
 		return NULL;
 
 	uintptr_t dwObj = GetObjPointerValue(pItem);
-	if (dwObj == 0)
-		return NULL;
+	CSpaceObject *pObj = NULL;
 
-	CSpaceObject *pObj;
-	try
-		{
-		pObj = reinterpret_cast<CSpaceObject *>(dwObj);
 #ifdef TARGET_64BIT
-		if ((uintptr_t)pObj <= (uintptr_t)DWORD_MAX)
-			pObj = NULL;
+	if (dwObj != 0 && dwObj > (uintptr_t)DWORD_MAX)
+#else
+	if (dwObj != 0)
 #endif
-		}
-	catch (...)
 		{
-		pObj = NULL;
+		try
+			{
+			pObj = reinterpret_cast<CSpaceObject *>(dwObj);
+			}
+		catch (...)
+			{
+			pObj = NULL;
+			}
+
+		//	Make sure the pointer is still a live object before we dereference it.
+		//	This is especially important on Apple Silicon, where legacy script paths
+		//	may surface stale or truncated object references during effect callbacks.
+
+		if (pObj && !CObject::IsValidPointer((CObject *)pObj))
+			pObj = NULL;
 		}
+
+	if (pObj == NULL)
+		pObj = ResolveCompatObjReference(pItem);
+
+	if (pObj == NULL)
+		return NULL;
 
 	//	Make sure the pointer is still a live object before we dereference it.
-	//	This is especially important on Apple Silicon, where legacy script paths
-	//	may surface stale or truncated object references during effect callbacks.
+	//	Compatibility resolution returns a real object pointer, but we validate
+	//	again so legacy integer/object-ID paths stay hardened on Apple Silicon.
 
-	if (pObj && !CObject::IsValidPointer((CObject *)pObj))
+	if (!CObject::IsValidPointer((CObject *)pObj))
 		return NULL;
+
+	//	Make sure it is not destroyed
 
 	//	Make sure it is not destroyed
 

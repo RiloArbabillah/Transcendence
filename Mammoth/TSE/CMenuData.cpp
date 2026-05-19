@@ -13,8 +13,8 @@ int CMenuData::AddMenuItem (const CString &sID,
 							 const CString &sExtra,
 							 const CString &sHelp,
 							 DWORD dwFlags,
-							 DWORD dwData,
-							 DWORD dwData2)
+							 DWORD_PTR dwData,
+							 DWORD_PTR dwData2)
 
 //	AddMenuItem
 //
@@ -84,7 +84,7 @@ int CMenuData::FindItemByKey (const CString &sKey)
 	return -1;
 	}
 
-bool CMenuData::FindItemData (const CString &sKey, DWORD *retdwData, DWORD *retdwData2)
+bool CMenuData::FindItemData (const CString &sKey, DWORD_PTR *retdwData, DWORD_PTR *retdwData2)
 
 //	FindItemData
 //

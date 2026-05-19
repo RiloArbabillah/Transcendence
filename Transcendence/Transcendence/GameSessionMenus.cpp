@@ -120,7 +120,7 @@ ALERROR CGameSession::OnCommand (const CString &sCmd, void *pData)
 
 //	Enable/Disable Device Menu -------------------------------------------------
 
-void CGameSession::DoEnableDisableMenu (DWORD dwEntry)
+void CGameSession::DoEnableDisableMenu (DWORD_PTR dwEntry)
 
 //	DoEnableDisableMenu
 //
@@ -241,7 +241,7 @@ bool CGameSession::ShowEnableDisableMenu ()
 
 //	Invoke Menu ----------------------------------------------------------------
 
-void CGameSession::DoInvokeMenu (DWORD dwEntry)
+void CGameSession::DoInvokeMenu (DWORD_PTR dwEntry)
 
 //	DoInvokeMenu
 //
@@ -363,7 +363,7 @@ bool CGameSession::ShowInvokeMenu ()
 						NULL_STR,
 						sHelp,
 						dwFlags,
-						(DWORD)(intptr_t)pPower);
+						(DWORD_PTR)pPower);
 				
 				if (dwCooldownStart != dwCooldownEnd)
 					g_pTrans->m_MenuData.SetItemCooldown(iEntry, dwCooldownStart, dwCooldownEnd);
@@ -397,7 +397,7 @@ bool CGameSession::ShowInvokeMenu ()
 
 //	Use Item Menu --------------------------------------------------------------
 
-void CGameSession::DoUseMenu (DWORD dwEntry)
+void CGameSession::DoUseMenu (DWORD_PTR dwEntry)
 
 //	DoUseMenu
 //

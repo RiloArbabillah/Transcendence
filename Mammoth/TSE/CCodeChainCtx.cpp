@@ -305,23 +305,10 @@ CSpaceObject *CCodeChainCtx::AsSpaceObject (ICCItem *pItem)
 //	Convert item to CSpaceObject
 
 	{
-	CSpaceObject *pObj;
-	try
-		{
-		pObj = reinterpret_cast<CSpaceObject *>(GetObjPointerValue(pItem));
-#ifdef TARGET_64BIT
-		if ((uintptr_t)pObj <= (uintptr_t)DWORD_MAX)
-			pObj = NULL;
-#endif
-		if (pObj && !CObject::IsValidPointer((CObject *)pObj))
-			pObj = NULL;
-		else if (pObj && ((DWORD)pObj->GetCategory() & ~CSpaceObject::catMask))
-			pObj = NULL;
-		}
-	catch (...)
-		{
+	CSpaceObject *pObj = CreateObjFromItem(pItem, CCUTIL_FLAG_CHECK_DESTROYED);
+	if (pObj && ((DWORD)pObj->GetCategory() & ~CSpaceObject::catMask))
 		pObj = NULL;
-		}
+
 	return pObj;
 	}
 

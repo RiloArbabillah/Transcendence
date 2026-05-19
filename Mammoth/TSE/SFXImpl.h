@@ -142,9 +142,14 @@ class CEffectGroupCreator : public CEffectCreator
 		CEffectGroupCreator (void) { }
 
 		void ApplyOffsets (SViewportPaintCtx *ioCtx, int *retx, int *rety);
-		IEffectPainter *CreateSubPainter (CCreatePainterCtx &Ctx, int iIndex) { return m_pCreators[iIndex].CreatePainter(Ctx); }
-		int GetCount (void) { return m_iCount; }
-		CEffectCreator *GetCreator (int iIndex) { return m_pCreators[iIndex]; }
+		IEffectPainter *CreateSubPainter (CCreatePainterCtx &Ctx, int iIndex)
+			{
+			if (m_pCreators == NULL || iIndex < 0 || iIndex >= m_iCount)
+				return NULL;
+			return m_pCreators[iIndex].CreatePainter(Ctx);
+			}
+		int GetCount (void) { return ((m_pCreators && m_iCount > 0) ? m_iCount : 0); }
+		CEffectCreator *GetCreator (int iIndex) { return (m_pCreators && iIndex >= 0 && iIndex < m_iCount ? m_pCreators[iIndex] : NULL); }
 		static CString GetClassTag (void) { return CONSTLIT("Group"); }
 		CVector GetOffsetPos (int iRotation);
 		int GetRotationAdj (void) const { return m_iRotationAdj; }

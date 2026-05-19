@@ -5700,6 +5700,7 @@ bool CSpaceObject::IntersectionTestScan(const CSpaceObject* pTarget, const CVect
 
 		CVector vTargetUR; //	upper right corner of bounds
 		CVector vTargetLL; //	lower left corner of bounds
+		pTarget->GetBoundingRect(&vTargetUR, &vTargetLL);
 
 		//	Easy low-cost pre-checks
 

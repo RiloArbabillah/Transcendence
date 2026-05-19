@@ -315,7 +315,7 @@ class CStartGameTask : public IHITask
 		CStartGameTask (CHumanInterface &HI, CTranscendenceModel &Model, bool bNewGame) : IHITask(HI), m_Model(Model), m_bNewGame(bNewGame) { }
 
 		//	IHITask virtuals
-		virtual ALERROR OnExecute (ITaskProcessor *pProcessor, CString *retsResult) { m_Model.StartGame(m_bNewGame); return NOERROR; }
+		virtual ALERROR OnExecute (ITaskProcessor *pProcessor, CString *retsResult) override { return m_Model.StartGame(m_bNewGame); }
 
 	private:
 		CTranscendenceModel &m_Model;

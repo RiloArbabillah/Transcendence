@@ -1171,13 +1171,26 @@ ALERROR CUniverse::Init (SInitDesc &Ctx, CString *retsError)
 		CString sMainFilespec;
 		if (Ctx.sFilespec.IsBlank())
 			{
-			//	If we're always using the TDB, then just load that.
+			//	If we're always using the TDB, then prefer known macOS/source-tree
+			//	locations before falling back to the historical current-directory file.
 
 			if (Ctx.bForceTDB)
-				sMainFilespec = CONSTLIT("Transcendence.tdb");
+				{
+				if (pathExists("../Transcendence/Game/Transcendence.tdb"))
+					sMainFilespec = CONSTLIT("../Transcendence/Game/Transcendence.tdb");
+				else if (pathExists("Transcendence/Game/Transcendence.tdb"))
+					sMainFilespec = CONSTLIT("Transcendence/Game/Transcendence.tdb");
+				else if (pathExists("../../Transcendence/Game/Transcendence.tdb"))
+					sMainFilespec = CONSTLIT("../../Transcendence/Game/Transcendence.tdb");
+				else
+					sMainFilespec = CONSTLIT("Transcendence.tdb");
+				}
 
 			//	On macOS debug builds we often launch from the CMake build tree,
 			//	so prefer known source-tree XML locations before falling back to TDB.
+
+			else if (pathExists("../Transcendence/TransCore/Transcendence.xml"))
+				sMainFilespec = CONSTLIT("../Transcendence/TransCore/Transcendence.xml");
 
 			else if (pathExists("../../Transcendence/TransCore/Transcendence.xml"))
 				sMainFilespec = CONSTLIT("../../Transcendence/TransCore/Transcendence.xml");
@@ -1190,8 +1203,17 @@ ALERROR CUniverse::Init (SInitDesc &Ctx, CString *retsError)
 			else if (pathExists("..\\TransCore\\Transcendence.xml"))
 				sMainFilespec = CONSTLIT("..\\TransCore\\Transcendence.xml");
 
-			//	If we don't have it, then check the current directory for
-			//	backwards compatibility.
+			//	If we don't have it, then look for a source-tree TDB before checking
+			//	the current directory for backwards compatibility.
+
+			else if (pathExists("../Transcendence/Game/Transcendence.tdb"))
+				sMainFilespec = CONSTLIT("../Transcendence/Game/Transcendence.tdb");
+
+			else if (pathExists("Transcendence/Game/Transcendence.tdb"))
+				sMainFilespec = CONSTLIT("Transcendence/Game/Transcendence.tdb");
+
+			else if (pathExists("../../Transcendence/Game/Transcendence.tdb"))
+				sMainFilespec = CONSTLIT("../../Transcendence/Game/Transcendence.tdb");
 
 			else if (pathExists("Transcendence.xml"))
 				sMainFilespec = CONSTLIT("Transcendence.xml");

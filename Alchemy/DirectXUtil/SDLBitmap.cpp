@@ -34,11 +34,8 @@ SDLBitmap* SDLBitmapCreate(const char* pszFile, EBitmapTypes* retiType) {
         iType = bitmapRGB;
     }
     else if (SDL_ISPIXELFORMAT_ALPHA(format)) {
-        //  Most legacy DIB call sites in the engine only understand 16-bit or
-        //  24-bit bitmaps. For image files with alpha, preserve opacity in a
-        //  24-bit grayscale-compatible surface so mask consumers don't read a
-        //  32-bit buffer as WORD-aligned 16-bit data.
-        normalized = SDL_ConvertSurfaceFormat(loaded, SDL_PIXELFORMAT_BGR24, 0);
+        //  Preserve the real alpha plane. Hit testing and masks depend on it.
+        normalized = SDL_ConvertSurfaceFormat(loaded, SDL_PIXELFORMAT_BGRA32, 0);
         if (!normalized) {
             SDL_FreeSurface(loaded);
             if (retiType) *retiType = bitmapNone;
@@ -144,6 +141,12 @@ bool dibIs24bit(void* hDIB) {
     SDLBitmap* pBitmap = LookupBitmap(hDIB);
     if (!pBitmap) return false;
     return pBitmap->iBitCount == 24;
+}
+
+bool dibIs32bit(void* hDIB) {
+    SDLBitmap* pBitmap = LookupBitmap(hDIB);
+    if (!pBitmap) return false;
+    return pBitmap->iBitCount == 32;
 }
 
 ALERROR dibLoadFromFile(Kernel::CString sFilename, void** rethDIB, EBitmapTypes* retiType) {

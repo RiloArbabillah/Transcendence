@@ -283,6 +283,17 @@ void CLanguageDataBlock::Copy (const CLanguageDataBlock &Src)
 		}
 	}
 
+#if defined(__APPLE__) && defined(_DEBUG)
+void CLanguageDataBlock::DebugLog (const CDesignType &Type, const CString &sID, const CString &sText)
+
+//	DebugLog
+//
+//	Debug translations.
+
+	{
+	return;
+	}
+#else
 void CLanguageDataBlock::DebugLog (const CDesignType &Type, const CString &sID, const CString &sText)
 
 //	DebugLog
@@ -293,8 +304,18 @@ void CLanguageDataBlock::DebugLog (const CDesignType &Type, const CString &sID, 
 	if (!Type.GetUniverse().InDebugMode())
 		return;
 
-	m_DebugLog.EnqueueAndOverwrite(strPatternSubst(CONSTLIT("[%08x %s] %s -> %s"), Type.GetUNID(), Type.GetNounPhrase(), sID, sText));
+	CString sLine = CONSTLIT("[");
+	sLine.Append(strPatternSubst(CONSTLIT("%08x"), Type.GetUNID()));
+	sLine.Append(CONSTLIT(" "));
+	sLine.Append(Type.GetNounPhrase());
+	sLine.Append(CONSTLIT("] "));
+	sLine.Append(sID);
+	sLine.Append(CONSTLIT(" -> "));
+	sLine.Append(sText);
+
+	m_DebugLog.EnqueueAndOverwrite(sLine);
 	}
+#endif
 
 void CLanguageDataBlock::DeleteAll (void)
 

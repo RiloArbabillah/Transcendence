@@ -921,7 +921,12 @@ CString DamageDesc::GetDesc (DWORD dwFlags)
 		if (iDamageTenth == 0)
 			return strPatternSubst(CONSTLIT("%s%d hp"), sDamageType, iDamage);
 		else
-			return strPatternSubst(CONSTLIT("%s%d.%d hp"), sDamageType, iDamage, iDamageTenth);
+			{
+			CString sResult = strPatternSubst(CONSTLIT("%s%d."), sDamageType, iDamage);
+			sResult.Append(strFromInt(iDamageTenth, false));
+			sResult.Append(CONSTLIT(" hp"));
+			return sResult;
+			}
 		}
 	else
 		{
@@ -994,7 +999,12 @@ CString DamageDesc::GetDPSDesc (Metric rFireRate, Metric rMultiplier, DWORD dwFl
 	if (iDamageTenth == 0)
 		return strPatternSubst(CONSTLIT("%s%d hp/sec"), sDamageType, iDamage);
 	else
-		return strPatternSubst(CONSTLIT("%s%d.%d hp/sec"), sDamageType, iDamage, iDamageTenth);
+		{
+		CString sResult = strPatternSubst(CONSTLIT("%s%d."), sDamageType, iDamage);
+		sResult.Append(strFromInt(iDamageTenth, false));
+		sResult.Append(CONSTLIT(" hp/sec"));
+		return sResult;
+		}
 	}
 
 int DamageDesc::GetMinDamage (void) const

@@ -18,6 +18,25 @@ static Mix_Music* g_pCurrentMusic = nullptr;
 static int g_iVolume = 1000;
 static bool g_bOwnsAudio = false;
 
+static void LogMixerEvent(const CString &sMessage)
+	{
+	::kernelDebugLogString(sMessage);
+	}
+
+static void LogMixerPattern(const char *pszPrefix, const CString &sValue)
+	{
+	CString sMessage(pszPrefix);
+	sMessage.Append(sValue);
+	::kernelDebugLogString(sMessage);
+	}
+
+static void LogMixerPattern(const char *pszPrefix, const char *pszValue)
+	{
+	CString sMessage(pszPrefix);
+	sMessage.Append(CString(pszValue));
+	::kernelDebugLogString(sMessage);
+	}
+
 static CString ResolveMusicFilespec(const CString &sFilespec)
 	{
 	if (sFilespec.IsBlank() || pathExists(sFilespec))
@@ -35,10 +54,26 @@ static CString ResolveMusicFilespec(const CString &sFilespec)
 
 	TArray<CString> Candidates;
 	Candidates.Insert(sNormalized);
+
+	CString sFilename = pathGetFilename(sNormalized);
+	if (!sFilename.IsBlank() && !strEquals(sFilename, sNormalized))
+		Candidates.Insert(sFilename);
+
 	Candidates.Insert(pathAddComponent(CONSTLIT("Transcendence/Game"), sNormalized));
 	Candidates.Insert(pathAddComponent(CONSTLIT("../Transcendence/Game"), sNormalized));
 	Candidates.Insert(pathAddComponent(CONSTLIT("../../Transcendence/Game"), sNormalized));
+	Candidates.Insert(pathAddComponent(CONSTLIT("Transcendence/TransCore/Resources"), sFilename.IsBlank() ? sNormalized : sFilename));
+	Candidates.Insert(pathAddComponent(CONSTLIT("../Transcendence/TransCore/Resources"), sFilename.IsBlank() ? sNormalized : sFilename));
+	Candidates.Insert(pathAddComponent(CONSTLIT("../../Transcendence/TransCore/Resources"), sFilename.IsBlank() ? sNormalized : sFilename));
 	Candidates.Insert(pathAddComponent(CONSTLIT("Contents/Resources/Game"), sNormalized));
+
+	if (!sFilename.IsBlank())
+		{
+		Candidates.Insert(pathAddComponent(CONSTLIT("Transcendence/Game"), sFilename));
+		Candidates.Insert(pathAddComponent(CONSTLIT("../Transcendence/Game"), sFilename));
+		Candidates.Insert(pathAddComponent(CONSTLIT("../../Transcendence/Game"), sFilename));
+		Candidates.Insert(pathAddComponent(CONSTLIT("Contents/Resources/Game"), sFilename));
+		}
 
 	if (const char *pBasePath = SDL_GetBasePath())
 		{
@@ -46,6 +81,17 @@ static CString ResolveMusicFilespec(const CString &sFilespec)
 		Candidates.Insert(pathAddComponent(sBasePath, sNormalized));
 		Candidates.Insert(pathAddComponent(pathAddComponent(sBasePath, CONSTLIT("Game")), sNormalized));
 		Candidates.Insert(pathAddComponent(pathAddComponent(sBasePath, CONSTLIT("../Resources/Game")), sNormalized));
+		Candidates.Insert(pathAddComponent(pathAddComponent(sBasePath, CONSTLIT("../../Resources/Game")), sNormalized));
+		Candidates.Insert(pathAddComponent(pathAddComponent(sBasePath, CONSTLIT("../TransCore/Resources")), sFilename.IsBlank() ? sNormalized : sFilename));
+		Candidates.Insert(pathAddComponent(pathAddComponent(sBasePath, CONSTLIT("../../TransCore/Resources")), sFilename.IsBlank() ? sNormalized : sFilename));
+
+		if (!sFilename.IsBlank())
+			{
+			Candidates.Insert(pathAddComponent(sBasePath, sFilename));
+			Candidates.Insert(pathAddComponent(pathAddComponent(sBasePath, CONSTLIT("Game")), sFilename));
+			Candidates.Insert(pathAddComponent(pathAddComponent(sBasePath, CONSTLIT("../Resources/Game")), sFilename));
+			Candidates.Insert(pathAddComponent(pathAddComponent(sBasePath, CONSTLIT("../../Resources/Game")), sFilename));
+			}
 		}
 
 	for (int i = 0; i < Candidates.GetCount(); i++)
@@ -78,15 +124,57 @@ CMCIMixer::CMCIMixer(int iChannels) :
 	{
 	if (!g_bInitialized)
 		{
+		if ((SDL_WasInit(SDL_INIT_AUDIO) & SDL_INIT_AUDIO) == 0)
+			{
+			if (SDL_InitSubSystem(SDL_INIT_AUDIO) != 0)
+				{
+				LogMixerPattern("CMCIMixer::CMCIMixer SDL_InitSubSystem(SDL_INIT_AUDIO) failed: ", CString(SDL_GetError()));
+				return;
+				}
+			}
+
+		LogMixerPattern("CMCIMixer::CMCIMixer SDL audio driver: ", CString(SDL_GetCurrentAudioDriver()));
+
 		int flags = MIX_INIT_OGG | MIX_INIT_MP3 | MIX_INIT_FLAC;
-		Mix_Init(flags);
+		int mixerFlags = Mix_Init(flags);
+		if ((mixerFlags & flags) != flags)
+			LogMixerPattern("CMCIMixer::CMCIMixer Mix_Init partial support: ", CString(Mix_GetError()));
 
 		int iFreq;
 		Uint16 iFormat;
 		int iChannels;
 		if (Mix_QuerySpec(&iFreq, &iFormat, &iChannels) == 0)
 			{
-			if (Mix_OpenAudio(44100, AUDIO_S16SYS, 2, 1024) != 0)
+			struct SAudioSpec
+				{
+				int iFrequency;
+				Uint16 wFormat;
+				int iChannels;
+				int iChunkSize;
+				};
+
+			static constexpr SAudioSpec OPEN_SPECS[] =
+				{
+					{ 44100, AUDIO_S16SYS, 2, 1024 },
+					{ 48000, AUDIO_S16SYS, 2, 1024 },
+					{ 44100, AUDIO_S16SYS, 2, 2048 },
+					{ 48000, AUDIO_S16SYS, 2, 2048 },
+					{ 22050, AUDIO_S16SYS, 2, 1024 },
+				};
+
+			bool bOpened = false;
+			for (const auto &Spec : OPEN_SPECS)
+				{
+				if (Mix_OpenAudio(Spec.iFrequency, Spec.wFormat, Spec.iChannels, Spec.iChunkSize) == 0)
+					{
+					bOpened = true;
+					break;
+					}
+
+				LogMixerPattern("CMCIMixer::CMCIMixer Mix_OpenAudio failed: ", CString(Mix_GetError()));
+				}
+
+			if (!bOpened)
 				return;
 
 			g_bOwnsAudio = true;
@@ -215,23 +303,36 @@ bool CMCIMixer::Play(CMusicResource *pTrack, int iPos)
 	sFilespec = ResolveMusicFilespec(sFilespec);
 
 	if (sFilespec.IsBlank())
+		{
+		LogMixerEvent(CONSTLIT("CMCIMixer::Play failed: blank filespec."));
 		return false;
+		}
+
+	LogMixerPattern("CMCIMixer::Play resolved filespec: ", sFilespec);
 
 	const char* pszFile = sFilespec.GetASCIIZPointer();
 	Mix_Music* pMusic = Mix_LoadMUS(pszFile);
 	if (!pMusic)
+		{
+		LogMixerPattern("CMCIMixer::Play Mix_LoadMUS failed: ", CString(Mix_GetError()));
 		return false;
+		}
 
 	if (Mix_PlayMusic(pMusic, 0) != 0)
 		{
+		LogMixerPattern("CMCIMixer::Play Mix_PlayMusic failed: ", CString(Mix_GetError()));
 		Mix_FreeMusic(pMusic);
 		return false;
 		}
+
+	if (iPos > 0 && Mix_SetMusicPosition((double)iPos / 1000.0) != 0)
+		LogMixerPattern("CMCIMixer::Play Mix_SetMusicPosition failed: ", CString(Mix_GetError()));
 
 	g_bMusicPlaying = true;
 	g_pCurrentMusic = pMusic;
 	m_pNowPlaying = pTrack;
 	SetVolume(g_iVolume);
+	LogMixerEvent(CONSTLIT("CMCIMixer::Play started."));
 
 	return true;
 	}
@@ -258,15 +359,24 @@ bool CMCIMixer::PlayFadeIn(CMusicResource *pTrack, int iPos)
 	sFilespec = ResolveMusicFilespec(sFilespec);
 
 	if (sFilespec.IsBlank())
+		{
+		LogMixerEvent(CONSTLIT("CMCIMixer::PlayFadeIn failed: blank filespec."));
 		return false;
+		}
+
+	LogMixerPattern("CMCIMixer::PlayFadeIn resolved filespec: ", sFilespec);
 
 	const char* pszFile = sFilespec.GetASCIIZPointer();
 	Mix_Music* pMusic = Mix_LoadMUS(pszFile);
 	if (!pMusic)
+		{
+		LogMixerPattern("CMCIMixer::PlayFadeIn Mix_LoadMUS failed: ", CString(Mix_GetError()));
 		return false;
+		}
 
 	if (Mix_FadeInMusic(pMusic, 0, 1000) != 0)
 		{
+		LogMixerPattern("CMCIMixer::PlayFadeIn Mix_FadeInMusic failed: ", CString(Mix_GetError()));
 		Mix_FreeMusic(pMusic);
 		return false;
 		}
@@ -275,6 +385,7 @@ bool CMCIMixer::PlayFadeIn(CMusicResource *pTrack, int iPos)
 	g_pCurrentMusic = pMusic;
 	m_pNowPlaying = pTrack;
 	SetVolume(g_iVolume);
+	LogMixerEvent(CONSTLIT("CMCIMixer::PlayFadeIn started."));
 
 	return true;
 	}

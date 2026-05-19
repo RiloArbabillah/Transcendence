@@ -969,14 +969,16 @@ void CSoundtrackManager::Play (CMusicResource *pTrack)
 			&& pTrack)
 		{
 		CString sFilespec = pTrack->GetFilespec();
-		if (sFilespec.IsBlank())
+		CString sFilename = pTrack->GetFilename();
+		if (sFilespec.IsBlank() && sFilename.IsBlank())
 			{
 			::kernelDebugLogPattern("Unable to find soundtrack: %x", pTrack->GetUNID());
 			return;
 			}
 
 		m_dwTransition = ::GetTickCount();
-		m_Mixer.Play(pTrack);
+		if (!m_Mixer.Play(pTrack))
+			::kernelDebugLogPattern("Unable to play soundtrack: %x", pTrack->GetUNID());
 		}
 	}
 
