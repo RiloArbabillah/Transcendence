@@ -1167,7 +1167,7 @@ CString CPlayerGameStats::GetStatString (const CString &sStat) const
 		if (iCount == 0)
 			return NULL_STR;
 
-		return strPatternSubst(CONSTLIT("'(%d %d)"), dwUNID, iCount);
+		return strPatternSubst(CONSTLIT("'(%x %d)"), dwUNID, iCount);
 		}
 	else if (strEquals(sStat, ENEMY_SHIPS_DESTROYED_STAT))
 		{

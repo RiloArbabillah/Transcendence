@@ -8,6 +8,9 @@
 
 #ifdef TARGET_PLATFORM_MACOS
 
+#define CMD_SOUNDTRACK_DONE						CONSTLIT("cmdSoundtrackDone")
+#define CMD_SOUNDTRACK_NOW_PLAYING				CONSTLIT("cmdSoundtrackNowPlaying")
+
 #include <SDL2/SDL_mixer.h>
 #include <SDL2/SDL.h>
 #include <cstdio>
@@ -112,7 +115,7 @@ static void OnMusicFinished(void)
 		}
 
 	if (g_pHI)
-		g_pHI->HIPostCommand(CONSTLIT("cmdSoundtrackDone"));
+		g_pHI->HIPostCommand(CMD_SOUNDTRACK_DONE);
 	}
 
 CMCIMixer::CMCIMixer(int iChannels) :
@@ -333,6 +336,8 @@ bool CMCIMixer::Play(CMusicResource *pTrack, int iPos)
 	m_pNowPlaying = pTrack;
 	SetVolume(g_iVolume);
 	LogMixerEvent(CONSTLIT("CMCIMixer::Play started."));
+	if (g_pHI)
+		g_pHI->HIPostCommand(CMD_SOUNDTRACK_NOW_PLAYING, pTrack);
 
 	return true;
 	}
@@ -386,6 +391,8 @@ bool CMCIMixer::PlayFadeIn(CMusicResource *pTrack, int iPos)
 	m_pNowPlaying = pTrack;
 	SetVolume(g_iVolume);
 	LogMixerEvent(CONSTLIT("CMCIMixer::PlayFadeIn started."));
+	if (g_pHI)
+		g_pHI->HIPostCommand(CMD_SOUNDTRACK_NOW_PLAYING, pTrack);
 
 	return true;
 	}

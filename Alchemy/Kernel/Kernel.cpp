@@ -274,15 +274,15 @@ void Kernel::kernelDebugLogPattern (const char *pszLine, ...)
 
 	if (g_pDebugLog)
 		{
-		CString sParsedLine;
+		char szBuffer[4096];
 
 		va_list args;
 		va_start(args, pszLine);
-		char *pArgs = (char *)args;
-		sParsedLine = strPattern(CString(pszLine, ::strlen(pszLine), TRUE), (void **)pArgs);
+		vsnprintf(szBuffer, sizeof(szBuffer), pszLine, args);
+		szBuffer[sizeof(szBuffer) - 1] = '\0';
 		va_end(args);
 
-		g_pDebugLog->LogOutput(ILOG_FLAG_TIMEDATE, sParsedLine);
+		g_pDebugLog->LogOutput(ILOG_FLAG_TIMEDATE, CString(szBuffer));
 		}
 
 	LeaveCriticalSection(&g_csKernel);

@@ -41,13 +41,13 @@ void ILog::LogOutput (DWORD dwFlags, char *pszLine, ...) const
 //	Output a line to the log
 
 	{
-	CString sParsedLine;
+	char szBuffer[4096];
 	va_list args;
 	va_start(args, pszLine);
-	char *pArgs = (char *)args;
-	sParsedLine = strPattern(CString(pszLine, ::strlen(pszLine), TRUE), (void **)pArgs);
+	vsnprintf(szBuffer, sizeof(szBuffer), pszLine, args);
+	szBuffer[sizeof(szBuffer) - 1] = '\0';
 	va_end(args);
 
-	LogOutput(dwFlags, sParsedLine);
+	LogOutput(dwFlags, CString(szBuffer));
 	}
 

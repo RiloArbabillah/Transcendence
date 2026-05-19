@@ -71,7 +71,7 @@ ALERROR CArchiver::AddExternalReference (CString sTag, void *pReference)
 
 	//	Store
 
-	if (error = m_ExternalReferences.AddEntry(sTag, (CObject *)iID))
+	if (error = m_ExternalReferences.AddEntry(sTag, (CObject *)(intptr_t)iID))
 		return error;
 
 	return NOERROR;

@@ -245,20 +245,32 @@ ALERROR CSymbolTable::LoadHandler (CUnarchiver *pUnarchiver)
 				}
 			else if (m_bNoReference)
 				{
-				if (error = pUnarchiver->ReadData((char *)&pValue, sizeof(DWORD)))
+				intptr_t iValue;
+
+				if (error = pUnarchiver->ReadData((char *)&iValue, sizeof(intptr_t)))
+					{
+					delete pKey;
+					return error;
+					}
+
+				pValue = (CObject *)iValue;
+				}
+			else
+				{
+				int iID;
+
+				if (error = pUnarchiver->ReadData((char *)&iID, sizeof(int)))
+					{
+					delete pKey;
+					return error;
+					}
+
+				if (error = pUnarchiver->ResolveReference(iID, (void **)&pValue))
 					{
 					delete pKey;
 					return error;
 					}
 				}
-#ifndef LATER
-			//	We need to handle references here.
-			else
-				{
-				ASSERT(FALSE);
-				pValue = NULL;
-				}
-#endif
 
 			CDictionary::SetEntry(i, (intptr_t)pKey, (intptr_t)pValue);
 			}
@@ -300,20 +312,32 @@ ALERROR CSymbolTable::LoadHandler (CUnarchiver *pUnarchiver)
 				}
 			else if (m_bNoReference)
 				{
-				if (error = pUnarchiver->ReadData((char *)&pValue, sizeof(DWORD)))
+				intptr_t iValue;
+
+				if (error = pUnarchiver->ReadData((char *)&iValue, sizeof(intptr_t)))
+					{
+					delete pKey;
+					return error;
+					}
+
+				pValue = (CObject *)iValue;
+				}
+			else
+				{
+				int iID;
+
+				if (error = pUnarchiver->ReadData((char *)&iID, sizeof(int)))
+					{
+					delete pKey;
+					return error;
+					}
+
+				if (error = pUnarchiver->ResolveReference(iID, (void **)&pValue))
 					{
 					delete pKey;
 					return error;
 					}
 				}
-#ifndef LATER
-			//	We need to handle references here.
-			else
-				{
-				ASSERT(FALSE);
-				pValue = NULL;
-				}
-#endif
 
 			//	For previous version we insert the objects in the table
 			//	although this is less efficient, it is required because the
@@ -576,7 +600,7 @@ ALERROR CSymbolTable::SaveHandler (CArchiver *pArchiver)
 			if (error = pArchiver->Reference2ID(pValue, &iID))
 				return error;
 
-			if (error = pArchiver->WriteData((char *)&iID, sizeof(intptr_t)))
+			if (error = pArchiver->WriteData((char *)&iID, sizeof(int)))
 				return error;
 			}
 		}

@@ -186,11 +186,11 @@ typedef void* HKEY;
 #define HKEY_CURRENT_USER ((HKEY)1)
 #define REG_SZ 1
 
-inline LONG RegCloseKey(HKEY hKey) { return 0; }
-inline LONG RegQueryValueEx(HKEY hKey, const char* pValueName, void* pReserved, DWORD* pType, BYTE* pData, DWORD* pcbData) { return ERROR_SUCCESS; }
-inline LONG RegOpenKeyEx(HKEY hKey, const char* pSubKey, DWORD ulOptions, DWORD samDesired, HKEY* phkResult) { return ERROR_SUCCESS; }
-inline LONG RegCreateKeyEx(HKEY hKey, const char* pSubKey, DWORD Reserved, const char* pClass, DWORD dwOptions, DWORD samDesired, void* pSecurity, HKEY* phkResult, DWORD* pdwDisposition) { return ERROR_SUCCESS; }
-inline LONG RegSetValueEx(HKEY hKey, const char* pValueName, DWORD Reserved, DWORD dwType, const BYTE* pData, DWORD cbData) { return ERROR_SUCCESS; }
+inline LONG RegCloseKey(HKEY hKey) { return ERROR_SUCCESS; }
+inline LONG RegQueryValueEx(HKEY hKey, const char* pValueName, void* pReserved, DWORD* pType, BYTE* pData, DWORD* pcbData) { return 2; }
+inline LONG RegOpenKeyEx(HKEY hKey, const char* pSubKey, DWORD ulOptions, DWORD samDesired, HKEY* phkResult) { return 2; }
+inline LONG RegCreateKeyEx(HKEY hKey, const char* pSubKey, DWORD Reserved, const char* pClass, DWORD dwOptions, DWORD samDesired, void* pSecurity, HKEY* phkResult, DWORD* pdwDisposition) { return 2; }
+inline LONG RegSetValueEx(HKEY hKey, const char* pValueName, DWORD Reserved, DWORD dwType, const BYTE* pData, DWORD cbData) { return 2; }
 inline DWORD WSAGetLastError() { return errno; }
 typedef struct protoent PROTOENT;
 #define closesocket close

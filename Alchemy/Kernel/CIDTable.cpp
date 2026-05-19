@@ -161,14 +161,23 @@ ALERROR CIDTable::LoadHandler (CUnarchiver *pUnarchiver)
 			}
 		else if (m_bNoReference)
 			{
-			if (error = pUnarchiver->ReadData((char *)&pValue, sizeof(DWORD)))
+			intptr_t iValue;
+
+			if (error = pUnarchiver->ReadData((char *)&iValue, sizeof(intptr_t)))
+				return error;
+
+			pValue = (CObject *)iValue;
+			}
+		else
+			{
+			int iID;
+
+			if (error = pUnarchiver->ReadData((char *)&iID, sizeof(int)))
+				return error;
+
+			if (error = pUnarchiver->ResolveReference(iID, (void **)&pValue))
 				return error;
 			}
-#ifndef LATER
-		//	We need to handle references here.
-		else
-			throw CException(ERR_FAIL);
-#endif
 
 		CDictionary::SetEntry(i, iKey, (intptr_t)pValue);
 		}
@@ -348,7 +357,7 @@ ALERROR CIDTable::SaveHandler (CArchiver *pArchiver)
 			}
 		else if (m_bNoReference)
 			{
-			if (error = pArchiver->WriteData((char *)&iValue, sizeof(int)))
+			if (error = pArchiver->WriteData((char *)&iValue, sizeof(intptr_t)))
 				return error;
 			}
 		else

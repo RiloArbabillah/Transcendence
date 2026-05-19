@@ -2399,13 +2399,46 @@ void CUniverse::PlaySound (CSpaceObject *pSource, int iChannel, SSoundOptions *p
 //	Plays a sound from the given source
 
 	{
+	static bool g_bLoggedNoSoundFlag = false;
+	static bool g_bLoggedNoSoundMgr = false;
+	static bool g_bLoggedInvalidChannel = false;
+	static bool g_bLoggedInactiveSystem = false;
+	static bool g_bLoggedFirstPlaySound = false;
+
 	if (m_bNoSound || !m_pSoundMgr || iChannel == -1)
+		{
+		if (m_bNoSound && !g_bLoggedNoSoundFlag)
+			{
+			::kernelDebugLogPattern("CUniverse::PlaySound suppressed because sound is disabled (channel=%d soundMgr=%x source=%x).", iChannel, (DWORD_PTR)m_pSoundMgr, (DWORD_PTR)pSource);
+			g_bLoggedNoSoundFlag = true;
+			}
+
+		if (!m_pSoundMgr && !g_bLoggedNoSoundMgr)
+			{
+			::kernelDebugLogPattern("CUniverse::PlaySound suppressed because m_pSoundMgr is NULL.");
+			g_bLoggedNoSoundMgr = true;
+			}
+
+		if (iChannel == -1 && !g_bLoggedInvalidChannel)
+			{
+			::kernelDebugLogPattern("CUniverse::PlaySound suppressed because channel == -1.");
+			g_bLoggedInvalidChannel = true;
+			}
+
 		return;
+		}
 
 	//	If the system is not active, then skip.
 
 	if (pSource && (!pSource->GetSystem() || !pSource->GetSystem()->IsInPlay()))
+		{
+		if (!g_bLoggedInactiveSystem)
+			{
+			::kernelDebugLogPattern("CUniverse::PlaySound suppressed because source system is not active.");
+			g_bLoggedInactiveSystem = true;
+			}
 		return;
+		}
 
 	//	Default to full volume
 
@@ -2431,6 +2464,12 @@ void CUniverse::PlaySound (CSpaceObject *pSource, int iChannel, SSoundOptions *p
 		//	Adjust left/right volume based on direction
 
 		iPan = (int)(10000.0 * (vDist.GetX() / MAX_SOUND_DISTANCE));
+		}
+
+	if (!g_bLoggedFirstPlaySound)
+		{
+		::kernelDebugLogPattern("CUniverse::PlaySound forwarding first sound: channel=%d volume=%d pan=%d source=%x.", iChannel, iVolume, iPan, (DWORD_PTR)pSource);
+		g_bLoggedFirstPlaySound = true;
 		}
 
 	m_pSoundMgr->Play(iChannel, iVolume, iPan);

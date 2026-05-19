@@ -196,7 +196,9 @@ ALERROR CGameSettings::Load (const CString &sFilespec, CString *retsError)
 
 		if (error == ERR_NOTFOUND)
 			{
+			::kernelDebugLogPattern("CGameSettings::Load no settings file at %s; loading registry/default fallback.", sSettingsFilespec);
 			LoadFromRegistry();
+			::kernelDebugLogPattern("CGameSettings::Load post-registry noSound=%d noMusic=%d soundVolume=%d musicVolume=%d appData=%s.", (m_Options[noSound].bValue ? 1 : 0), (m_Options[noMusic].bValue ? 1 : 0), m_Options[soundVolume].iValue, m_Options[musicVolume].iValue, m_sAppData.GetASCIIZPointer());
 			m_bModified = true;
 			return NOERROR;
 			}
@@ -304,7 +306,13 @@ void CGameSettings::LoadFromRegistry (void)
 
 	CString sMusic;
 	if (Key.FindStringValue(REGISTRY_MUSIC_OPTION, &sMusic))
-		SetValueBoolean(noMusic, !strEquals(sMusic, CONSTLIT("on")), true);
+		{
+		bool bNoMusic = !strEquals(sMusic, CONSTLIT("on"));
+		::kernelDebugLogPattern("CGameSettings::LoadFromRegistry Music=%s -> noMusic=%d.", sMusic, (bNoMusic ? 1 : 0));
+		SetValueBoolean(noMusic, bNoMusic, true);
+		}
+	else
+		::kernelDebugLogString(CONSTLIT("CGameSettings::LoadFromRegistry no Music registry value found."));
 
 	//	Volume
 

@@ -2175,6 +2175,7 @@ ALERROR CTranscendenceController::OnInit (CString *retsError)
 	Options.iInitialState = CSoundtrackManager::stateProgramLoad;
 	Options.iVolume = GetOptionInteger(CGameSettings::musicVolume);
 	Options.bDebugMode = GetOptionBoolean(CGameSettings::debugSoundtrack);
+	::kernelDebugLogPattern("Soundtrack init options: enabled=%d volume=%d debug=%d initialState=%d.", (Options.bEnabled ? 1 : 0), Options.iVolume, (Options.bDebugMode ? 1 : 0), (int)Options.iInitialState);
 	if (!m_Soundtrack.Init(Options))
 		{
 		::kernelDebugLogString(CONSTLIT("ERROR: Unable to initialize Sound Manager."));

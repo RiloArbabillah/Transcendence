@@ -636,7 +636,11 @@ void CObjectImageArray::GenerateGlowImage (int iRotation) const
 	{
 	DEBUG_TRY
 
-	ASSERT(iRotation >= 0 && iRotation < m_iRotationCount);
+	if (m_iRotationCount <= 0)
+		return;
+
+	const int iRotationAdj = ((iRotation % m_iRotationCount) + m_iRotationCount) % m_iRotationCount;
+	ASSERT(iRotationAdj >= 0 && iRotationAdj < m_iRotationCount);
 
 	//	Source
 
@@ -655,7 +659,7 @@ void CObjectImageArray::GenerateGlowImage (int iRotation) const
 	//	If the image for this rotation has already been initialized, then
 	//	we're done
 
-	if (!m_pGlowImages[iRotation].IsEmpty())
+	if (!m_pGlowImages[iRotationAdj].IsEmpty())
 		return;
 
 	//	Otherwise we need to create the glow mask. The glow image is larger
@@ -665,7 +669,7 @@ void CObjectImageArray::GenerateGlowImage (int iRotation) const
 	int cySrcHeight = RectHeight(m_rcImage);
 	int cxGlowWidth = cxSrcWidth + 2 * GLOW_SIZE;
 	int cyGlowHeight = cySrcHeight + 2 * GLOW_SIZE;
-	m_pGlowImages[iRotation].Create(cxGlowWidth, cyGlowHeight);
+	m_pGlowImages[iRotationAdj].Create(cxGlowWidth, cyGlowHeight);
 
 	//	Get the extent of the source image
 
@@ -676,8 +680,8 @@ void CObjectImageArray::GenerateGlowImage (int iRotation) const
 
 	//	Loop over every pixel of the destination
 
-	BYTE *pDestRow = m_pGlowImages[iRotation].GetPixelPos(0, 0);
-	BYTE *pDestRowEnd = m_pGlowImages[iRotation].GetPixelPos(0, cyGlowHeight);
+	BYTE *pDestRow = m_pGlowImages[iRotationAdj].GetPixelPos(0, 0);
+	BYTE *pDestRowEnd = m_pGlowImages[iRotationAdj].GetPixelPos(0, cyGlowHeight);
 	int ySrc = rcSrc.top - GLOW_SIZE;
 	while (pDestRow < pDestRowEnd)
 		{
@@ -1803,7 +1807,11 @@ void CObjectImageArray::PaintImageWithGlow (CG32bitImage &Dest,
 
 	//	Make sure we have the glow image
 
-	GenerateGlowImage(iRotation);
+	if (m_iRotationCount <= 0)
+		return;
+
+	const int iRotationAdj = ((iRotation % m_iRotationCount) + m_iRotationCount) % m_iRotationCount;
+	GenerateGlowImage(iRotationAdj);
 
 	//	Glow strength
 
@@ -1817,7 +1825,7 @@ void CObjectImageArray::PaintImageWithGlow (CG32bitImage &Dest,
 			0,
 			RectWidth(m_rcImage) + 2 * GLOW_SIZE,
 			RectHeight(m_rcImage) + 2 * GLOW_SIZE,
-			m_pGlowImages[iRotation],
+			m_pGlowImages[iRotationAdj],
 			CG32bitPixel(rgbGlowColor, (BYTE)iStrength),
 			x - (RectWidth(m_rcImage) / 2) - GLOW_SIZE,
 			y - (RectHeight(m_rcImage) / 2) - GLOW_SIZE);

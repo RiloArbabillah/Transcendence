@@ -438,6 +438,7 @@ bool CSoundtrackManager::Init (SOptions &Options)
 
 	{
 	m_pUniverse = &Options.Universe;
+	::kernelDebugLogPattern("CSoundtrackManager::Init universe=%p enabled=%d volume=%d debug=%d initialState=%d.", m_pUniverse, (Options.bEnabled ? 1 : 0), Options.iVolume, (Options.bDebugMode ? 1 : 0), (int)Options.iInitialState);
 	SetMusicEnabled(Options.bEnabled);
 	SetVolume(Options.iVolume);
 	SetDebugMode(Options.bDebugMode);
@@ -970,6 +971,12 @@ void CSoundtrackManager::Play (CMusicResource *pTrack)
 		{
 		CString sFilespec = pTrack->GetFilespec();
 		CString sFilename = pTrack->GetFilename();
+		::kernelDebugLogPattern("CSoundtrackManager::Play state=%d track=%p unid=%x filespec=%s filename=%s.",
+				(int)m_iGameState,
+				pTrack,
+				pTrack->GetUNID(),
+				sFilespec.GetASCIIZPointer(),
+				sFilename.GetASCIIZPointer());
 		if (sFilespec.IsBlank() && sFilename.IsBlank())
 			{
 			::kernelDebugLogPattern("Unable to find soundtrack: %x", pTrack->GetUNID());
@@ -980,6 +987,12 @@ void CSoundtrackManager::Play (CMusicResource *pTrack)
 		if (!m_Mixer.Play(pTrack))
 			::kernelDebugLogPattern("Unable to play soundtrack: %x", pTrack->GetUNID());
 		}
+	else
+		::kernelDebugLogPattern("CSoundtrackManager::Play skipped: enabled=%d track=%p nowPlaying=%p state=%d.",
+				(m_bEnabled ? 1 : 0),
+				pTrack,
+				m_pNowPlaying,
+				(int)m_iGameState);
 	}
 
 void CSoundtrackManager::Reinit (void)
@@ -1049,6 +1062,7 @@ void CSoundtrackManager::SetGameState (EGameStates iNewState)
 
 	else if (iNewState == stateProgramIntro && m_iGameState == stateProgramLoad)
 		{
+		::kernelDebugLogString(CONSTLIT("CSoundtrackManager::SetGameState load->intro preserving current intro track."));
 		ResetTrackState();
 		m_iGameState = iNewState;
 		}
@@ -1092,14 +1106,23 @@ void CSoundtrackManager::SetMusicEnabled (bool bEnabled)
 //	Enable/disable playing music
 
 	{
-	if (m_pUniverse == NULL || m_bEnabled == bEnabled)
+	if (m_pUniverse == NULL)
+		{
+		::kernelDebugLogString(CONSTLIT("CSoundtrackManager::SetMusicEnabled skipped: null universe."));
 		return;
+		}
+	if (m_bEnabled == bEnabled)
+		{
+		::kernelDebugLogPattern("CSoundtrackManager::SetMusicEnabled no-op: enabled=%d.", (bEnabled ? 1 : 0));
+		return;
+		}
 
 	//	We always boot the mixer, even if we're starting out disabled, because we
 	//	might enable later. The boot call just starts up the processing thread, 
 	//	which we need even to set the volume.
 
-	m_Mixer.Boot();
+	bool bBooted = m_Mixer.Boot();
+	::kernelDebugLogPattern("CSoundtrackManager::SetMusicEnabled request=%d booted=%d current=%d.", (bEnabled ? 1 : 0), (bBooted ? 1 : 0), (m_bEnabled ? 1 : 0));
 
 	//	Set
 
@@ -1112,7 +1135,11 @@ void CSoundtrackManager::SetMusicEnabled (bool bEnabled)
 	//	If we're enabling music, play the current track
 
 	if (m_bEnabled)
-		Play(CalcTrackToPlay(m_pUniverse->GetCurrentTopologyNode(), m_iGameState));
+		{
+		CMusicResource *pTrack = CalcTrackToPlay(m_pUniverse->GetCurrentTopologyNode(), m_iGameState);
+		::kernelDebugLogPattern("CSoundtrackManager::SetMusicEnabled play track=%p state=%d.", pTrack, (int)m_iGameState);
+		Play(pTrack);
+		}
 
 	//	Otherwise, stop playing
 

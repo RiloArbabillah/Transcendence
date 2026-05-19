@@ -342,19 +342,34 @@ ALERROR CSoundMgr::LoadWaveFromBuffer(IReadBlock &Data, int *retiChannel)
 
 void CSoundMgr::Play(int iChannel, int iVolume, int iPan, bool bLoop)
 {
+    static bool g_bLoggedFirstPlay = false;
+
     if (iChannel < 0 || iChannel >= m_Channels.GetCount())
+        {
+        LogSoundMgrEvent(strPatternSubst(CONSTLIT("CSoundMgr::Play invalid channel index: %d (count=%d)."), iChannel, m_Channels.GetCount()));
         return;
+        }
 
     SChannel *pChannel = GetChannel(iChannel);
     if (!pChannel->pBuffer)
+        {
+        LogSoundMgrEvent(strPatternSubst(CONSTLIT("CSoundMgr::Play channel %d has no buffer."), iChannel));
         return;
+        }
 
     Mix_Chunk *pChunk = reinterpret_cast<Mix_Chunk *>(pChannel->pBuffer);
+    int iSDLVolume = CalcSDLEffectVolume(iVolume, m_iSoundVolume);
     int iPlayChannel = Mix_PlayChannel(-1, pChunk, (bLoop ? -1 : 0));
     if (iPlayChannel >= 0)
         {
-        Mix_Volume(iPlayChannel, CalcSDLEffectVolume(iVolume, m_iSoundVolume));
+        Mix_Volume(iPlayChannel, iSDLVolume);
         ApplyPanToChannel(iPlayChannel, iPan);
+
+        if (!g_bLoggedFirstPlay)
+            {
+            LogSoundMgrEvent(strPatternSubst(CONSTLIT("CSoundMgr::Play started: logical=%d sdl=%d volume=%d pan=%d loop=%d file=%s."), iChannel, iPlayChannel, iSDLVolume, iPan, (bLoop ? 1 : 0), pChannel->sFilename));
+            g_bLoggedFirstPlay = true;
+            }
         }
     else
         LogSoundMgrPattern("CSoundMgr::Play Mix_PlayChannel failed: ", CString(Mix_GetError()));

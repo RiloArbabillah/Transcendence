@@ -1512,9 +1512,11 @@ void CTranscendenceWnd::StopIntro (void)
 	g_pUniverse->DestroySystem(m_pIntroSystem);
 	m_pIntroSystem = NULL;
 
-	//	Enable sound
+	//	Restore sound to the user's configured setting.
 
-	g_pUniverse->SetSound(true);
+	const bool bNoSound = m_pTC->GetOptionBoolean(CGameSettings::noSound);
+	g_pUniverse->SetSound(!bNoSound);
+	::kernelDebugLogPattern("CTranscendenceWnd::StopIntro sound restore: noSound=%d universeSound=%d.", (int)bNoSound, (int)g_pUniverse->GetSound());
 
 	//	Hide cursor
 

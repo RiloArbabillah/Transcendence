@@ -78,13 +78,18 @@ ALERROR CRegKey::OpenUserAppKey (const CString &sCompany,
 	{
 	//	Open the Software key
 
+	::kernelDebugLogPattern("CRegKey::OpenUserAppKey company=%s app=%s.", sCompany, sAppName);
+
 	HKEY hSoftware;
 	if (::RegOpenKeyEx(HKEY_CURRENT_USER,
 			"Software",
 			0,
 			KEY_READ | KEY_WRITE,
 			&hSoftware) != ERROR_SUCCESS)
+		{
+		::kernelDebugLogString(CONSTLIT("CRegKey::OpenUserAppKey failed to open HKCU/Software."));
 		return ERR_FAIL;
+		}
 
 	//	Open/create a key for the company
 
@@ -99,6 +104,7 @@ ALERROR CRegKey::OpenUserAppKey (const CString &sCompany,
 			&hCompany,
 			NULL) != ERROR_SUCCESS)
 		{
+		::kernelDebugLogPattern("CRegKey::OpenUserAppKey failed to create/open company key %s.", sCompany);
 		::RegCloseKey(hSoftware);
 		return ERR_FAIL;
 		}
@@ -116,6 +122,7 @@ ALERROR CRegKey::OpenUserAppKey (const CString &sCompany,
 			&hApp,
 			NULL) != ERROR_SUCCESS)
 		{
+		::kernelDebugLogPattern("CRegKey::OpenUserAppKey failed to create/open app key %s.", sAppName);
 		::RegCloseKey(hCompany);
 		::RegCloseKey(hSoftware);
 		return ERR_FAIL;
@@ -128,6 +135,7 @@ ALERROR CRegKey::OpenUserAppKey (const CString &sCompany,
 
 	retKey->CleanUp();
 	retKey->m_hKey = hApp;
+	::kernelDebugLogString(CONSTLIT("CRegKey::OpenUserAppKey success."));
 
 	return NOERROR;
 	}
