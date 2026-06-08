@@ -632,7 +632,6 @@ int App_PumpEvents(void)
             if (event.window.event == SDL_WINDOWEVENT_RESIZED)
                 {
                 log_va("App_PumpEvents: SDL_WINDOWEVENT_RESIZED %d x %d", event.window.data1, event.window.data2);
-                RecreateFrameBuffer(event.window.data1, event.window.data2);
                 PlatformPostMessage(WM_SIZE, 0, (void*)(uintptr_t)MAKELONG(event.window.data1, event.window.data2));
                 }
             else if (event.window.event == SDL_WINDOWEVENT_MOVED)
@@ -687,6 +686,7 @@ void App_PresentFrameBuffer(void)
 }
 
 struct SPlatformScreenInfo PlatformGetScreenInfo(void) { return { g_AppState.pFrameBuffer, g_AppState.cxWidth, g_AppState.cyHeight, g_AppState.cxWidth * (int)sizeof(uint32_t) }; }
+void PlatformResizeScreen(int cxWidth, int cyHeight) { RecreateFrameBuffer(cxWidth, cyHeight); }
 void PlatformPresentScreen(void) { App_PresentFrameBuffer(); }
 uint32_t* App_GetFrameBuffer(void) { return g_AppState.pFrameBuffer; }
 int App_GetFrameBufferWidth(void) { return g_AppState.cxWidth; }

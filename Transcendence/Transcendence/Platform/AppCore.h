@@ -54,6 +54,7 @@ struct SAppState
 };
 
 struct SPlatformScreenInfo PlatformGetScreenInfo(void);
+void PlatformResizeScreen(int cxWidth, int cyHeight);
 void PlatformPresentScreen(void);
 
 int App_Init(void);

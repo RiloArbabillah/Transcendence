@@ -42,6 +42,8 @@ void CScreenMgrSDL::Init (int cxScreen, int cyScreen, CString *retsError)
 	m_cxScreen = cxScreen;
 	m_cyScreen = cyScreen;
 
+	PlatformResizeScreen(cxScreen, cyScreen);
+
 	//	Get the platform framebuffer info
 	SPlatformScreenInfo info = PlatformGetScreenInfo();
 

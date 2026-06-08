@@ -18,7 +18,7 @@ class CScreenMgrSDL
 		bool CheckIsReady (void) { return m_bReady; }
 		void CleanUp (void);
 		void ClientToLocal (int x, int y, int *retx, int *rety) const { if (retx) *retx = x; if (rety) *rety = y; }
-		void Flip (void) { Render(); }
+		void Flip (void) { }
 		int GetHeight (void) const { return m_cyScreen; }
 		bool GetInvalidRect (RECT *retrcRect) { retrcRect->left = 0; retrcRect->top = 0; retrcRect->right = m_cxScreen; retrcRect->bottom = m_cyScreen; return true; }
 		CG32bitImage &GetScreen (void);
