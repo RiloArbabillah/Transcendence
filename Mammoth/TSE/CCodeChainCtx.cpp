@@ -305,11 +305,14 @@ CSpaceObject *CCodeChainCtx::AsSpaceObject (ICCItem *pItem)
 //	Convert item to CSpaceObject
 
 	{
-	CSpaceObject *pObj = CreateObjFromItem(pItem, CCUTIL_FLAG_CHECK_DESTROYED);
-	if (pObj && ((DWORD)pObj->GetCategory() & ~CSpaceObject::catMask))
-		pObj = NULL;
+	//	CreateObjFromItem is the canonical runtime object resolver. It already
+	//	handles live 64-bit object pointers, backwards-compatible 32-bit object
+	//	IDs, pointer liveness validation, and destroyed-object filtering.
+	//	Do not add extra compatibility guards here that silently discard objects:
+	//	on Apple Silicon that can break script-driven hit/effect/audio paths by
+	//	turning a valid recovered object reference into NULL.
 
-	return pObj;
+	return CreateObjFromItem(pItem, CCUTIL_FLAG_CHECK_DESTROYED);
 	}
 
 CVector CCodeChainCtx::AsVector (ICCItem *pItem)

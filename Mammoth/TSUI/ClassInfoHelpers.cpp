@@ -214,9 +214,12 @@ void CUIHelper::CreateClassInfoDeviceSlots (const CShipClass &Class, const CDevi
 
 	//	Add the text item
 
+	const CG16bitFont &MediumFont = VI.GetFont(fontMedium);
+
 	IAnimatron *pRef = new CAniRichText(VI);
 	pRef->SetPropertyVector(PROP_POSITION, CVector(xText, yText + cyText));
 	pRef->SetPropertyVector(PROP_SCALE, CVector(cxText, 1000));
+	pRef->SetPropertyFont(PROP_FONT, &MediumFont);
 	pRef->SetPropertyString(PROP_TEXT, sText);
 	if (bRightAlign)
 		pRef->SetPropertyString(PROP_TEXT_ALIGN_HORZ, ALIGN_RIGHT);
@@ -288,9 +291,9 @@ void CUIHelper::CreateClassInfoDrive (const CShipClass &Class, const CDeviceDesc
 	//	Compose the text
 
 	CString sText = strPatternSubst(CONSTLIT(
-			"{/rtf/f:Medium;/c:%d; {/f:LargeBold;/c:%d; %s} {/f:MediumBold;/c:%d; %s}\n"
+			"{/rtf {/f:Medium;/c:%d; {/f:LargeBold;/c:%d; %s} {/f:MediumBold;/c:%d; %s}\n"
 			"{/f:LargeBold;/c:%d; %s} thrust//mass ratio\n"
-			"{/f:LargeBold;/c:%d; %s} maneuverability}"),
+			"{/f:LargeBold;/c:%d; %s} maneuverability}}"),
 
 			(COLORREF)VI.GetColor(colorTextDialogLabel),
 			(COLORREF)VI.GetColor(colorTextDialogLabel),
@@ -536,11 +539,14 @@ void CUIHelper::CreateClassInfoSpecialItem (CItemType *pItemIcon, const CString 
 
 	//	Create some text
 
+	const CG16bitFont &MediumFont = VI.GetFont(fontMedium);
 	int cyText = 0;
 
 	IAnimatron *pRef = new CAniRichText(VI);
 	pRef->SetPropertyVector(PROP_POSITION, CVector(xText, yText + cyText));
 	pRef->SetPropertyVector(PROP_SCALE, CVector(cxText, 1000));
+	pRef->SetPropertyColor(PROP_COLOR, VI.GetColor(colorTextDialogLabel));
+	pRef->SetPropertyFont(PROP_FONT, &MediumFont);
 	pRef->SetPropertyString(PROP_TEXT, sText);
 	if (bRightAlign)
 		pRef->SetPropertyString(PROP_TEXT_ALIGN_HORZ, ALIGN_RIGHT);

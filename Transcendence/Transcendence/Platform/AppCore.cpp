@@ -524,6 +524,32 @@ static unsigned int SDLKeyToVK(SDL_Scancode scanCode)
     }
 }
 
+static DWORD SDLScancodeToKeyData(SDL_Scancode scanCode)
+{
+    constexpr DWORD EXTENDED_BIT = (1 << 24);
+
+    switch (scanCode)
+    {
+    case SDL_SCANCODE_UP:
+    case SDL_SCANCODE_DOWN:
+    case SDL_SCANCODE_LEFT:
+    case SDL_SCANCODE_RIGHT:
+    case SDL_SCANCODE_HOME:
+    case SDL_SCANCODE_END:
+    case SDL_SCANCODE_PAGEUP:
+    case SDL_SCANCODE_PAGEDOWN:
+    case SDL_SCANCODE_INSERT:
+    case SDL_SCANCODE_DELETE:
+    case SDL_SCANCODE_KP_ENTER:
+    case SDL_SCANCODE_RCTRL:
+    case SDL_SCANCODE_RALT:
+        return EXTENDED_BIT;
+
+    default:
+        return 0;
+    }
+}
+
 int App_PumpEvents(void)
 {
     SDL_Event event;
@@ -538,10 +564,16 @@ int App_PumpEvents(void)
         switch (event.type)
         {
         case SDL_KEYDOWN:
-            PlatformPostMessage(WM_KEYDOWN, SDLKeyToVK(event.key.keysym.scancode), nullptr);
+            PlatformPostMessage(
+                WM_KEYDOWN,
+                SDLKeyToVK(event.key.keysym.scancode),
+                (void *)(uintptr_t)SDLScancodeToKeyData(event.key.keysym.scancode));
             break;
         case SDL_KEYUP:
-            PlatformPostMessage(WM_KEYUP, SDLKeyToVK(event.key.keysym.scancode), nullptr);
+            PlatformPostMessage(
+                WM_KEYUP,
+                SDLKeyToVK(event.key.keysym.scancode),
+                (void *)(uintptr_t)SDLScancodeToKeyData(event.key.keysym.scancode));
             break;
         case SDL_TEXTINPUT:
             for (const char* p = event.text.text; *p; p++)

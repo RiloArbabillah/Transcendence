@@ -96,7 +96,7 @@ void CAniText::GetSpacingRect (RECT *retrcRect)
 	{
 	const CG16bitFont *pFont = m_Properties[INDEX_FONT].GetFont();
 	if (pFont == NULL)
-		return IAnimatron::GetSpacingRect(retrcRect);
+		pFont = &CReanimator::GetDefaultFont();
 
 	CVector vSize = m_Properties[INDEX_SCALE].GetVector();
 	int cxWidth = (int)vSize.GetX();

@@ -527,7 +527,7 @@ ALERROR CTranscendenceModel::EndGame (void)
 
 	//	Generate stats and save to file
 
-	GenerateGameStats(&m_GameStats, true);
+	GenerateGameStats(&m_GameStats, true, false);
 	if (error = SaveGameStats(m_GameStats, true, true))
 		return error;
 
@@ -704,7 +704,7 @@ ALERROR CTranscendenceModel::EndGameDestroyed (bool *retbResurrected)
 	else if (m_iState == statePlayerDestroyed)
 		{
 		//	Generate stats and save to file
-		GenerateGameStats(&m_GameStats, true);
+		GenerateGameStats(&m_GameStats, true, false);
 		if (error = SaveGameStats(m_GameStats, true))
 			return error;
 
@@ -966,7 +966,7 @@ bool CTranscendenceModel::FindScreenRoot (const CString &sScreen, CDesignType **
 	return m_Universe.GetDockSession().FindScreenRoot(sScreen, retpRoot, retsScreen, retpData);
 	}
 
-void CTranscendenceModel::GenerateGameStats (CGameStats *retStats, bool bGameOver)
+void CTranscendenceModel::GenerateGameStats (CGameStats *retStats, bool bGameOver, bool bIncludeGlobalAchievements)
 
 //	GenerateGameStats
 //
@@ -1033,7 +1033,8 @@ void CTranscendenceModel::GenerateGameStats (CGameStats *retStats, bool bGameOve
 
 	//	Generate
 
-	m_Universe.GenerateGameStats((bGameOver ? m_sEndGameReason : NULL_STR), *retStats);
+	if (bIncludeGlobalAchievements)
+		m_Universe.GenerateGameStats((bGameOver ? m_sEndGameReason : NULL_STR), *retStats);
 	m_pPlayer->GenerateGameStats(*retStats, bGameOver);
 	retStats->Sort();
 
@@ -2113,7 +2114,9 @@ ALERROR CTranscendenceModel::SaveGame (DWORD dwFlags, CString *retsError)
 
 	//	Generate and save game stats
 
-	GenerateGameStats(&m_GameStats, false);
+	const bool bIncludeGlobalAchievements = !m_bSkipGlobalAchievementsOnNextSave;
+	m_bSkipGlobalAchievementsOnNextSave = false;
+	GenerateGameStats(&m_GameStats, false, bIncludeGlobalAchievements);
 	if (error = SaveGameStats(m_GameStats))
 		{
 		if (retsError)
@@ -2522,10 +2525,35 @@ ALERROR CTranscendenceModel::StartGame (bool bNewGame)
 
 	m_Universe.GetDesignCollection().DebugOutputExtensions();
 
+	//	Validate the player/ship handoff before we touch gameplay state. On
+	//	Apple Silicon we have seen StartGame run after background loading with a
+	//	partially initialized player controller, which used to crash with an
+	//	unguarded dereference.
+
+	if (m_pPlayer == NULL)
+		{
+		::kernelDebugLogString(CONSTLIT("CTranscendenceModel::StartGame aborted: m_pPlayer is NULL."));
+		return ERR_FAIL;
+		}
+
+	CShip *pPlayerShip = m_pPlayer->GetShip();
+	if (pPlayerShip == NULL)
+		{
+		::kernelDebugLogPattern("CTranscendenceModel::StartGame aborted: player ship is NULL (state=%d newGame=%d).", (int)m_iState, (bNewGame ? 1 : 0));
+		return ERR_FAIL;
+		}
+
+	::kernelDebugLogPattern("CTranscendenceModel::StartGame: player=%p ship=%p system=%p state=%d newGame=%d.",
+			m_pPlayer,
+			pPlayerShip,
+			pPlayerShip->GetSystem(),
+			(int)m_iState,
+			(bNewGame ? 1 : 0));
+
 	//	Tell the universe to focus on the ship
 
-	m_Universe.SetPlayerShip(m_pPlayer->GetShip());
-	m_Universe.SetPOV(m_pPlayer->GetShip());
+	m_Universe.SetPlayerShip(pPlayerShip);
+	m_Universe.SetPOV(pPlayerShip);
 
 	//	Set sound. The intro session disables universe sound while it runs,
 	//	so we must always restore the intended gameplay state here.
@@ -2580,7 +2608,10 @@ ALERROR CTranscendenceModel::StartGame (bool bNewGame)
 	//	If this is a new game, save it so that we can go back to the start.
 
 	if (bNewGame)
+		{
+		m_bSkipGlobalAchievementsOnNextSave = true;
 		SaveGame(CGameFile::FLAG_CHECKPOINT);
+		}
 
 	return NOERROR;
 	}
@@ -2713,26 +2744,41 @@ ALERROR CTranscendenceModel::StartNewGameBackground (const SNewGameSettings &New
 	CString sStartNode;
 	CString sStartPos;
 	CalcStartingPos(pStartingShip, &dwStartMap, &sStartNode, &sStartPos);
+	CString sStartLog(CONSTLIT("New game start position: ship="));
+	sStartLog.Append(strPatternSubst(CONSTLIT("%08x"), m_pPlayer->GetStartingShipClass()));
+	sStartLog.Append(CONSTLIT(" startMap="));
+	sStartLog.Append(strPatternSubst(CONSTLIT("%08x"), dwStartMap));
+	sStartLog.Append(CONSTLIT(" startNode="));
+	sStartLog.Append(sStartNode);
+	sStartLog.Append(CONSTLIT(" startPos="));
+	sStartLog.Append(sStartPos);
+	::kernelDebugLogString(sStartLog);
 
 	//	Remember the starting system.
 
 	m_pPlayer->SetStartingSystem(sStartNode);
+	::kernelDebugLogPattern("StartNewGameBackground: set starting system to %s.", sStartNode);
 
 	//	Initialize topology, etc.
 
+	::kernelDebugLogPattern("StartNewGameBackground: calling InitGame startMap=%08x.", dwStartMap);
 	if (error = m_Universe.InitGame(dwStartMap, retsError))
 		return error;
+	::kernelDebugLogPattern("StartNewGameBackground: InitGame complete.");
 
 	//	Get the starting system
 
 	CSystem *pStartingSystem;
+	::kernelDebugLogPattern("StartNewGameBackground: calling CreateAllSystems node=%s.", sStartNode);
 	if (error = CreateAllSystems(sStartNode, &pStartingSystem, retsError))
 		return error;
+	::kernelDebugLogPattern("StartNewGameBackground: CreateAllSystems complete system=%p.", pStartingSystem);
 
 	//	Set the current system because we need it to be set when we create the
 	//	player ship.
 
 	m_Universe.SetCurrentSystem(pStartingSystem);
+	::kernelDebugLogPattern("StartNewGameBackground: current system set.");
 
 	//	Figure out where in the system we want to start
 
@@ -2740,16 +2786,21 @@ ALERROR CTranscendenceModel::StartNewGameBackground (const SNewGameSettings &New
 	CSpaceObject *pStart = pStartingSystem->GetNamedObject(sStartPos);
 	if (pStart)
 		vStartPos = pStart->GetPos();
+	else if (!sStartPos.IsBlank())
+		::kernelDebugLogPattern("Warning: unable to resolve named start position '%s' in node %s; defaulting to origin.", sStartPos, sStartNode);
+	::kernelDebugLogPattern("StartNewGameBackground: start object=%p.", pStart);
 
 	//	Set some credits
 
 	const CCurrencyAndRange &StartingCredits = pPlayerSettings->GetStartingCredits();
 	m_pPlayer->Payment(StartingCredits.GetCurrencyType()->GetUNID(), StartingCredits.Roll());
+	::kernelDebugLogPattern("StartNewGameBackground: player credits initialized.");
 
 	//	Create the player's ship
 
 	CShip *pPlayerShip;
 
+	::kernelDebugLogPattern("StartNewGameBackground: calling CreateShip class=%08x.", m_pPlayer->GetStartingShipClass());
 	m_Universe.SetLogImageLoad(false);
 	error = pStartingSystem->CreateShip(m_pPlayer->GetStartingShipClass(),
 			m_pPlayer,
@@ -2765,10 +2816,16 @@ ALERROR CTranscendenceModel::StartNewGameBackground (const SNewGameSettings &New
 
 	if (error)
 		{
-		*retsError = CONSTLIT("Unable to create player ship");
+		*retsError = strPatternSubst(CONSTLIT("Unable to create player ship: class=%08x node=%s startPos=%s error=%d"),
+				m_pPlayer->GetStartingShipClass(),
+				sStartNode,
+				sStartPos,
+				error);
 		ResetPlayer();
 		return error;
 		}
+
+	::kernelDebugLogPattern("StartNewGameBackground: CreateShip complete ship=%p.", pPlayerShip);
 
 	//	Ship needs to track fuel and mass
 

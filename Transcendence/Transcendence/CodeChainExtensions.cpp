@@ -209,7 +209,7 @@ static PRIMITIVEPROCDEF g_Extensions[] =
 			"   'center\n"
 			"   'right\n",
 
-			"ii*",	PPFLAG_SIDEEFFECTS,	},
+			"vi*",	PPFLAG_SIDEEFFECTS,	},
 
 		{	"scrAddAction",					fnScrSet,		FN_SCR_ADD_ACTION,
 			"(scrAddAction screen actionID pos label [key] [special] code) -> True/Nil",
@@ -244,7 +244,7 @@ static PRIMITIVEPROCDEF g_Extensions[] =
 
 		{	"scrGetData",					fnScrGet,		FN_SCR_DATA,
 			"(scrGetData screen attrib) -> data",
-			"is",	0,	},
+			"vs",	0,	},
 
 		{ "scrGetDataKeys",					fnScrGet,		FN_SCR_GET_DATA_KEYS,
 			"(scrGetDataKeys screen) -> list of data keys",
@@ -252,7 +252,7 @@ static PRIMITIVEPROCDEF g_Extensions[] =
 
 		{	"scrGetDesc",					fnScrGet,		FN_SCR_DESC,
 			"(scrGetDesc screen) -> text",
-			"i",	0,	},
+			"v",	0,	},
 
 		{	"scrGetInputText",				fnScrGetOld,		FN_SCR_INPUT_TEXT,
 			"(scrGetInputText screen) -> text",
@@ -264,11 +264,11 @@ static PRIMITIVEPROCDEF g_Extensions[] =
 
 		{	"scrGetList",					fnScrGet,		FN_SCR_LIST,
 			"(scrGetList screen) -> list of entries",
-			"i",	0,	},
+			"v",	0,	},
 
 		{	"scrGetListCursor",				fnScrGet,		FN_SCR_LIST_CURSOR,
 			"(scrGetListCursor screen) -> cursor",
-			"i",	0,	},
+			"v",	0,	},
 
 		{	"scrGetListEntry",				fnScrGetOld,		FN_SCR_LIST_ENTRY,
 			"(scrGetListEntry screen) -> entry",
@@ -286,7 +286,7 @@ static PRIMITIVEPROCDEF g_Extensions[] =
 			"   'screen\n"
 			"   'stack\n",
 
-			"is",	0,	},
+			"vs",	0,	},
 
 		{	"scr@Keys",						fnScrGet,		FN_SCR_GET_PROPERTY_KEYS,
 			"(scr@Keys screen) -> list of property keys",
@@ -295,7 +295,7 @@ static PRIMITIVEPROCDEF g_Extensions[] =
 
 		{	"scrGetProperty",				fnScrGet,		FN_SCR_GET_PROPERTY,
 			"RENAMED: Used (scr@ ...) instead.",
-			"is",	0,	},
+			"vs",	0,	},
 
 		{	"scrGetScreen",				    fnScrGet,		FN_SCR_GET_SCREEN,
 			"(scrGetScreen gScreen) -> screenDesc\n\n"
@@ -307,15 +307,15 @@ static PRIMITIVEPROCDEF g_Extensions[] =
 			"   'pane: Current pane\n"
 			"   'data: Associated data\n",
 
-			"i",	0,	},
+			"v",	0,	},
 
 		{	"scrGetReturnData",				fnScrGet,		FN_SCR_RETURN_DATA,
 			"(scrGetReturnData screen attrib) -> data",
-			"is",	0,	},
+			"vs",	0,	},
 
 		{	"scrGetSessionData",			fnScrGet,		FN_SCR_SESSION_DATA,
 			"(scrGetSessionData screen attrib) -> data",
-			"is",	0,	},
+			"vs",	0,	},
 
 		{	"scrIncData",					fnScrSet,		FN_SCR_INC_DATA,
 			"(scrIncData screen attrib [increment]) -> value",
@@ -427,7 +427,7 @@ static PRIMITIVEPROCDEF g_Extensions[] =
 			"   'pane\n"
 			"   'data\n",
 
-			"iv",	PPFLAG_SIDEEFFECTS,	},
+			"vv",	PPFLAG_SIDEEFFECTS,	},
 
 		{	"scrShowAction",				fnScrSet,			FN_SCR_SHOW_ACTION,
 			"(scrShowAction screen actionID shown) -> True/Nil",
@@ -467,11 +467,11 @@ static PRIMITIVEPROCDEF g_Extensions[] =
 			"   'transferCargo\n"
 			"   'transferEquipment\n"
 				,
-			"ii*",	PPFLAG_SIDEEFFECTS,	},
+			"vi*",	PPFLAG_SIDEEFFECTS,	},
 
 		{	"plyCharge",					fnPlySet,		FN_PLY_CHARGE,
 			"(plyCharge player [currency] charge) -> credits left",
-			"iv*",	PPFLAG_SIDEEFFECTS,	},
+			"vv*",	PPFLAG_SIDEEFFECTS,	},
 
 		{	"plyComposeString",				fnPlyComposeString,		0,
 			"(plyComposeString player string [arg1 arg2 ... argn]) -> text\n\n"
@@ -490,11 +490,11 @@ static PRIMITIVEPROCDEF g_Extensions[] =
 			"   %1%            arg1\n"
 			"   %2%            ...\n",
 
-			"is*",	0, },
+			"vs*",	0, },
 
 		{	"plyCredit",					fnPlySet,	FN_PLY_CREDITS,
 			"(plyCredit player [currency] credit) -> credits left",
-			"iv*",	PPFLAG_SIDEEFFECTS,	},
+			"vv*",	PPFLAG_SIDEEFFECTS,	},
 
 		{	"plyDestroyed",					fnPlySetOld,		FN_PLY_DESTROYED, 
 			"(plyDestroyed player epitaph) -> True/Nil",
@@ -517,19 +517,19 @@ static PRIMITIVEPROCDEF g_Extensions[] =
 			"   'switchMissileHint\n"
 			"   'useItemHint\n",
 
-			"is",	0, },
+			"vs",	0, },
 
 		{	"plyGetName",				fnPlyGet,		FN_PLY_GET_NAME,
 			"(plyGetName player) -> player's name",
-			"i",	0,	},
+			"v",	0,	},
 
 		{	"plyGetCredits",				fnPlyGet,		FN_PLY_CREDITS,
 			"(plyGetCredits player [currency]) -> credits left",
-			"i*",	0,	},
+			"v*",	0,	},
 
 		{	"plyGetGenome",					fnPlyGet,			FN_PLY_GENOME,
 			"(plyGetGenome player) -> 'humanMale | 'humanFemale",
-			"i",	0,	},
+			"v",	0,	},
 
 		{	"plyGetItemStat",					fnPlyGet,			FN_PLY_GET_ITEM_STAT,
 			"(plyGetItemStat player stat criteria|type) -> value\n\n"
@@ -545,7 +545,7 @@ static PRIMITIVEPROCDEF g_Extensions[] =
 			"   'itemsSoldCount\n"
 			"   'itemsSoldValue\n",
 
-			"isv",	0,	},
+			"vsv",	0,	},
 
 		{	"plyGetKeyEventStat",				fnPlyGet,			FN_PLY_GET_KEY_EVENT_STAT,
 			"(plyGetKeyEventStat player stat nodeID typeCriteria) -> value\n\n"
@@ -559,7 +559,7 @@ static PRIMITIVEPROCDEF g_Extensions[] =
 			"   'missionSuccess\n"
 			"   'objsDestroyed\n",
 
-			"isvs",	0,	},
+			"vsvs",	0,	},
 
 		{	"plyEnableMessage",				fnPlySet,			FN_PLY_ENABLE_MESSAGE,
 			"(plyEnableMessage player messageID True/Nil) -> True/Nil\n\n"
@@ -571,7 +571,7 @@ static PRIMITIVEPROCDEF g_Extensions[] =
 			"   'enabledHints\n"
 			"   (plus all messageIDs for plyIsMessageEnabled)\n",
 
-			"isv",	PPFLAG_SIDEEFFECTS, },
+			"vsv",	PPFLAG_SIDEEFFECTS, },
 
 		{	"plyGetRedirectMessage",		fnPlyGetOld,		FN_PLY_REDIRECT_MESSAGE,
 			"(plyGetRedirectMessage player) -> text or Nil",
@@ -594,7 +594,7 @@ static PRIMITIVEPROCDEF g_Extensions[] =
 			"   'systemsVisited\n"
 			"   'tonsOfOreMined\n",
 
-			"is",	0,	},
+			"vs",	0,	},
 
 		{	"plyGetSystemStat",					fnPlyGet,			FN_PLY_GET_SYSTEM_STAT,
 			"(plyGetSystemStat player stat [nodeID]) -> value\n\n"
@@ -603,7 +603,7 @@ static PRIMITIVEPROCDEF g_Extensions[] =
 			
 			"   'asteroidsMined",
 
-			"is*",	0,	},
+			"vs*",	0,	},
 
 		{	"plyIncItemStat",					fnPlySet,			FN_PLY_INC_ITEM_STAT,
 			"(plyIncItemStat player stat item|type [inc]) -> value\n\n"
@@ -618,11 +618,11 @@ static PRIMITIVEPROCDEF g_Extensions[] =
 			"   'itemsSoldCount\n"
 			"   'itemsSoldValue\n",
 
-			"isv*",	PPFLAG_SIDEEFFECTS,	},
+			"vsv*",	PPFLAG_SIDEEFFECTS,	},
 
 		{	"plyIncScore",					fnPlySet,			FN_PLY_INC_SCORE,
 			"(plyIncScore player scoreInc) -> score",
-			"ii",	PPFLAG_SIDEEFFECTS,	},
+			"vi",	PPFLAG_SIDEEFFECTS,	},
 
 		{	"plyIncSystemStat",					fnPlySet,			FN_PLY_INC_SYSTEM_STAT,
 			"(plyInSystemStat player stat [nodeID] [inc]) -> value\n\n"
@@ -639,11 +639,11 @@ static PRIMITIVEPROCDEF g_Extensions[] =
 
 		{	"plyRecordBuyItem",				fnPlySet,			FN_PLY_RECORD_BUY_ITEM,
 			"(plyRecordBuyItem player item [currency] totalPrice) -> True/Nil",
-			"iv*i",	0,	},
+			"vv*i",	0,	},
 
 		{	"plyRecordSellItem",			fnPlySet,			FN_PLY_RECORD_SELL_ITEM,
 			"(plyRecordSellItem player item [currency] totalPrice) -> True/Nil",
-			"iv*i",	0,	},
+			"vv*i",	0,	},
 
 		{	"plyRedirectMessage",			fnPlySetOld,		FN_PLY_REDIRECT_MESSAGE,
 			"(plyRedirectMessage player True/Nil) -> True/Nil",
@@ -651,7 +651,7 @@ static PRIMITIVEPROCDEF g_Extensions[] =
 
 		{	"plyUseItem",					fnPlySet,			FN_PLY_USE_ITEM,
 			"(plyUseItem player item) -> True/Nil",
-			"iv",	PPFLAG_SIDEEFFECTS,	},
+			"vv",	PPFLAG_SIDEEFFECTS,	},
 
 		//	UI functions
 		//	------------
@@ -720,11 +720,11 @@ static PRIMITIVEPROCDEF g_Extensions[] =
 
 #define EXTENSIONS_COUNT		(sizeof(g_Extensions) / sizeof(g_Extensions[0]))
 
-inline CShip *GetShipArg (ICCItem *pArg) { return ((CSpaceObject *)(pArg->GetIntegerValue()))->AsShip(); }
-inline CStation *GetStationArg (ICCItem *pArg) { return (CStation *)pArg->GetIntegerValue(); }
-inline CDockScreen *GetDockScreenArg (CCodeChainCtx &CCX, ICCItem *pArg) { return (CCX.GetScreen() ? (CDockScreen *)CCX.GetScreen() : (CDockScreen *)pArg->GetIntegerValue()); }
-inline CArmorClass *GetArmorClassArg (ICCItem *pArg) { return (CArmorClass *)pArg->GetIntegerValue(); }
-inline CPlayerShipController *GetPlayerArg (ICCItem *pArg) { return (CPlayerShipController *)pArg->GetIntegerValue(); }
+inline CShip *GetShipArg (ICCItem *pArg) { CSpaceObject *pObj = CreateObjFromItem(pArg); return (pObj ? pObj->AsShip() : NULL); }
+inline CStation *GetStationArg (ICCItem *pArg) { CSpaceObject *pObj = CreateObjFromItem(pArg); return (pObj ? pObj->AsStation() : NULL); }
+inline CDockScreen *GetDockScreenArg (CCodeChainCtx &CCX, ICCItem *pArg) { return (CCX.GetScreen() ? (CDockScreen *)CCX.GetScreen() : (CDockScreen *)GetPointerValue(pArg)); }
+inline CArmorClass *GetArmorClassArg (ICCItem *pArg) { return (CArmorClass *)GetPointerValue(pArg); }
+inline CPlayerShipController *GetPlayerArg (ICCItem *pArg) { return (CPlayerShipController *)GetPointerValue(pArg); }
 
 CG32bitImage *GetCanvasArg (CEvalContext *pEvalCtx, ICCItem *pArgs, int iArg)
 
@@ -737,7 +737,7 @@ CG32bitImage *GetCanvasArg (CEvalContext *pEvalCtx, ICCItem *pArgs, int iArg)
 
 	if (pArgs->GetCount() > iArg + 1)
 		{
-		CDockScreen *pScreen = (CDockScreen *)pArgs->GetElement(iArg)->GetIntegerValue();
+		CDockScreen *pScreen = (CDockScreen *)GetPointerValue(pArgs->GetElement(iArg));
 		if (pScreen == NULL)
 			return NULL;
 
@@ -1159,7 +1159,16 @@ ICCItem *fnPlyGet (CEvalContext *pEvalCtx, ICCItem *pArgs, DWORD dwData)
 		case FN_PLY_GET_STAT:
 			{
 			CString sStat = pArgs->GetElement(1)->GetStringValue();
-			pResult = pPlayer->GetGameStats().GetStat(sStat)->Reference();
+
+			//	Prefer the structured property path first. This avoids legacy
+			//	GetStat/GetStatString formatting code for common player stats
+			//	(e.g. resurrectCount) while preserving backwards compatibility by
+			//	falling back to the older stat API for properties that are only
+			//	exposed there.
+
+			if ((pResult = pPlayer->GetGameStats().FindProperty(sStat)) == NULL)
+				pResult = pPlayer->GetGameStats().GetStat(sStat)->Reference();
+
 			break;
 			}
 
@@ -1504,7 +1513,7 @@ ICCItem *fnPlySetOld (CEvalContext *pEvalCtx, ICCItem *pArguments, DWORD dwData)
 
 	//	Evaluate the arguments and validate them
 
-	pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("i*"));
+	pArgs = pCC->EvaluateArgs(pEvalCtx, pArguments, CONSTLIT("v*"));
 	if (pArgs->IsError())
 		return pArgs;
 

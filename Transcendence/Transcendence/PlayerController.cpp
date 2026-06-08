@@ -1556,6 +1556,18 @@ void CPlayerShipController::OnStartGame (void)
 	SetFireMissile(false);
 	m_bActivate = false;
 
+	if (m_pShip == NULL)
+		{
+		::kernelDebugLogString(CONSTLIT("CPlayerShipController::OnStartGame aborted: m_pShip is NULL."));
+		return;
+		}
+
+	if (m_pShip->GetSystem() == NULL)
+		{
+		::kernelDebugLogPattern("CPlayerShipController::OnStartGame: ship=%p has NULL system.", m_pShip);
+		return;
+		}
+
 	//	Clear the POVLRS flag for all objects (so that we don't get the
 	//	"Enemy Ships Detected" message when entering a system
 

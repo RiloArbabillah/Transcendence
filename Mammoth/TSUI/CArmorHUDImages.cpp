@@ -240,7 +240,7 @@ void CArmorHUDImages::Realize (SHUDPaintCtx &Ctx)
 
 	//	We're valid (even if we exit early)
 
-	m_bInvalid = true;
+	m_bInvalid = false;
 
 	//	Skip if we don't have a ship
 

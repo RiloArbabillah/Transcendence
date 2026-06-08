@@ -703,6 +703,7 @@ EDamageResults CMissile::OnDamage (SDamageCtx &Ctx)
 
 	{
 	DEBUG_TRY
+	static bool g_bLoggedMissileHitChain = false;
 
 	Ctx.iSectHit = -1;
 
@@ -722,6 +723,21 @@ EDamageResults CMissile::OnDamage (SDamageCtx &Ctx)
 	bool bDestroy = false;
 	if (Ctx.iDamage == 0 || Ctx.Damage.GetDamageType() == damageNull)
 		return damageNoDamage;
+
+	if (!g_bLoggedMissileHitChain)
+		{
+		::kernelDebugLogPattern(
+				"CMissile::OnDamage chain: missile=%x cause=%x target=%x damage=%d type=%s hitPos=(%d,%d) dir=%d.",
+				(DWORD_PTR)this,
+				(DWORD_PTR)Ctx.pCause,
+				(DWORD_PTR)Ctx.pObj,
+				Ctx.iDamage,
+				GetDamageShortName(Ctx.Damage.GetDamageType()).GetASCIIZPointer(),
+				(int)Ctx.vHitPos.GetX(),
+				(int)Ctx.vHitPos.GetY(),
+				Ctx.iDirection);
+		g_bLoggedMissileHitChain = true;
+		}
 
 	//	Create a hit effect
 

@@ -77,6 +77,7 @@ class CEffectParamDesc
 			typeBoolConstant =				6,
 			typeVectorConstant =			7,
 			typeImage =						8,
+			typeItem =						9,
 			};
 
 		CEffectParamDesc (void) { }

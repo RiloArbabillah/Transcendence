@@ -727,8 +727,25 @@ void CWeaponFireDesc::CreateHitEffect (CSystem *pSystem, SDamageCtx &DamageCtx) 
 //	Creates an effect when the weapon hits an object
 
 	{
+	static bool g_bLoggedCreateHitEffect = false;
+
 	if (pSystem == NULL)
 		return;
+
+	if (!g_bLoggedCreateHitEffect)
+		{
+		CItemType *pWeaponType = GetWeaponType();
+		::kernelDebugLogPattern(
+				"CWeaponFireDesc::CreateHitEffect chain: weaponUNID=%x system=%x objHit=%x cause=%x attacker=%x damage=%d dir=%d.",
+				(pWeaponType ? pWeaponType->GetUNID() : 0),
+				(DWORD_PTR)pSystem,
+				(DWORD_PTR)DamageCtx.pObj,
+				(DWORD_PTR)DamageCtx.pCause,
+				(DWORD_PTR)DamageCtx.Attacker.GetObj(),
+				DamageCtx.iDamage,
+				DamageCtx.iDirection);
+		g_bLoggedCreateHitEffect = true;
+		}
 
 	//	Create the hit effect painter.
 

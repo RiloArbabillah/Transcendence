@@ -315,7 +315,14 @@ class CStartGameTask : public IHITask
 		CStartGameTask (CHumanInterface &HI, CTranscendenceModel &Model, bool bNewGame) : IHITask(HI), m_Model(Model), m_bNewGame(bNewGame) { }
 
 		//	IHITask virtuals
-		virtual ALERROR OnExecute (ITaskProcessor *pProcessor, CString *retsResult) override { return m_Model.StartGame(m_bNewGame); }
+		virtual ALERROR OnExecute (ITaskProcessor *pProcessor, CString *retsResult) override
+			{
+			ALERROR error = m_Model.StartGame(m_bNewGame);
+			if (error != NOERROR && retsResult && retsResult->IsBlank())
+				*retsResult = CONSTLIT("Unable to start game session in background task.");
+
+			return error;
+			}
 
 	private:
 		CTranscendenceModel &m_Model;

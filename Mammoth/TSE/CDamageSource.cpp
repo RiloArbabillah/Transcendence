@@ -95,8 +95,8 @@ CString CDamageSource::GetDamageCauseNounPhrase (DWORD dwFlags)
 
 	if (!m_sSourceName.IsBlank())
 		return CLanguage::ComposeNounPhrase(m_sSourceName, 1, NULL_STR, m_dwSourceNameFlags, dwFlags);
-	else if (IsObjPointer())
-		return m_pSource->GetDamageCauseNounPhrase(dwFlags);
+	else if (CSpaceObject *pObj = GetObj())
+		return pObj->GetDamageCauseNounPhrase(dwFlags);
 	else
 		return CONSTLIT("damage");
 	}
@@ -137,11 +137,22 @@ CSpaceObject *CDamageSource::GetObj (void) const
 			}
 		}
 
-	//	If all we have is an object ID, then we can't return the
-	//	object pointer.
+	//	If all we have is an object ID, try to resolve it from the current
+	//	system at runtime. This is the 64-bit-safe compatibility path: we keep
+	//	the persistent object ID and avoid relying on serialized/raw pointer
+	//	values.
 
 	else if (m_dwFlags & FLAG_OBJ_ID)
-		return NULL;
+		{
+		if (m_dwSourceObjID == OBJID_NULL)
+			return NULL;
+
+		CSystem *pSystem = g_pUniverse->GetCurrentSystem();
+		if (pSystem == NULL)
+			return NULL;
+
+		return pSystem->FindObject(m_dwSourceObjID);
+		}
 
 	//	Otherwise, return the source (even if NULL)
 
@@ -183,7 +194,7 @@ DWORD CDamageSource::GetObjID (void) const
 	//	If we have an object ID, then that's enough
 
 	else if (IsObjID())
-		return (DWORD)(uintptr_t)m_pSource;
+		return m_dwSourceObjID;
 
 	//	If we have an actual object pointer, then return it.
 
@@ -216,8 +227,8 @@ CSovereign *CDamageSource::GetSovereign (void) const
 	{
 	if (IsPlayer())
 		return g_pUniverse->GetPlayerSovereign();
-	else if (IsObjPointer())
-		return m_pSource->GetSovereign();
+	else if (CSpaceObject *pObj = GetObj())
+		return pObj->GetSovereign();
 	else
 		return NULL;
 	}
@@ -295,8 +306,10 @@ bool CDamageSource::IsCausedByEnemyOf (CSpaceObject *pObj) const
 		CSovereign *pSovereign = pObj->GetSovereign();
 		return (pSovereign ? pSovereign->IsEnemy(g_pUniverse->GetPlayerSovereign()) : false);
 		}
+	else if (CSpaceObject *pSource = GetObj())
+		return (pSource->CanAttack() && pObj->IsEnemy(pSource));
 	else
-		return (IsObjPointer() && m_pSource->CanAttack() && pObj->IsEnemy(m_pSource));
+		return false;
 	}
 
 bool CDamageSource::IsCausedByFriendOf (CSpaceObject *pObj) const
@@ -312,8 +325,10 @@ bool CDamageSource::IsCausedByFriendOf (CSpaceObject *pObj) const
 		CSovereign *pSovereign = pObj->GetSovereign();
 		return (pSovereign ? pSovereign->IsFriend(g_pUniverse->GetPlayerSovereign()) : false);
 		}
+	else if (CSpaceObject *pSource = GetObj())
+		return (pSource->CanAttack() && pObj->IsFriend(pSource));
 	else
-		return (IsObjPointer() && m_pSource->CanAttack() && pObj->IsFriend(m_pSource));
+		return false;
 	}
 
 bool CDamageSource::IsCausedByNonFriendOf (CSpaceObject *pObj) const
@@ -329,8 +344,10 @@ bool CDamageSource::IsCausedByNonFriendOf (CSpaceObject *pObj) const
 		CSovereign *pSovereign = pObj->GetSovereign();
 		return (pSovereign ? !pSovereign->IsFriend(g_pUniverse->GetPlayerSovereign()) : false);
 		}
+	else if (CSpaceObject *pSource = GetObj())
+		return (pSource->CanAttack() && !pObj->IsFriend(pSource));
 	else
-		return (IsObjPointer() && m_pSource->CanAttack() && !pObj->IsFriend(m_pSource));
+		return false;
 	}
 
 bool CDamageSource::IsEnemy (CDamageSource &Src) const
@@ -463,7 +480,8 @@ void CDamageSource::OnObjDestroyed (CSpaceObject &ObjDestroyed)
 		if (!m_pSource->CanHitFriends())
 			m_dwFlags |= FLAG_CANNOT_HIT_FRIENDS;
 
-		m_pSource = (CSpaceObject *)m_pSource->GetID();
+		m_dwSourceObjID = m_pSource->GetID();
+		m_pSource = NULL;
 		m_dwFlags |= FLAG_OBJ_ID;
 		}
 
@@ -520,12 +538,18 @@ void CDamageSource::ReadFromStream (SLoadCtx &Ctx)
 	//	If this is an object ID, then we just store it in m_pSource.
 
 	if (IsObjID())
-		m_pSource = (CSpaceObject *)dwObjID;
+		{
+		m_dwSourceObjID = dwObjID;
+		m_pSource = NULL;
+		}
 
 	//	Otherwise, we need to resolve the pointer
 
 	else
+		{
+		m_dwSourceObjID = OBJID_NULL;
 		CSystem::GetObjRefFromID(Ctx, dwObjID, &m_pSource);
+		}
 	}
 
 void CDamageSource::SetCause (DestructionTypes iCause)
@@ -584,7 +608,8 @@ void CDamageSource::SetObj (CSpaceObject *pSource)
 	if (pSource && pSource->IsDestroyed())
 		{
 		m_sSourceName = pSource->GetNamePattern(0, &m_dwSourceNameFlags);
-		m_pSource = (CSpaceObject *)pSource->GetID();
+		m_dwSourceObjID = pSource->GetID();
+		m_pSource = NULL;
 		m_dwFlags |= FLAG_OBJ_ID;
 		}
 
@@ -593,6 +618,7 @@ void CDamageSource::SetObj (CSpaceObject *pSource)
 	else
 		{
 		m_pSource = pSource;
+		m_dwSourceObjID = OBJID_NULL;
 		m_dwFlags &= ~FLAG_OBJ_ID;
 		}
 	}

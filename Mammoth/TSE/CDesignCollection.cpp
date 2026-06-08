@@ -750,7 +750,13 @@ void CDesignCollection::FireGetGlobalAchievements (const CString &sEndGameReason
 	for (int i = 0; i < m_EventsCache[evtGetGlobalAchievements]->GetCount(); i++)
 		{
 		CDesignType *pType = m_EventsCache[evtGetGlobalAchievements]->GetEntry(i);
+		if (pType == NULL)
+			{
+			::kernelDebugLogPattern("CDesignCollection::FireGetGlobalAchievements skipping NULL type at index %d.", i);
+			continue;
+			}
 
+		::kernelDebugLogPattern("CDesignCollection::FireGetGlobalAchievements firing type=%08x index=%d.", pType->GetUNID(), i);
 		pType->FireGetGlobalAchievements(CCX, Stats);
 		}
 	}

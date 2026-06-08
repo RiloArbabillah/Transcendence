@@ -34,6 +34,7 @@ ALERROR CEffect::Create (CSystem &System,
 
 	{
 	ALERROR error;
+	static bool g_bLoggedEffectCreate = false;
 
 	//	If no painter, then no effect
 
@@ -72,6 +73,20 @@ ALERROR CEffect::Create (CSystem &System,
 	pEffect->SetBounds(pEffect->m_pPainter);
 
 	//	Play sound
+
+	if (!g_bLoggedEffectCreate)
+		{
+		::kernelDebugLogPattern(
+				"CEffect::Create chain: effect=%x painter=%x anchor=%x pos=(%d,%d) lifetime=%d rotation=%d.",
+				(DWORD_PTR)pEffect,
+				(DWORD_PTR)pPainter,
+				(DWORD_PTR)Options.pAnchor,
+				(int)vPos.GetX(),
+				(int)vPos.GetY(),
+				pEffect->m_iLifetime,
+				Options.iRotation);
+		g_bLoggedEffectCreate = true;
+		}
 
 	pPainter->PlaySound(pEffect);
 

@@ -57,6 +57,11 @@ CEffectParamDesc::CEffectParamDesc (ICCItem *pValue) :
 		else
 			InitString(sValue);
 		}
+	else
+		{
+		m_iType = typeItem;
+		m_pItem = pValue->Reference();
+		}
 	}
 
 CEffectParamDesc::~CEffectParamDesc (void)
@@ -76,6 +81,9 @@ ICCItemPtr CEffectParamDesc::AsItem (void) const
 	{
 	switch (m_iType)
 		{
+		case typeItem:
+			return ICCItemPtr(m_pItem->Reference());
+
 		case typeColorConstant:
 			return ICCItemPtr(strPatternSubst(CONSTLIT("#%02x%02x%02x"), (m_dwData & 0xff0000) >> 16, (m_dwData & 0x00ff00) >> 8, (m_dwData & 0x0000ff)));
 
@@ -108,6 +116,10 @@ void CEffectParamDesc::CleanUp (void) noexcept
 	{
 	switch (m_iType)
 		{
+		case typeItem:
+			m_pItem->Discard();
+			break;
+
 		case typeImage:
 			delete m_pImage;
 			break;
@@ -136,6 +148,10 @@ void CEffectParamDesc::Copy (const CEffectParamDesc &Src)
 		case typeColorConstant:
 		case typeIntegerConstant:
 			m_dwData = Src.m_dwData;
+			break;
+
+		case typeItem:
+			m_pItem = Src.m_pItem->Reference();
 			break;
 
 		case typeImage:
@@ -314,6 +330,9 @@ int CEffectParamDesc::EvalInteger (void) const
 	{
 	switch (m_iType)
 		{
+		case typeItem:
+			return m_pItem->GetIntegerValue();
+
 		case typeIntegerConstant:
 			return m_dwData;
 
@@ -339,6 +358,10 @@ int CEffectParamDesc::EvalIntegerBounded (int iMin, int iMax, int iDefault) cons
 		case typeBoolConstant:
 		case typeIntegerConstant:
 			iValue = (int)m_dwData;
+			break;
+
+		case typeItem:
+			iValue = m_pItem->GetIntegerValue();
 			break;
 
 		case typeIntegerDiceRange:
@@ -615,6 +638,7 @@ bool CEffectParamDesc::IsConstant (void)
 		case typeBoolConstant:
 		case typeColorConstant:
 		case typeImage:
+		case typeItem:
 		case typeIntegerConstant:
 		case typeStringConstant:
 		case typeVectorConstant:
@@ -640,6 +664,10 @@ void CEffectParamDesc::Move (CEffectParamDesc &Src) noexcept
 		case typeColorConstant:
 		case typeIntegerConstant:
 			m_dwData = Src.m_dwData;
+			break;
+
+		case typeItem:
+			m_pItem = Src.m_pItem;
 			break;
 
 		case typeImage:
@@ -679,6 +707,14 @@ void CEffectParamDesc::ReadFromStream (SLoadCtx &Ctx)
 		{
 		case typeNull:
 			break;
+
+		case typeItem:
+			{
+			CString sCode;
+			sCode.ReadFromStream(Ctx.pStream);
+			m_pItem = CCodeChain::LinkCode(sCode)->Reference();
+			break;
+			}
 
 		case typeBoolConstant:
 			if (Ctx.dwVersion >= 99)
@@ -733,6 +769,13 @@ void CEffectParamDesc::WriteToStream (IWriteStream *pStream)
 		{
 		case typeNull:
 			break;
+
+		case typeItem:
+			{
+			CString sCode = CCodeChain::Unlink(m_pItem);
+			sCode.WriteToStream(pStream);
+			break;
+			}
 
 		case typeBoolConstant:
 		case typeColorConstant:

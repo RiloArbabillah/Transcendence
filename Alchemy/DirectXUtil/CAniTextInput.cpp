@@ -172,6 +172,9 @@ void CAniTextInput::GetSpacingRect (RECT *retrcRect)
 	{
 	CVector vScale = m_Properties[INDEX_SCALE].GetVector();
 	const CG16bitFont *pFont = m_Properties[INDEX_FONT].GetFont();
+	if (pFont == NULL)
+		pFont = &CReanimator::GetDefaultFont();
+
 	const CG16bitFont *pLabelFont = m_Properties[INDEX_LABEL_FONT].GetFont();
 
 	retrcRect->left = 0;

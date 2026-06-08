@@ -1195,6 +1195,27 @@ ALERROR CTranscendenceController::OnCommand (const CString &sCmd, void *pData)
 
 	else if (strEquals(sCmd, CMD_GAME_READY))
 		{
+		CStartGameTask *pTask = (CStartGameTask *)pData;
+
+		//	Check for error. Without this guard a failed StartGame background task
+		//	can fall through into a half-initialized gameplay session and block
+		//	interactive testing with no clear diagnosis.
+
+		if (pTask)
+			{
+			if (error = pTask->GetResult(&sError))
+				{
+				if (sError.IsBlank())
+					sError = CONSTLIT("Unable to start game session.");
+
+				kernelDebugLogString(sError);
+				m_HI.OpenPopupSession(new CMessageSession(m_HI, ERR_CANT_START_GAME, sError, CMD_UI_BACK_TO_INTRO));
+				return NOERROR;
+				}
+			}
+		else
+			kernelDebugLogString(CONSTLIT("CMD_GAME_READY received with NULL task payload."));
+
 		m_pGameSession = new CGameSession(m_SessionCtx);
 		m_Model.GetPlayer()->SetGameSession(m_pGameSession);
 		m_HI.ShowSession(m_pGameSession);

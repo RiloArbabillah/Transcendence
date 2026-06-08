@@ -408,7 +408,10 @@ void CGameSession::OnPlayerDestroyed (SDestroyCtx &Ctx, const CString &sEpitaph)
 	CString sMsg = sEpitaph;
 	if (strEquals(strWord(sMsg, 0), CONSTLIT("was")))
 		sMsg = strSubString(sMsg, 4, -1);
-	sMsg.Capitalize(CString::capFirstLetter);
+
+	if (!sMsg.IsBlank())
+		sMsg = strCapitalize(sMsg);
+
 	DisplayMessage(sMsg);
 	m_HUD.Invalidate(hudArmor);
 

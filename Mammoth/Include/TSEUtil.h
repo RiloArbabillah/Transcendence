@@ -553,6 +553,7 @@ class CDamageSource
 		DestructionTypes GetCause (void) const { return m_iCause; }
 		CString GetDamageCauseNounPhrase (DWORD dwFlags);
 		CSpaceObject *GetObj (void) const;
+		DWORD GetObjID (void) const;
 		CSpaceObject *GetOrderGiver (void) const;
 		CSpaceObject *GetSecondaryObj (void) const { return m_pSecondarySource; }
 		const CString &GetSourceName (DWORD *retdwNameFlags) const { if (retdwNameFlags) *retdwNameFlags = m_dwSourceNameFlags; return m_sSourceName; }
@@ -582,6 +583,7 @@ class CDamageSource
 		void SetCause (DestructionTypes iCause);
 		void SetEjecta (bool bValue = true) { if (bValue) m_dwFlags |= FLAG_IS_EJECTA; else m_dwFlags &= ~FLAG_IS_EJECTA; }
 		void SetObj (CSpaceObject *pSource);
+		void SetObjID (DWORD dwObjID) { m_pSource = NULL; m_dwSourceObjID = dwObjID; if (dwObjID != OBJID_NULL) m_dwFlags |= FLAG_OBJ_ID; else m_dwFlags &= ~FLAG_OBJ_ID; }
 		void WriteToStream (IWriteStream *pStream);
 
 		static const CDamageSource &Null (void) { return m_Null; }
@@ -600,12 +602,12 @@ class CDamageSource
 			FLAG_IS_EJECTA					= 0x00000080,	//	Source is ejecta
 			};
 
-		DWORD GetObjID (void) const;
-		DWORD GetRawObjID (void) const { return (uintptr_t)m_pSource; }
+		DWORD GetRawObjID (void) const { return m_dwSourceObjID; }
 		bool IsObjPointer (void) const { return (m_pSource && !IsObjID()); }
 		bool IsObjID (void) const { return ((m_dwFlags & FLAG_OBJ_ID) == FLAG_OBJ_ID); }
 
 		CSpaceObject *m_pSource = NULL;
+		DWORD m_dwSourceObjID = OBJID_NULL;
 		DestructionTypes m_iCause = removedFromSystem;
 		DWORD m_dwFlags = 0;
 

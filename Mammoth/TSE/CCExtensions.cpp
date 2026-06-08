@@ -11115,7 +11115,10 @@ ICCItem *fnShipGet (CEvalContext *pEvalCtx, ICCItem *pArgs, DWORD dwData)
 
 		case FN_SHIP_IS_NAMED_DEVICE:
 			{
-			CItemListManipulator *pItemList = (CItemListManipulator *)pArgs->GetElement(1)->GetIntegerValue();
+			CItemListManipulator *pItemList = reinterpret_cast<CItemListManipulator *>(GetPointerValue(pArgs->GetElement(1)));
+			if (pItemList == NULL)
+				return pCC->CreateNil();
+
 			const CItem &Item = pItemList->GetItemAtCursor();
 			if (!Item.IsInstalled())
 				return pCC->CreateNil();
@@ -11514,8 +11517,8 @@ ICCItem *fnShipSet (CEvalContext *pEvalCtx, ICCItem *pArgs, DWORD dwData)
 			//	the item in the manipulator). If the argument is an integer then we expect
 			//	an item list manipulator pointer.
 
-			if (pArgs->GetElement(1)->IsInteger())
-				pItemList = (CItemListManipulator *)pArgs->GetElement(1)->GetIntegerValue();
+			if (pArgs->GetElement(1)->IsInteger() || pArgs->GetElement(1)->IsDouble())
+				pItemList = reinterpret_cast<CItemListManipulator *>(GetPointerValue(pArgs->GetElement(1)));
 			else
 				{
 				CItem Item(pCtx->AsItem(pArgs->GetElement(1)));
@@ -11784,8 +11787,8 @@ ICCItem *fnShipSet (CEvalContext *pEvalCtx, ICCItem *pArgs, DWORD dwData)
 			//	the item in the manipulator). If the argument is an integer then we expect
 			//	an item list manipulator pointer.
 
-			if (pArgs->GetElement(1)->IsInteger())
-				pItemList = (CItemListManipulator *)pArgs->GetElement(1)->GetIntegerValue();
+			if (pArgs->GetElement(1)->IsInteger() || pArgs->GetElement(1)->IsDouble())
+				pItemList = reinterpret_cast<CItemListManipulator *>(GetPointerValue(pArgs->GetElement(1)));
 			else
 				{
 				CItem Item(pCtx->AsItem(pArgs->GetElement(1)));
@@ -11900,8 +11903,8 @@ ICCItem *fnShipSetOld (CEvalContext *pEvalCtx, ICCItem *pArguments, DWORD dwData
 			//	the item in the manipulator). If the argument is an integer then we expect
 			//	an item list manipulator pointer.
 
-			if (pArgs->GetElement(1)->IsInteger())
-				pItemList = (CItemListManipulator *)pArgs->GetElement(1)->GetIntegerValue();
+			if (pArgs->GetElement(1)->IsInteger() || pArgs->GetElement(1)->IsDouble())
+				pItemList = reinterpret_cast<CItemListManipulator *>(GetPointerValue(pArgs->GetElement(1)));
 			else
 				{
 				CItem Item(pCtx->AsItem(pArgs->GetElement(1)));
@@ -12210,8 +12213,8 @@ ICCItem *fnShipSetOld (CEvalContext *pEvalCtx, ICCItem *pArguments, DWORD dwData
 			//	the item in the manipulator). If the argument is an integer then we expect
 			//	an item list manipulator pointer.
 
-			if (pArgs->GetElement(1)->IsInteger())
-				pItemList = (CItemListManipulator *)pArgs->GetElement(1)->GetIntegerValue();
+			if (pArgs->GetElement(1)->IsInteger() || pArgs->GetElement(1)->IsDouble())
+				pItemList = reinterpret_cast<CItemListManipulator *>(GetPointerValue(pArgs->GetElement(1)));
 			else
 				{
 				CItem Item(pCtx->AsItem(pArgs->GetElement(1)));

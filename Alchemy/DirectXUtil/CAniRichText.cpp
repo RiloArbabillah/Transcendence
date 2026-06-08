@@ -89,6 +89,8 @@ void CAniRichText::Format (int cxWidth, int cyHeight)
 
 		BlockFormat.DefaultFormat.rgbColor = m_Properties[INDEX_COLOR].GetColor();
 		BlockFormat.DefaultFormat.pFont = m_Properties[INDEX_FONT].GetFont();
+		if (BlockFormat.DefaultFormat.pFont == NULL)
+			BlockFormat.DefaultFormat.pFont = &CReanimator::GetDefaultFont();
 
 		m_Text.InitFromRTF(m_Properties[INDEX_TEXT].GetString(), m_FontTable, BlockFormat);
 

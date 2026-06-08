@@ -40,20 +40,23 @@ static ICCItem *CreateObjPointerItem (CSpaceObject *pObj)
 		return CCodeChain::CreateNil();
 	}
 
-static ICCItem *CreateObjCompatItem (CSpaceObject *pObj)
-	{
-	if (pObj)
-		return CCodeChain::CreateInteger((int)pObj->GetID());
-	else
-		return CCodeChain::CreateNil();
-	}
-
 static ICCItem *CreateObjEffectDataItem (DWORD dwAPIVersion, CSpaceObject *pObj)
 	{
-	if (dwAPIVersion < 12)
-		return CreateObjCompatItem(pObj);
-	else
-		return CreateObjPointerItem(pObj);
+	//	Historically some effect/script paths passed object IDs for compatibility,
+	//	but on 64-bit Apple Silicon the active failure mode is not old scripts
+	//	preferring IDs: it is live effect callbacks receiving an object reference
+	//	through a lossy/ambiguous numeric path and then silently losing hit/effect
+	//	behavior or crashing when the value is interpreted incorrectly.
+	//
+	//	Use the 64-bit-safe object-pointer atom for all hit/effect context fields.
+	//	Legacy integer/object-ID compatibility remains handled centrally by
+	//	CreateObjFromItem/ResolveCompatObjReference when older callers provide it.
+	//
+	//	NOTE: We keep the API version parameter to preserve the helper signature and
+	//	call sites, but object transport here is no longer downgraded by API level.
+
+	(void)dwAPIVersion;
+	return CreateObjPointerItem(pObj);
 	}
 
 void CCreatePainterCtx::AddDataInteger (const CString &sField, int iValue)

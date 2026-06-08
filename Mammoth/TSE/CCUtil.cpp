@@ -116,15 +116,19 @@ ICCItem *CreateDamageSource (CCodeChain &CC, const CDamageSource &Source)
 	{
 	ICCItem *pResult = CC.CreateSymbolTable();
 
-	if (Source.GetObj())
-		pResult->SetAt(CONSTLIT("obj"), CreateObjPointer(CC, Source.GetObj()));
+	CSpaceObject *pSourceObj = Source.GetObj();
+	DWORD dwSourceObjID = Source.GetObjID();
+	if (pSourceObj)
+		pResult->SetAt(CONSTLIT("obj"), CreateObjPointer(CC, pSourceObj));
+	else if (dwSourceObjID != OBJID_NULL)
+		pResult->SetIntegerAt(CONSTLIT("objID"), dwSourceObjID);
 
 	pResult->SetStringAt(CONSTLIT("cause"), GetDestructionName(Source.GetCause()));
 
 	if (Source.GetSecondaryObj())
 		pResult->SetAt(CONSTLIT("secondaryObj"), CreateObjPointer(CC, Source.GetSecondaryObj()));
 
-	if (Source.GetObj() == NULL)
+	if (pSourceObj == NULL)
 		{
 		DWORD dwFlags;
 		pResult->SetStringAt(CONSTLIT("sourceName"), Source.GetSourceName(&dwFlags));
@@ -314,7 +318,7 @@ ICCItem *CreateListFromVector (const CVector &vVector)
 	return CreateListFromBinary(NULL_STR, &vVector, sizeof(vVector));
 	}
 
-uintptr_t GetObjPointerValue (const ICCItem *pItem)
+uintptr_t GetPointerValue (const ICCItem *pItem)
 	{
 	if (pItem == NULL || pItem->IsNil())
 		return 0;
@@ -322,9 +326,26 @@ uintptr_t GetObjPointerValue (const ICCItem *pItem)
 	if (pItem->IsDouble())
 		return (uintptr_t)pItem->GetDoubleValue();
 	else if (pItem->IsInteger())
-		return (uintptr_t)(DWORD)pItem->GetIntegerValue();
+		return (uintptr_t)(DWORDLONG)(DWORD)pItem->GetIntegerValue();
 	else
 		return 0;
+	}
+
+ICCItem *CreatePointerValue (CCodeChain &CC, uintptr_t dwValue)
+	{
+	if (dwValue == 0)
+		return CC.CreateNil();
+
+#ifdef TARGET_64BIT
+	return CC.CreateDouble((double)dwValue);
+#else
+	return CC.CreateInteger((int)dwValue);
+#endif
+	}
+
+uintptr_t GetObjPointerValue (const ICCItem *pItem)
+	{
+	return GetPointerValue(pItem);
 	}
 
 static CSpaceObject *ResolveCompatObjReference (const ICCItem *pItem)
@@ -341,6 +362,12 @@ static CSpaceObject *ResolveCompatObjReference (const ICCItem *pItem)
 		uintptr_t dwValue = (uintptr_t)pItem->GetDoubleValue();
 		if (dwValue <= (uintptr_t)0xffffffff)
 			dwObjID = (DWORD)dwValue;
+		}
+	else if (pItem->IsSymbolTable())
+		{
+		const ICCItem *pObjID = pItem->GetElement(CONSTLIT("objID"));
+		if (pObjID && !pObjID->IsNil())
+			dwObjID = (DWORD)pObjID->GetIntegerValue();
 		}
 
 	if (dwObjID == OBJID_NULL)
@@ -409,16 +436,17 @@ CSpaceObject *CreateObjFromItem (const ICCItem *pItem, DWORD dwFlags)
 
 ICCItem *CreateObjPointer (CCodeChain &CC, CSpaceObject *pObj)
 	{
-	if (pObj)
-		{
-#ifdef TARGET_64BIT
-		return CC.CreateDouble((double)(uintptr_t)pObj);
-#else
-		return CC.CreateInteger((int)(uintptr_t)pObj);
-#endif
-		}
-	else
+	if (pObj == NULL)
 		return CC.CreateNil();
+
+	//	Create a true live object reference in a 64-bit-safe scalar form.
+	//	This is the canonical runtime representation for object arguments passed
+	//	through CodeChain (gSource/gPlayerShip/effect ctx/etc.). Legacy callers
+	//	that persist or manually pass object IDs are still supported by
+	//	CreateObjFromItem, which falls back to ResolveCompatObjReference for
+	//	32-bit integer/object-ID values.
+
+	return CreatePointerValue(CC, (uintptr_t)pObj);
 	}
 
 bool CreateOrbitFromList (CCodeChain &CC, ICCItem *pList, COrbit *retOrbitDesc)
@@ -622,6 +650,9 @@ CDamageSource GetDamageSourceArg (CCodeChain &CC, ICCItem *pArg)
 	else if (pArg->IsSymbolTable())
 		{
 		CSpaceObject *pSource = CreateObjFromItem(pArg->GetElement(CONSTLIT("obj")));
+		if (pSource == NULL)
+			pSource = CreateObjFromItem(pArg->GetElement(CONSTLIT("objID")));
+
 		CSpaceObject *pSecondarySource = CreateObjFromItem(pArg->GetElement(CONSTLIT("secondaryObj")));
 
 		CString sSourceName;

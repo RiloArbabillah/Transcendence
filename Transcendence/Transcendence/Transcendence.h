@@ -798,7 +798,10 @@ class CTranscendencePlayer : public IPlayerController
 
 		//	IPlayerController interface
 
-		virtual ICCItem *CreateGlobalRef (CCodeChain &CC) override { return CC.CreateInteger((intptr_t)m_pPlayer); }
+		virtual ICCItem *CreateGlobalRef (CCodeChain &CC) override
+			{
+			return CreatePointerValue(CC, (uintptr_t)m_pPlayer);
+			}
 		virtual CPlayerGameStats *GetGameStats (void) const override { return &m_pPlayer->GetGameStats(); }
 		virtual GenomeTypes GetGenome (void) const override;
 		virtual DWORD GetLastWarningTick () const override { return m_EphemeralState.dwLastWarningTick; };
@@ -917,7 +920,7 @@ class CTranscendenceModel
 		CString CalcEpitaph (SDestroyCtx &Ctx);
 		void CalcStartingPos (CShipClass *pStartingShip, DWORD *retdwMap, CString *retsNodeID, CString *retsPos);
 		ALERROR CreateAllSystems (const CString &sStartNode, CSystem **retpStartingSystem, CString *retsError);
-		void GenerateGameStats (CGameStats *retStats, bool bGameOver = false);
+		void GenerateGameStats (CGameStats *retStats, bool bGameOver = false, bool bIncludeGlobalAchievements = true);
 		CString GetSaveFilePath (void) const { return (m_SaveFileFolders.GetCount() == 0 ? NULL_STR : m_SaveFileFolders[0]); }
 		ALERROR LoadGameStats (const CString &sFilespec, CGameStats *retStats);
 		ALERROR LoadHighScoreList (CString *retsError = NULL);
@@ -967,6 +970,7 @@ class CTranscendenceModel
 		CMusicResource *m_pCrawlSoundtrack;				//	For epilogue/prologue
 		CString m_sCrawlText;						//	For epilogue/prologue
 		bool m_bSaveOnActionDone = false;			//	Save when we're done executing.
+		bool m_bSkipGlobalAchievementsOnNextSave = false;	//  Temporary Apple Silicon workaround for initial checkpoint crash.
 
 		//	Stargate temporaries
 		CTopologyNode *m_pDestNode;					//	While player in gate

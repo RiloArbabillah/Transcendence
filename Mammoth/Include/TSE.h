@@ -1871,6 +1871,14 @@ class CAscendedObjectList
 		CSystemEventList m_Events;
 	};
 
+//	Pointer/ref helpers used by headers below ---------------------------------
+
+uintptr_t GetPointerValue (const ICCItem *pItem);
+ICCItem *CreatePointerValue (CCodeChain &CC, uintptr_t dwValue);
+uintptr_t GetObjPointerValue (const ICCItem *pItem);
+CSpaceObject *CreateObjFromItem (const ICCItem *pItem, DWORD dwFlags = 0);
+ICCItem *CreateObjPointer (CCodeChain &CC, CSpaceObject *pObj);
+
 //	Implementations ------------------------------------------------------------
 
 #include "TSEListImpl.h"
@@ -1958,9 +1966,6 @@ ICCItem *CreateListFromItem (const CItem &Item);
 ICCItem *CreateListFromOrbit (CCodeChain &CC, const COrbit &OrbitDesc);
 ICCItem *CreateListFromVector (const CVector &vVector);
 ICCItem *CreatePowerResult (double rPowerInKW);
-uintptr_t GetObjPointerValue (const ICCItem *pItem);
-CSpaceObject *CreateObjFromItem (const ICCItem *pItem, DWORD dwFlags = 0);
-ICCItem *CreateObjPointer (CCodeChain &CC, CSpaceObject *pObj);
 bool CreateOrbitFromList (CCodeChain &CC, ICCItem *pList, COrbit *retOrbitDesc);
 ICCItem *CreateResultFromDataField (CCodeChain &CC, const CString &sValue);
 CShip *CreateShipObjFromItem (CCodeChain &CC, ICCItem *pArg);

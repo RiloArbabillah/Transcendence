@@ -256,8 +256,14 @@ void CPlayerSettings::Copy (const CPlayerSettings &Src)
 		{
         if (Src.m_HUDDesc[i].bOwned)
             {
-			m_HUDDesc[i].pDesc = m_HUDDesc[i].pDesc;
+			m_HUDDesc[i].pDesc = Src.m_HUDDesc[i].pDesc;
             m_HUDDesc[i].bOwned = true;
+            m_HUDDesc[i].bFree = false;
+            }
+        else
+            {
+            m_HUDDesc[i].pDesc = NULL;
+            m_HUDDesc[i].bOwned = false;
             m_HUDDesc[i].bFree = false;
             }
 		}
@@ -516,6 +522,44 @@ void CPlayerSettings::Resolve (CUniverse &Universe, const CPlayerSettings *pSrc)
 
     if (pSrc)
         {
+        //  Inherit basic text/settings fields.
+        //  NOTE: Some ship classes define partial <PlayerSettings> blocks and
+        //  expect omitted fields to inherit from the base class.
+
+        if (m_sDesc.IsBlank())
+            m_sDesc = pSrc->m_sDesc;
+
+        if (m_dwLargeImage == 0)
+            m_dwLargeImage = pSrc->m_dwLargeImage;
+
+        if (m_iSortOrder == 10000)
+            m_iSortOrder = pSrc->m_iSortOrder;
+
+        if (m_dwStartMap == 0)
+            m_dwStartMap = pSrc->m_dwStartMap;
+
+        if (m_sStartNode.IsBlank())
+            m_sStartNode = pSrc->m_sStartNode;
+
+        if (m_sStartPos.IsBlank())
+            m_sStartPos = pSrc->m_sStartPos;
+
+        if (m_pShipScreen.GetUNID().IsBlank())
+            m_pShipScreen = pSrc->m_pShipScreen;
+
+        if (m_pDockServicesScreen.GetUNID().IsBlank())
+            m_pDockServicesScreen = pSrc->m_pDockServicesScreen;
+
+        if (m_pShipConfigScreen.GetUNID().IsBlank())
+            m_pShipConfigScreen = pSrc->m_pShipConfigScreen;
+
+        if (m_iDefaultUI == uiPilot && pSrc->m_iDefaultUI != uiPilot)
+            m_iDefaultUI = pSrc->m_iDefaultUI;
+
+        if (m_StartingCredits.GetCurrencyType() == NULL
+                && pSrc->m_StartingCredits.GetCurrencyType() != NULL)
+            m_StartingCredits = pSrc->m_StartingCredits;
+
         //  Inherit dock screen visuals
 
         if (!m_fOwnDockScreenDesc
