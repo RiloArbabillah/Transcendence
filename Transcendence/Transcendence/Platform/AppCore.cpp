@@ -347,7 +347,6 @@ int App_Init(void)
     g_AppState.cxWidth = DEFAULT_WIDTH;
     g_AppState.cyHeight = DEFAULT_HEIGHT;
 
-	SDL_SetHint(SDL_HINT_RENDER_DRIVER, "software");
 	SDL_SetHint(SDL_HINT_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK, "1");
 
     char buf[256];
@@ -375,8 +374,15 @@ int App_Init(void)
     g_AppState.pRenderer = SDL_CreateRenderer(
         g_AppState.pWindow,
         0,
-        SDL_RENDERER_SOFTWARE | SDL_RENDERER_PRESENTVSYNC
+        SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
     );
+
+    if (!g_AppState.pRenderer)
+        g_AppState.pRenderer = SDL_CreateRenderer(
+            g_AppState.pWindow,
+            0,
+            SDL_RENDERER_SOFTWARE | SDL_RENDERER_PRESENTVSYNC
+        );
 
     if (!g_AppState.pRenderer)
     {
@@ -386,7 +392,9 @@ int App_Init(void)
         return 0;
     }
 
-	log_msg("App_Init: using SDL software renderer");
+	SDL_RendererInfo rendererInfo;
+	if (SDL_GetRendererInfo(g_AppState.pRenderer, &rendererInfo) == 0)
+		log_va("App_Init: using SDL renderer: %s", rendererInfo.name);
 
     RecreateFrameBuffer(g_AppState.cxWidth, g_AppState.cyHeight);
     if (!g_AppState.pTexture || !g_AppState.pFrameBuffer)
@@ -796,10 +804,8 @@ int App_Run(const char *pszCommandLine)
 		if (!App_PumpEvents()) {
             log_msg("App_Run: App_PumpEvents requested exit");
             break;
-        }
+		}
 		UpdateGameUI(g_AppState);
-		App_PresentFrameBuffer();
-		SDL_Delay(16);
 	}
 
     log_va("App_Run: exit main loop (bRunning=%d)", (g_AppState.bRunning ? 1 : 0));
