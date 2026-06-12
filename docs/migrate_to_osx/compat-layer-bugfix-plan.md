@@ -95,8 +95,8 @@ Status: `[ ]` belum dikerjakan, `[x]` selesai.
 - **Perbaikan:**
   - [x] Otomatis benar setelah 2.1 (`LONG` jadi 32-bit).
   - [x] Tambahkan `static_assert(sizeof(LARGE_INTEGER) == 8)` sebagai pengaman.
-  - [ ] Catatan: guard `#ifndef LARGE_INTEGER` tidak berfungsi untuk typedef
-    (bukan macro) — ganti dengan include guard / definisi tunggal di satu header.
+  - [x] Guard `#ifndef LARGE_INTEGER` tidak berfungsi untuk typedef — ganti dengan
+    komentar yang menjelaskan `#pragma once` memberikan proteksi.
 
 ### 2.3 `SOCKET` unsigned
 - **File:** `Alchemy/Include/Kernel.h`
@@ -104,8 +104,9 @@ Status: `[ ]` belum dikerjakan, `[x]` selesai.
   perbandingan dengan `SOCKET_ERROR (-1)` pada tipe unsigned berisiko salah.
 - **Perbaikan:**
   - [x] Ubah ke `typedef int SOCKET;` dengan `INVALID_SOCKET (-1)`.
-  - [ ] Audit pengecekan `== INVALID_SOCKET` / `== SOCKET_ERROR` di `Internets.h`,
-    `CHTTPClientSession.cpp`, `NetUtil`.
+  - [x] Audit pengecekan `== INVALID_SOCKET` / `== SOCKET_ERROR` di `Internets.h`,
+    `CHTTPClientSession.cpp`, `NetUtil`. — Semua aman: SOCKET sekarang `int` (signed),
+    comparasi dengan `-1` valid.
 
 ### 2.4 `WCHAR` 16-bit vs `wchar_t` 32-bit
 - **File:** `Alchemy/Include/Kernel.h`

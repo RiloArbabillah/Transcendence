@@ -76,7 +76,9 @@ typedef std::int32_t LONG;
 typedef std::uint32_t ULONG;
 typedef short SHORT;
 
-#ifndef LARGE_INTEGER
+//	LARGE_INTEGER must be 8 bytes so that QuadPart overlaps LowPart/HighPart.
+//	Protected from multiple inclusion by #pragma once above.
+
 typedef union _LARGE_INTEGER {
     struct {
         DWORD LowPart;
@@ -88,7 +90,6 @@ typedef union _LARGE_INTEGER {
     } u;
     LONGLONG QuadPart;
 } LARGE_INTEGER;
-#endif
 
 static_assert(sizeof(LONG) == 4, "LONG must be 32-bit to match the Windows ABI and on-disk formats");
 static_assert(sizeof(DWORD) == 4, "DWORD must be 32-bit");
