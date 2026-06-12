@@ -1519,7 +1519,14 @@ ICCItem *fnPlySetOld (CEvalContext *pEvalCtx, ICCItem *pArguments, DWORD dwData)
 
 	//	Convert the first argument into a player controller
 
-	CPlayerShipController *pPlayer = GetPlayerArg(pArgs->GetElement(0));
+	ICCItem *pFirstArg = (pArgs->GetCount() > 0 ? pArgs->GetElement(0) : NULL);
+	if (pFirstArg == NULL || pFirstArg->IsNil())
+		{
+		pArgs->Discard();
+		return pCC->CreateNil();
+		}
+
+	CPlayerShipController *pPlayer = GetPlayerArg(pFirstArg);
 	if (pPlayer == NULL || pPlayer->GetShip() == NULL)
 		{
 		pArgs->Discard();
