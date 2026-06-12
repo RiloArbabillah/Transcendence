@@ -307,7 +307,8 @@ class CObjectImageArray
 		void ComputeRotationOffsets (void);
 		void ComputeRotationOffsets (int xOffset, int yOffset);
 		void ComputeSourceXY (int iTick, int iRotation, int *retxSrc, int *retySrc) const;
-		void ComputeSourceXY (int iTick, int iRotation, LONG *retxSrc, LONG *retySrc) const { ComputeSourceXY(iTick, iRotation, (int *)retxSrc, (int *)retySrc); }
+		//	NOTE: A separate LONG* overload is no longer needed: LONG is now a
+		//	fixed 32-bit type identical to int on all platforms.
 		void CopyFrom (const CObjectImageArray &Source);
 		void GenerateGlowImage (int iRotation) const;
 		void GenerateScaledImages (int iRotation, int cxWidth, int cyHeight) const;

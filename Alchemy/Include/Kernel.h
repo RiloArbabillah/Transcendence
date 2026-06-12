@@ -43,6 +43,10 @@
 #include <errno.h>
 #include <pthread.h>
 #include <mach/mach_time.h>
+#include <dirent.h>
+#include <strings.h>
+#include <string>
+#include <algorithm>
 
 #undef htons
 inline u_short htons(u_short x) { return x; }
@@ -62,7 +66,13 @@ typedef std::uint64_t KAFFINITY;
 typedef long long INT64;
 typedef long long LONGLONG;
 typedef unsigned long long ULONGLONG;
-typedef long LONG;
+
+//	NOTE: On Windows LONG is always 32-bit, but on macOS/Linux 'long' is 64-bit.
+//	We must use a fixed-width type or struct layouts (POINT, RECT, LARGE_INTEGER)
+//	and binary file formats (save games, TDB) become incompatible.
+
+typedef std::int32_t LONG;
+typedef std::uint32_t ULONG;
 typedef short SHORT;
 
 #ifndef LARGE_INTEGER
@@ -78,6 +88,10 @@ typedef union _LARGE_INTEGER {
     LONGLONG QuadPart;
 } LARGE_INTEGER;
 #endif
+
+static_assert(sizeof(LONG) == 4, "LONG must be 32-bit to match the Windows ABI and on-disk formats");
+static_assert(sizeof(DWORD) == 4, "DWORD must be 32-bit");
+static_assert(sizeof(LARGE_INTEGER) == 8, "LARGE_INTEGER must be 8 bytes so QuadPart overlays LowPart/HighPart");
 
 typedef std::uintptr_t SIZE_T;
 typedef std::uint64_t ULONG64;
@@ -126,7 +140,11 @@ inline int SetDIBits(HDC hDC, HBITMAP hBitmap, unsigned int uStartScan, unsigned
 typedef void *HRGN;
 typedef void *HWND;
 typedef void *HANDLE;
-typedef unsigned int SOCKET;
+
+//	POSIX sockets are plain file descriptors: int, with -1 as the invalid value.
+//	Using an unsigned type breaks error checks against -1.
+
+typedef int SOCKET;
 typedef struct sockaddr_in SOCKADDR_IN;
 typedef struct sockaddr SOCKADDR;
 typedef struct hostent HOSTENT;
@@ -135,7 +153,7 @@ typedef struct in_addr IN_ADDR;
 #define SOCK_STREAM 1
 #define IPPROTO_TCP 6
 #define INADDR_NONE ((unsigned long)-1)
-#define INVALID_SOCKET ((SOCKET)(~0))
+#define INVALID_SOCKET ((SOCKET)(-1))
 #define SOCKET_ERROR (-1)
 #define ERROR_IO_PENDING 997
 #define ERROR_IO_INCOMPLETE 996
@@ -215,8 +233,12 @@ typedef UINT_PTR DWORD_PTR;
 typedef std::intptr_t LONG_PTR;
 typedef std::uintptr_t WPARAM;
 typedef std::intptr_t LPARAM;
-typedef long LONG;
-typedef long LRESULT;
+typedef std::int32_t LONG;
+
+//	On Windows LRESULT is LONG_PTR (pointer-sized); it must be able to hold a
+//	pointer, so do not narrow it to 32 bits.
+
+typedef std::intptr_t LRESULT;
 typedef int INT;
 typedef int WMSG;
 
@@ -318,12 +340,86 @@ inline DWORD GetLastError() { return errno; }
 #define OPEN_ALWAYS 4
 #endif
 
+//	posixResolvePathCase
+//
+//	Best-effort, case-insensitive resolution of a POSIX path. Windows file
+//	systems are case-insensitive, so game data may reference resources with a
+//	different case than the actual files on disk. On case-sensitive volumes
+//	(APFS can be either) those lookups would fail.
+//
+//	For each component that does not exist with the given case, we scan the
+//	parent directory for a case-insensitive match. If no match is found we
+//	keep the original component (so creating new files still works) and
+//	continue with the rest of the path.
+
+inline std::string posixResolvePathCase(const std::string &sPath)
+	{
+	if (sPath.empty() || access(sPath.c_str(), F_OK) == 0)
+		return sPath;
+
+	bool bAbsolute = (sPath[0] == '/');
+	std::string sResolved = bAbsolute ? "/" : "";
+	size_t iPos = bAbsolute ? 1 : 0;
+
+	while (iPos <= sPath.size())
+		{
+		size_t iNext = sPath.find('/', iPos);
+		size_t iEnd = (iNext == std::string::npos) ? sPath.size() : iNext;
+		std::string sComp = sPath.substr(iPos, iEnd - iPos);
+
+		if (!sComp.empty())
+			{
+			std::string sCandidate = sResolved;
+			if (!sCandidate.empty() && sCandidate.back() != '/')
+				sCandidate += '/';
+			sCandidate += sComp;
+
+			if (sComp != "." && sComp != ".."
+					&& access(sCandidate.c_str(), F_OK) != 0)
+				{
+				std::string sDir = sResolved.empty() ? "." : sResolved;
+				DIR *pDir = opendir(sDir.c_str());
+				if (pDir)
+					{
+					struct dirent *pEntry;
+					while ((pEntry = readdir(pDir)) != NULL)
+						{
+						if (strcasecmp(pEntry->d_name, sComp.c_str()) == 0)
+							{
+							sCandidate = sResolved;
+							if (!sCandidate.empty() && sCandidate.back() != '/')
+								sCandidate += '/';
+							sCandidate += pEntry->d_name;
+							break;
+							}
+						}
+					closedir(pDir);
+					}
+				}
+
+			sResolved = sCandidate;
+			}
+
+		if (iNext == std::string::npos)
+			break;
+		iPos = iNext + 1;
+		}
+
+	return sResolved;
+	}
+
 #ifndef CreateFile
 inline HANDLE CreateFile(const char* pFilename, DWORD dwAccess, DWORD dwShareMode, void* pSecurity, DWORD dwCreationDisposition, DWORD dwFlags, HANDLE hTemplate) {
     (void)pSecurity; (void)hTemplate; (void)dwShareMode; (void)dwFlags;
 
     std::string sFilename = (pFilename ? pFilename : "");
     std::replace(sFilename.begin(), sFilename.end(), '\\', '/');
+
+    //	Fall back to a case-insensitive lookup (Windows file systems are
+    //	case-insensitive; game data may not match the on-disk case).
+
+    if (access(sFilename.c_str(), F_OK) != 0)
+        sFilename = posixResolvePathCase(sFilename);
 
     int flags = 0;
     if ((dwAccess & GENERIC_READ) && (dwAccess & GENERIC_WRITE))
@@ -464,6 +560,9 @@ struct SIZE
 	LONG cx;
 	LONG cy;
 	};
+
+static_assert(sizeof(POINT) == 8, "POINT must match the Windows 8-byte layout");
+static_assert(sizeof(RECT) == 16, "RECT must match the Windows 16-byte layout");
 
 #ifdef TARGET_PLATFORM_MACOS
 bool PlatformDestroyWindow(HWND hWnd);
@@ -677,7 +776,17 @@ struct WNDCLASSEX { UINT cbSize; UINT style; void* lpfnWndProc; int cbClsExtra; 
 
 inline HANDLE CreateEvent(void* pAttrs, BOOL bManualReset, BOOL bInitialState, LPCSTR lpName) { return nullptr; }
 inline DWORD WaitForMultipleObjects(DWORD nCount, const HANDLE* pHandles, BOOL bWaitAll, DWORD dwTimeout) { return WAIT_TIMEOUT; }
-inline void CloseHandle(HANDLE h) { close((int)(intptr_t)h); }
+inline void CloseHandle(HANDLE h)
+	{
+	//	NULL is a valid "no handle" value in caller code (e.g., CFileReadBlock
+	//	sets m_hFileMap = NULL on macOS). Without this guard we would call
+	//	close(0) and silently close stdin.
+
+	if (h == NULL || h == INVALID_HANDLE_VALUE)
+		return;
+
+	close((int)(intptr_t)h);
+	}
 
 #define TIMER_RESOLUTION 1
 

@@ -10,6 +10,13 @@
 #include <copyfile.h>
 #include <sys/stat.h>
 #include <mach-o/dyld.h>
+#include <dirent.h>
+#include <fnmatch.h>
+#include <limits.h>
+#include <pwd.h>
+#include <string>
+#include <vector>
+#include <algorithm>
 #define SHGFP_TYPE_CURRENT 0
 #define CSIDL_LOCAL_APPDATA 28
 #define HRESULT long
@@ -33,19 +40,206 @@
 #define LPMALLOC void*
 struct WIN32_FIND_DATA { DWORD dwFileAttributes; FILETIME ftCreationTime; FILETIME ftLastAccessTime; FILETIME ftLastWriteTime; DWORD nFileSizeHigh; DWORD nFileSizeLow; DWORD dwReserved0; DWORD dwReserved1; char cFileName[260]; char cAlternateFileName[14]; };
 struct SHFILEOPSTRUCT { void* hwnd; UINT wFunc; char* pFrom; char* pTo; FILEOP_FLAGS fFlags; BOOL fAnyOperationsAborted; void* hNameMappings; char* lpszProgressTitle; };
-inline HRESULT SHGetFolderPath(void* pToken, int iCSIDL, void* pReserved, DWORD dwFlags, char* pDest) { return E_FAIL; }
-inline int SHFileOperation(SHFILEOPSTRUCT* lpFileOp) { return 1; }
+inline HRESULT SHGetFolderPath(void* pToken, int iCSIDL, void* pReserved, DWORD dwFlags, char* pDest)
+	{
+	//	Map Windows special folders to their macOS equivalents.
+
+	(void)pToken; (void)pReserved; (void)dwFlags;
+
+	const char *pHome = getenv("HOME");
+	if (pHome == NULL || pHome[0] == '\0')
+		{
+		struct passwd *pPasswd = getpwuid(getuid());
+		if (pPasswd)
+			pHome = pPasswd->pw_dir;
+		}
+
+	if (pHome == NULL || pHome[0] == '\0')
+		return E_FAIL;
+
+	const char *pSuffix;
+	switch (iCSIDL)
+		{
+		case CSIDL_APPDATA:
+		case CSIDL_LOCAL_APPDATA:
+			pSuffix = "/Library/Application Support";
+			break;
+
+		case CSIDL_PERSONAL:
+			pSuffix = "/Documents";
+			break;
+
+		case CSIDL_MYPICTURES:
+			pSuffix = "/Pictures";
+			break;
+
+		case CSIDL_MYMUSIC:
+			pSuffix = "/Music";
+			break;
+
+		default:
+			pSuffix = "";
+			break;
+		}
+
+	snprintf(pDest, MAX_PATH, "%s%s", pHome, pSuffix);
+	return S_OK;
+	}
+
+inline int SHFileOperation(SHFILEOPSTRUCT* lpFileOp)
+	{
+	//	macOS has no recycle bin via this API: fall back to a permanent delete
+	//	so that fileDelete(..., bRecycle = true) still works.
+
+	if (lpFileOp == NULL || lpFileOp->wFunc != FO_DELETE || lpFileOp->pFrom == NULL)
+		return 1;
+
+	lpFileOp->fAnyOperationsAborted = FALSE;
+
+	std::string sPath = lpFileOp->pFrom;
+	std::replace(sPath.begin(), sPath.end(), '\\', '/');
+	return (unlink(sPath.c_str()) == 0 ? 0 : 1);
+	}
+
 inline BOOL CopyFile(const char* pSrc, const char* pDst, BOOL bFailIfExists) { return copyfile(pSrc, pDst, nullptr, COPYFILE_ALL) == 0; }
-inline void* FindFirstFile(const char* pPattern, WIN32_FIND_DATA* pData) { return nullptr; }
-inline BOOL FindNextFile(void* hFind, WIN32_FIND_DATA* pData) { return FALSE; }
-inline BOOL FindClose(void* hFind) { return TRUE; }
+
+//	POSIX implementation of the FindFirstFile/FindNextFile/FindClose family
+//	based on opendir/readdir/fnmatch.
+
+struct SPosixFindHandle
+	{
+	DIR *pDir;
+	std::string sDirPath;
+	std::string sPattern;
+	};
+
+static bool PosixMatchPattern (const char *pPattern, const char *pName)
+	{
+	//	Windows treats "*.*" as "all files", even those without a dot.
+
+	if (strcmp(pPattern, "*.*") == 0 || strcmp(pPattern, "*") == 0 || pPattern[0] == '\0')
+		return true;
+
+	return (fnmatch(pPattern, pName, FNM_CASEFOLD) == 0);
+	}
+
+static bool PosixFindNext (SPosixFindHandle *pHandle, WIN32_FIND_DATA *pData)
+	{
+	struct dirent *pEntry;
+	while ((pEntry = readdir(pHandle->pDir)) != NULL)
+		{
+		if (strcmp(pEntry->d_name, ".") == 0 || strcmp(pEntry->d_name, "..") == 0)
+			continue;
+
+		if (!PosixMatchPattern(pHandle->sPattern.c_str(), pEntry->d_name))
+			continue;
+
+		memset(pData, 0, sizeof(*pData));
+		strlcpy(pData->cFileName, pEntry->d_name, sizeof(pData->cFileName));
+
+		std::string sFull = pHandle->sDirPath + "/" + pEntry->d_name;
+		struct stat st;
+		if (stat(sFull.c_str(), &st) == 0)
+			{
+			if (S_ISDIR(st.st_mode))
+				pData->dwFileAttributes |= FILE_ATTRIBUTE_DIRECTORY;
+			pData->nFileSizeLow = (DWORD)((unsigned long long)st.st_size & 0xffffffff);
+			pData->nFileSizeHigh = (DWORD)((unsigned long long)st.st_size >> 32);
+			pData->ftLastWriteTime = (FILETIME)st.st_mtime;
+			}
+
+		if (pData->dwFileAttributes == 0)
+			pData->dwFileAttributes = FILE_ATTRIBUTE_NORMAL;
+
+		//	Mimic Windows semantics: treat Unix dotfiles as hidden so the game
+		//	does not pick up .DS_Store and similar files.
+
+		if (pEntry->d_name[0] == '.')
+			pData->dwFileAttributes |= FILE_ATTRIBUTE_HIDDEN;
+
+		return true;
+		}
+
+	return false;
+	}
+
+inline void* FindFirstFile(const char* pPattern, WIN32_FIND_DATA* pData)
+	{
+	std::string sPattern = (pPattern ? pPattern : "");
+	std::replace(sPattern.begin(), sPattern.end(), '\\', '/');
+
+	//	Split into directory and filename pattern.
+
+	size_t iSep = sPattern.rfind('/');
+	std::string sDir = (iSep == std::string::npos) ? "." : sPattern.substr(0, (iSep == 0 ? 1 : iSep));
+	std::string sFilePattern = (iSep == std::string::npos) ? sPattern : sPattern.substr(iSep + 1);
+
+	//	Handle case-mismatched directories (Windows is case-insensitive).
+
+	DIR *pDir = opendir(sDir.c_str());
+	if (pDir == NULL)
+		{
+		sDir = posixResolvePathCase(sDir);
+		pDir = opendir(sDir.c_str());
+		}
+
+	if (pDir == NULL)
+		{
+		//	Callers check GetLastError() == ERROR_FILE_NOT_FOUND (== ENOENT).
+
+		errno = ENOENT;
+		return INVALID_HANDLE_VALUE;
+		}
+
+	SPosixFindHandle *pHandle = new SPosixFindHandle;
+	pHandle->pDir = pDir;
+	pHandle->sDirPath = sDir;
+	pHandle->sPattern = sFilePattern;
+
+	if (!PosixFindNext(pHandle, pData))
+		{
+		closedir(pHandle->pDir);
+		delete pHandle;
+		errno = ENOENT;
+		return INVALID_HANDLE_VALUE;
+		}
+
+	return pHandle;
+	}
+
+inline BOOL FindNextFile(void* hFind, WIN32_FIND_DATA* pData)
+	{
+	if (hFind == NULL || hFind == INVALID_HANDLE_VALUE)
+		return FALSE;
+
+	return (PosixFindNext((SPosixFindHandle *)hFind, pData) ? TRUE : FALSE);
+	}
+
+inline BOOL FindClose(void* hFind)
+	{
+	if (hFind == NULL || hFind == INVALID_HANDLE_VALUE)
+		return FALSE;
+
+	SPosixFindHandle *pHandle = (SPosixFindHandle *)hFind;
+	closedir(pHandle->pDir);
+	delete pHandle;
+	return TRUE;
+	}
 inline BOOL GetFileTime(HANDLE hFile, FILETIME* pCreation, FILETIME* pLastAccess, FILETIME* pLastWrite) { return TRUE; }
 inline BOOL FileTimeToSystemTime(FILETIME* pFileTime, SYSTEMTIME* pSystemTime) { return TRUE; }
 inline DWORD GetTempPath(DWORD nBufferLength, char* lpBuffer) { strcpy(lpBuffer, "/tmp"); return strlen(lpBuffer); }
 inline DWORD GetFileAttributes(const char* lpFileName) {
 #ifndef _WIN32
+    std::string sFilename = (lpFileName ? lpFileName : "");
+    std::replace(sFilename.begin(), sFilename.end(), '\\', '/');
+
+    //	Fall back to a case-insensitive lookup (Windows is case-insensitive).
+
+    if (access(sFilename.c_str(), F_OK) != 0)
+        sFilename = posixResolvePathCase(sFilename);
+
     struct stat st;
-    if (stat(lpFileName, &st) == 0) {
+    if (stat(sFilename.c_str(), &st) == 0) {
         if (S_ISDIR(st.st_mode)) return FILE_ATTRIBUTE_DIRECTORY;
         return FILE_ATTRIBUTE_NORMAL;
     }
@@ -54,16 +248,106 @@ inline DWORD GetFileAttributes(const char* lpFileName) {
     return FILE_ATTRIBUTE_NORMAL;
 #endif
 }
-inline BOOL CreateDirectory(const char* lpPathName, void* lpSecurityAttributes) { return mkdir(lpPathName, 0755) == 0; }
+inline BOOL CreateDirectory(const char* lpPathName, void* lpSecurityAttributes)
+	{
+	(void)lpSecurityAttributes;
+	std::string sPath = (lpPathName ? lpPathName : "");
+	std::replace(sPath.begin(), sPath.end(), '\\', '/');
+	return (mkdir(sPath.c_str(), 0755) == 0);
+	}
 inline BOOL RemoveDirectory(const char* lpPathName) { return rmdir(lpPathName) == 0; }
 inline void* CoTaskMemAlloc(DWORD cb) { return malloc(cb); }
 inline void CoTaskMemFree(void* pv) { free(pv); }
-inline DWORD GetFullPathName(const char* lpFileName, DWORD nBufferLength, char* lpBuffer, char** lpFilePart) { strcpy(lpBuffer, lpFileName); if (lpFilePart) *lpFilePart = nullptr; return strlen(lpBuffer); }
+inline DWORD GetFullPathName(const char* lpFileName, DWORD nBufferLength, char* lpBuffer, char** lpFilePart)
+	{
+	if (lpBuffer == NULL || nBufferLength == 0)
+		return 0;
+
+	std::string sPath = (lpFileName ? lpFileName : "");
+	std::replace(sPath.begin(), sPath.end(), '\\', '/');
+
+	std::string sAbsolute;
+	char szResolved[PATH_MAX];
+	if (!sPath.empty() && realpath(sPath.c_str(), szResolved) != NULL)
+		sAbsolute = szResolved;
+	else
+		{
+		//	The path may not exist yet: anchor relative paths to the current
+		//	directory and normalize '.' and '..' components manually.
+
+		if (sPath.empty() || sPath[0] != '/')
+			{
+			char szCwd[PATH_MAX];
+			if (getcwd(szCwd, sizeof(szCwd)) == NULL)
+				return 0;
+
+			sAbsolute = szCwd;
+			if (!sPath.empty())
+				{
+				sAbsolute += '/';
+				sAbsolute += sPath;
+				}
+			}
+		else
+			sAbsolute = sPath;
+
+		std::vector<std::string> Parts;
+		size_t iPos = 1;
+		while (iPos <= sAbsolute.size())
+			{
+			size_t iNext = sAbsolute.find('/', iPos);
+			size_t iEnd = (iNext == std::string::npos) ? sAbsolute.size() : iNext;
+			std::string sComp = sAbsolute.substr(iPos, iEnd - iPos);
+
+			if (sComp == "..")
+				{
+				if (!Parts.empty())
+					Parts.pop_back();
+				}
+			else if (!sComp.empty() && sComp != ".")
+				Parts.push_back(sComp);
+
+			if (iNext == std::string::npos)
+				break;
+			iPos = iNext + 1;
+			}
+
+		sAbsolute.clear();
+		for (size_t i = 0; i < Parts.size(); i++)
+			{
+			sAbsolute += '/';
+			sAbsolute += Parts[i];
+			}
+
+		if (sAbsolute.empty())
+			sAbsolute = "/";
+		}
+
+	//	Windows semantics: if the buffer is too small, return the required size
+	//	(including the NUL terminator).
+
+	if (sAbsolute.size() + 1 > (size_t)nBufferLength)
+		return (DWORD)(sAbsolute.size() + 1);
+
+	memcpy(lpBuffer, sAbsolute.c_str(), sAbsolute.size() + 1);
+
+	if (lpFilePart)
+		{
+		char *pSep = strrchr(lpBuffer, '/');
+		*lpFilePart = (pSep ? pSep + 1 : lpBuffer);
+		}
+
+	return (DWORD)sAbsolute.size();
+	}
 inline void* SHGetMalloc() { return nullptr; }
 inline HRESULT SHGetMalloc(void** ppMalloc) { *ppMalloc = (void*)1; return S_OK; }
 #endif
 
+#ifdef _WIN32
 #define STR_PATH_SEPARATOR				CONSTLIT("\\")
+#else
+#define STR_PATH_SEPARATOR				CONSTLIT("/")
+#endif
 
 #define STR_COMPANY_NAME				CONSTLIT("CompanyName")
 #define STR_COPYRIGHT					CONSTLIT("LegalCopyright")
@@ -772,6 +1056,13 @@ bool Kernel::pathIsAbsolute (const CString &sPath)
 
 	{
 	char *pPos = sPath.GetASCIIZPointer();
+
+#ifndef _WIN32
+	//	A leading slash means this is an absolute POSIX path
+
+	if (*pPos == '/')
+		return true;
+#endif
 
 	//	A double back-slash means this is an absolute network path
 

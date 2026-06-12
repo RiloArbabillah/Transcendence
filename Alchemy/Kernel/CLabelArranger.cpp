@@ -6,7 +6,10 @@
 #include "PreComp.h"
 #include "Euclid.h"
 
-static CVector DIR[8] =
+//	NOTE: Renamed from DIR to avoid colliding with the DIR type from
+//	<dirent.h>, which is included by Kernel.h on macOS.
+
+static CVector g_LabelDir[8] =
     {
         CVector(0.0, -1.0),
         CVector(1.0, -1.0),
