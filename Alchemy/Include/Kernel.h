@@ -36,6 +36,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -49,9 +50,9 @@
 #include <algorithm>
 
 #undef htons
-inline u_short htons(u_short x) { return x; }
+inline unsigned short htons(unsigned short x) { return (unsigned short)__builtin_bswap16(x); }
 #undef ntohs
-inline u_short ntohs(u_short x) { return x; }
+inline unsigned short ntohs(unsigned short x) { return (unsigned short)__builtin_bswap16(x); }
 
 #ifndef DBL_MAX
 #define DBL_MAX 1.7976931348623158e+308
@@ -160,9 +161,76 @@ typedef struct in_addr IN_ADDR;
 #define ERROR_ALREADY_EXISTS 183
 #define ERROR_SUCCESS 0
 #define ERROR_INSUFFICIENT_BUFFER 122
+#define CP_ACP 0
+#define CP_UTF8 65001
 typedef std::uint16_t WCHAR;
-inline int MultiByteToWideChar(unsigned int CodePage, DWORD dwFlags, const char* lpMultiByteStr, int cbMultiByte, WCHAR* lpWideCharStr, int cchWideChar) { return 0; }
-inline int WideCharToMultiByte(unsigned int CodePage, DWORD dwFlags, const WCHAR* lpWideCharStr, int cchWideChar, char* lpMultiByteStr, int cbMultiByte, const char* lpDefaultChar, BOOL* lpUsedDefaultChar) { return 0; }
+inline int MultiByteToWideChar(unsigned int CodePage, DWORD dwFlags, const char* lpMultiByteStr, int cbMultiByte, WCHAR* lpWideCharStr, int cchWideChar) {
+    (void)dwFlags;
+    if (!lpMultiByteStr) return 0;
+    int iLen = (cbMultiByte < 0) ? (int)strlen(lpMultiByteStr) : cbMultiByte;
+    if (CodePage != CP_UTF8 && CodePage != CP_ACP) return 0;
+    int iCount = 0;
+    const char* p = lpMultiByteStr;
+    const char* pEnd = lpMultiByteStr + iLen;
+    while (p < pEnd) {
+        unsigned int cp = (unsigned char)*p;
+        int bytes = 0;
+        if (cp < 0x80) { bytes = 1; }
+        else if ((cp & 0xE0) == 0xC0) { cp &= 0x1F; bytes = 2; }
+        else if ((cp & 0xF0) == 0xE0) { cp &= 0x0F; bytes = 3; }
+        else if ((cp & 0xF8) == 0xF0) { cp &= 0x07; bytes = 4; }
+        else { bytes = 1; }
+        if (p + bytes > pEnd) break;
+        for (int i = 1; i < bytes; i++) {
+            if (((unsigned char)p[i] & 0xC0) != 0x80) { bytes = 1; break; }
+            cp = (cp << 6) | ((unsigned char)p[i] & 0x3F);
+        }
+        if (cp < 0x10000) {
+            if (lpWideCharStr && iCount < cchWideChar) lpWideCharStr[iCount] = (WCHAR)cp;
+            iCount++;
+        } else {
+            cp -= 0x10000;
+            if (lpWideCharStr && iCount + 1 < cchWideChar) {
+                lpWideCharStr[iCount] = (WCHAR)(0xD800 + (cp >> 10));
+                lpWideCharStr[iCount + 1] = (WCHAR)(0xDC00 + (cp & 0x3FF));
+            }
+            iCount += 2;
+        }
+        p += bytes;
+    }
+    return iCount;
+}
+inline int WideCharToMultiByte(unsigned int CodePage, DWORD dwFlags, const WCHAR* lpWideCharStr, int cchWideChar, char* lpMultiByteStr, int cbMultiByte, const char* lpDefaultChar, BOOL* lpUsedDefaultChar) {
+    (void)dwFlags; (void)lpDefaultChar; (void)lpUsedDefaultChar;
+    if (!lpWideCharStr) return 0;
+    if (CodePage != CP_UTF8 && CodePage != CP_ACP) return 0;
+    int iLen = (cchWideChar < 0) ? (int)wcslen((const wchar_t*)lpWideCharStr) : cchWideChar;
+    int iCount = 0;
+    for (int i = 0; i < iLen; i++) {
+        unsigned int cp = lpWideCharStr[i];
+        if (cp >= 0xD800 && cp <= 0xDBFF && i + 1 < iLen) {
+            unsigned int lo = lpWideCharStr[i + 1];
+            if (lo >= 0xDC00 && lo <= 0xDFFF) {
+                cp = 0x10000 + ((cp - 0xD800) << 10) + (lo - 0xDC00);
+                i++;
+            }
+        }
+        int bytes = 0;
+        if (cp < 0x80) bytes = 1;
+        else if (cp < 0x800) bytes = 2;
+        else if (cp < 0x10000) bytes = 3;
+        else bytes = 4;
+        if (lpMultiByteStr && iCount + bytes <= cbMultiByte) {
+            char* d = lpMultiByteStr + iCount;
+            if (bytes == 1) { d[0] = (char)cp; }
+            else if (bytes == 2) { d[0] = (char)(0xC0 | (cp >> 6)); d[1] = (char)(0x80 | (cp & 0x3F)); }
+            else if (bytes == 3) { d[0] = (char)(0xE0 | (cp >> 12)); d[1] = (char)(0x80 | ((cp >> 6) & 0x3F)); d[2] = (char)(0x80 | (cp & 0x3F)); }
+            else { d[0] = (char)(0xF0 | (cp >> 18)); d[1] = (char)(0x80 | ((cp >> 12) & 0x3F)); d[2] = (char)(0x80 | ((cp >> 6) & 0x3F)); d[3] = (char)(0x80 | (cp & 0x3F)); }
+        }
+        iCount += bytes;
+    }
+    return iCount;
+}
 #define KEY_READ 0x20019
 #define KEY_WRITE 0x20006
 #define REG_OPTION_NON_VOLATILE 0
@@ -502,9 +570,13 @@ inline DWORD SetFilePointer(HANDLE hFile, LONG lDist, LONG* pHighWord, DWORD dwW
 
 #ifndef GetFileSize
 inline DWORD GetFileSize(HANDLE hFile, DWORD* pHighWord) {
-    off_t size = lseek((int)(intptr_t)hFile, 0, SEEK_END);
-    if (pHighWord) *pHighWord = (DWORD)(size >> 32);
-    return (DWORD)size;
+    struct stat st;
+    if (fstat((int)(intptr_t)hFile, &st) == 0) {
+        if (pHighWord) *pHighWord = (DWORD)((unsigned long long)st.st_size >> 32);
+        return (DWORD)st.st_size;
+    }
+    if (pHighWord) *pHighWord = 0;
+    return INVALID_SET_FILE_POINTER;
 }
 #endif
 
@@ -517,24 +589,32 @@ inline BOOL DeleteFile(const char* pFilename) {
 #endif
 
 #ifndef CreateFileMapping
+struct SFileMappingHandle { int fd; size_t size; int prot; };
 inline HANDLE CreateFileMapping(HANDLE hFile, void* pAttr, DWORD flProtect, DWORD dwMaxSizeHigh, DWORD dwMaxSizeLow, const char* pName) {
     (void)pAttr; (void)pName;
-    size_t size = ((size_t)dwMaxSizeHigh << 32) | dwMaxSizeLow;
-    int prot = (flProtect == PAGE_READONLY) ? PROT_READ : PROT_READ | PROT_WRITE;
-    return mmap(NULL, size, prot, MAP_PRIVATE, (int)(intptr_t)hFile, 0);
+    SFileMappingHandle* pH = new SFileMappingHandle;
+    pH->fd = (int)(intptr_t)hFile;
+    pH->size = ((size_t)dwMaxSizeHigh << 32) | dwMaxSizeLow;
+    pH->prot = (flProtect == PAGE_READONLY) ? PROT_READ : PROT_READ | PROT_WRITE;
+    return (HANDLE)pH;
 }
 #endif
 
 #ifndef MapViewOfFile
 inline void* MapViewOfFile(HANDLE hFileMapping, DWORD dwAccess, DWORD dwOffsetHigh, DWORD dwOffsetLow, SIZE_T dwNumBytes) {
+    SFileMappingHandle* pH = (SFileMappingHandle*)hFileMapping;
     int prot = (dwAccess == FILE_MAP_READ) ? PROT_READ : PROT_READ | PROT_WRITE;
     off_t offset = ((off_t)dwOffsetHigh << 32) | dwOffsetLow;
-    return mmap(NULL, dwNumBytes, prot, MAP_PRIVATE, (int)(intptr_t)hFileMapping, offset);
+    void* pResult = mmap(NULL, dwNumBytes, prot, MAP_SHARED, pH->fd, offset);
+    if (pResult == MAP_FAILED) return NULL;
+    return pResult;
 }
 #endif
 
 #ifndef UnmapViewOfFile
-#define UnmapViewOfFile(ptr) munmap(ptr, 0)
+inline BOOL UnmapViewOfFile(void* pBase) {
+    return munmap(pBase, 1) == 0;
+}
 #endif
 
 #ifndef FlushViewOfFile
@@ -791,7 +871,14 @@ inline void CloseHandle(HANDLE h)
 #define TIMER_RESOLUTION 1
 
 inline void ZeroMemory(void* p, size_t n) { memset(p, 0, n); }
-inline void Sleep(DWORD dwMs) { }
+inline void Sleep(DWORD dwMs) {
+    if (dwMs > 0) {
+        struct timespec ts;
+        ts.tv_sec = dwMs / 1000;
+        ts.tv_nsec = (dwMs % 1000) * 1000000;
+        nanosleep(&ts, NULL);
+    }
+}
 inline void timeEndPeriod(int u) { }
 
 struct PAINTSTRUCT { void* hdc; int fErase; RECT rcPaint; int fRestore; int fUpdate; int rgbReserved[32]; };
@@ -993,9 +1080,10 @@ inline BOOL SetEvent (HANDLE) { return TRUE; }
 
 inline DWORD GetTickCount (void)
 {
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    return (DWORD)((tv.tv_sec * 1000) + (tv.tv_usec / 1000));
+    struct mach_timebase_info timebase;
+    mach_timebase_info(&timebase);
+    uint64_t time = mach_absolute_time();
+    return (DWORD)((time * timebase.numer) / timebase.denom / 1000000);
 }
 
 #ifndef QueryPerformanceCounter
