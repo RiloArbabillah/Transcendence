@@ -182,7 +182,7 @@ void CIntroSession::CreateIntroShips (DWORD dwNewShipClass, DWORD dwSovereign, C
 	DWORD dwCurSovereign;
 	if (dwSovereign)
 		dwCurSovereign = dwSovereign;
-	else if (g_pUniverse->GetPOV())
+	else if (g_pUniverse->GetPOV() && g_pUniverse->GetPOV()->GetSovereign())
 		dwCurSovereign = g_pUniverse->GetPOV()->GetSovereign()->GetUNID();
 	else
 		dwCurSovereign = g_PlayerSovereignUNID;
@@ -659,7 +659,7 @@ void CIntroSession::ExecuteCommand (const CString &sCommand)
 	else
 		{
 		CShip *pShip = g_pUniverse->GetPOV()->AsShip();
-		DWORD dwSovereign = (pShip ? pShip->GetSovereign()->GetUNID() : 0);
+		DWORD dwSovereign = (pShip && pShip->GetSovereign() ? pShip->GetSovereign()->GetUNID() : 0);
 
 		//	Parse the string into a ship class
 
@@ -775,7 +775,7 @@ bool CIntroSession::HandleChar (char chChar, DWORD dwKeyData)
 
 			//	Create a duplicate
 
-			CreateIntroShips(pShip->GetClassUNID(), pShip->GetSovereign()->GetUNID());
+			CreateIntroShips(pShip->GetClassUNID(), (pShip->GetSovereign() ? pShip->GetSovereign()->GetUNID() : 0));
 			break;
 			}
 
@@ -872,7 +872,7 @@ bool CIntroSession::HandleChar (char chChar, DWORD dwKeyData)
 
 			//	Create a new ship
 
-			CreateIntroShips(dwNewShipClass, pShip->GetSovereign()->GetUNID());
+			CreateIntroShips(dwNewShipClass, (pShip->GetSovereign() ? pShip->GetSovereign()->GetUNID() : 0));
 			break;
 			}
 

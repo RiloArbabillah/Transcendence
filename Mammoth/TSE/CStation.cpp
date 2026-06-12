@@ -5174,7 +5174,7 @@ void CStation::PaintMarkerIcon (CG32bitImage& Dest, int x, int y)
 				{
 				CSovereign* pPlayer = GetUniverse().GetPlayerSovereign();
 				CSpaceObject* pPlayerShip;
-				if (IsPlayer() || GetSovereign()->IsPlayerOwned())
+				if (IsPlayer() || (GetSovereign() && GetSovereign()->IsPlayerOwned()))
 					{
 					Dest.DrawDot(x + 1, y + 1, 0, markerSmallCircle);
 					Dest.DrawDot(x, y, rgbColor, markerSmallFilledCircle);
@@ -5213,7 +5213,7 @@ void CStation::PaintMarkerIcon (CG32bitImage& Dest, int x, int y)
 
 				CSovereign* pPlayer = GetUniverse().GetPlayerSovereign();
 				CSpaceObject* pPlayerShip;
-				if (IsPlayer() || GetSovereign()->IsPlayerOwned())
+				if (IsPlayer() || (GetSovereign() && GetSovereign()->IsPlayerOwned()))
 					{
 					Dest.DrawDot(x + 1, y + 1, 0, markerSmallCircle);
 					Dest.DrawDot(x, y, rgbColor, markerSmallCircle);
@@ -5249,7 +5249,7 @@ void CStation::PaintMarkerIcon (CG32bitImage& Dest, int x, int y)
 				{
 				CSovereign* pPlayer = GetUniverse().GetPlayerSovereign();
 				CSpaceObject* pPlayerShip;
-				if (IsPlayer() || GetSovereign()->IsPlayerOwned())
+				if (IsPlayer() || (GetSovereign() && GetSovereign()->IsPlayerOwned()))
 					{
 					Dest.DrawDot(x + 1, y + 1, 0, markerSmallCircle);
 					Dest.DrawDot(x, y, rgbColor, markerSmallFilledCircle);
@@ -5300,7 +5300,7 @@ void CStation::PaintMarkerIcon (CG32bitImage& Dest, int x, int y)
 
 			//	Draw icon
 
-			if (IsPlayer() || GetSovereign()->IsPlayerOwned())
+			if (IsPlayer() || (GetSovereign() && GetSovereign()->IsPlayerOwned()))
 				Dest.DrawDot(x, y, rgbColor, markerTinyCircle);
 			else if ((pPlayerShip = GetUniverse().GetPlayerShip())
 					&& IsAngryAt(pPlayerShip) && (IsFriend(*pPlayer) || IsNeutral(*pPlayer)))

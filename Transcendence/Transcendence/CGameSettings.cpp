@@ -19,7 +19,11 @@
 #define REGISTRY_MUSIC_OPTION					CONSTLIT("Music")
 #define REGISTRY_SOUND_VOLUME_OPTION			CONSTLIT("SoundVolume")
 
+#ifdef _WIN32
 #define TRANSCENDENCE_APP_DATA					CONSTLIT("Kronosaur\\Transcendence")
+#else
+#define TRANSCENDENCE_APP_DATA					CONSTLIT("Kronosaur/Transcendence")
+#endif
 
 #define OPTION_FLAG_HEX							0x00000001
 

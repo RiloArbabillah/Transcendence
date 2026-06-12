@@ -149,7 +149,11 @@
 #define CMD_UI_VOLUME_UP						CONSTLIT("uiVolumeUp")
 
 #define FILESPEC_DOWNLOADS_FOLDER				CONSTLIT("Cache")
+#ifdef _WIN32
 #define FILESPEC_UPGRADE_FILE					CONSTLIT("Cache\\Upgrade.zip")
+#else
+#define FILESPEC_UPGRADE_FILE					CONSTLIT("Cache/Upgrade.zip")
+#endif
 
 #define ID_MULTIVERSE_STATUS_SEQ				CONSTLIT("idMultiverseStatusSeq")
 #define ID_MULTIVERSE_STATUS_TEXT				CONSTLIT("idMultiverseStatusText")
@@ -506,7 +510,7 @@ ALERROR CTranscendenceController::OnBoot (char *pszCommandLine, SHIOptions *retO
 
 	retOptions->sAppName = CONSTLIT("Transcendence");
 	retOptions->sClassName = CONSTLIT("transcendence_class");
-	retOptions->sAppData = CONSTLIT("Kronosaur\\Transcendence");
+	retOptions->sAppData = CONSTLIT("Kronosaur/Transcendence");
 	retOptions->hIcon = ::LoadIcon(NULL, "AppIcon");
 
 	//	Set our default directory

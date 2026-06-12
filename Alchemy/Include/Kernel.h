@@ -38,6 +38,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
+#include <poll.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -856,8 +857,42 @@ struct WNDCLASSEX { UINT cbSize; UINT style; void* lpfnWndProc; int cbClsExtra; 
 
 #define WAIT_TIMEOUT 258
 
-inline HANDLE CreateEvent(void* pAttrs, BOOL bManualReset, BOOL bInitialState, LPCSTR lpName) { return nullptr; }
-inline DWORD WaitForMultipleObjects(DWORD nCount, const HANDLE* pHandles, BOOL bWaitAll, DWORD dwTimeout) { return WAIT_TIMEOUT; }
+//	POSIX event synchronization using pipes.
+//	A signaled event has a byte in the pipe; an unsignaled event has an empty pipe.
+
+struct SEventHandle { DWORD dwMagic; int fd[2]; bool bManualReset; };
+#define EVENT_MAGIC 0x45565448
+
+inline HANDLE CreateEvent(void* pAttrs, BOOL bManualReset, BOOL bInitialState, LPCSTR lpName) {
+    (void)pAttrs; (void)lpName;
+    SEventHandle *pEvent = new SEventHandle;
+    pEvent->dwMagic = EVENT_MAGIC;
+    pEvent->bManualReset = (bManualReset != 0);
+    if (pipe(pEvent->fd) != 0) { delete pEvent; return nullptr; }
+    fcntl(pEvent->fd[0], F_SETFL, O_NONBLOCK);
+    fcntl(pEvent->fd[1], F_SETFL, O_NONBLOCK);
+    if (bInitialState) {
+        char c = 1;
+        if (write(pEvent->fd[1], &c, 1) < 0) {}
+    }
+    return (HANDLE)pEvent;
+}
+
+inline BOOL SetEvent(HANDLE h) {
+    if (!h || h == INVALID_HANDLE_VALUE) return FALSE;
+    SEventHandle *p = (SEventHandle *)h;
+    char c = 1;
+    if (write(p->fd[1], &c, 1) < 0) {}
+    return TRUE;
+}
+
+inline BOOL ResetEvent(HANDLE h) {
+    if (!h || h == INVALID_HANDLE_VALUE) return FALSE;
+    SEventHandle *p = (SEventHandle *)h;
+    char buf[64];
+    while (read(p->fd[0], buf, sizeof(buf)) > 0) {}
+    return TRUE;
+}
 inline void CloseHandle(HANDLE h)
 	{
 	//	NULL is a valid "no handle" value in caller code (e.g., CFileReadBlock
@@ -866,6 +901,17 @@ inline void CloseHandle(HANDLE h)
 
 	if (h == NULL || h == INVALID_HANDLE_VALUE)
 		return;
+
+	//	Check if this is an event handle (pipe-based)
+
+	SEventHandle *pEvent = (SEventHandle *)h;
+	if (pEvent->dwMagic == EVENT_MAGIC)
+		{
+		close(pEvent->fd[0]);
+		close(pEvent->fd[1]);
+		delete pEvent;
+		return;
+		}
 
 	close((int)(intptr_t)h);
 	}
@@ -1039,6 +1085,8 @@ inline void* ShellExecute(void* hwnd, const char* pOp, const char* pFile, const 
 inline DWORD GetFileVersionInfoSize(const char* pFilename, void* pHandle) { return 0; }
 inline BOOL GetFileVersionInfo(const char* pFilename, DWORD handle, DWORD len, void* pData) { return FALSE; }
 inline BOOL VerQueryValue(const void* pData, const char* pSubBlock, void** ppBuf, UINT* puLen) { return FALSE; }
+inline DWORD WaitForMultipleObjects(DWORD nCount, const HANDLE* pHandles, BOOL bWaitAll, DWORD dwTimeout);
+
 inline int MsgWaitForMultipleObjects(DWORD nCount, HANDLE* pHandles, BOOL bWaitAll, DWORD dwMilliseconds, DWORD dwWakeMask) { return WaitForMultipleObjects(nCount, pHandles, bWaitAll, dwMilliseconds); }
 struct VS_FIXEDFILEINFO { DWORD dwSignature; DWORD dwStrucVersion; DWORD dwFileVersionMS; DWORD dwFileVersionLS; DWORD dwProductVersionMS; DWORD dwProductVersionLS; DWORD dwFileFlagsMask; DWORD dwFileFlags; DWORD dwFileOS; DWORD dwFileType; DWORD dwFileSubtype; DWORD dwFileDateMS; DWORD dwFileDateLS; };
 typedef VS_FIXEDFILEINFO* LPVSFIXEDFILEINFO;
@@ -1076,9 +1124,48 @@ inline void EnterCriticalSection (CRITICAL_SECTION *pCS) {
 	if (err != 0) { fprintf(stderr, "pthread_mutex_lock failed: %d\n", err); }
 }
 inline void LeaveCriticalSection (CRITICAL_SECTION *pCS) { pthread_mutex_unlock(&pCS->Mutex); }
-inline DWORD WaitForSingleObject (HANDLE, DWORD) { return WAIT_OBJECT_0; }
-inline BOOL ResetEvent (HANDLE) { return TRUE; }
-inline BOOL SetEvent (HANDLE) { return TRUE; }
+inline DWORD WaitForSingleObject(HANDLE h, DWORD dwTimeout) {
+    if (!h || h == INVALID_HANDLE_VALUE) return WAIT_OBJECT_0;
+    SEventHandle *p = (SEventHandle *)h;
+    struct pollfd pfd;
+    pfd.fd = p->fd[0];
+    pfd.events = POLLIN;
+    int timeout_ms = (dwTimeout == INFINITE) ? -1 : (int)dwTimeout;
+    int rc = poll(&pfd, 1, timeout_ms);
+    if (rc > 0 && (pfd.revents & POLLIN)) {
+        if (!p->bManualReset) {
+            char buf[64];
+            while (read(p->fd[0], buf, sizeof(buf)) > 0) {}
+        }
+        return WAIT_OBJECT_0;
+    }
+    return WAIT_TIMEOUT;
+}
+
+inline DWORD WaitForMultipleObjects(DWORD nCount, const HANDLE* pHandles, BOOL bWaitAll, DWORD dwTimeout) {
+    if (nCount == 0) return WAIT_TIMEOUT;
+    struct pollfd *pFds = (struct pollfd *)alloca(nCount * sizeof(struct pollfd));
+    for (DWORD i = 0; i < nCount; i++) {
+        SEventHandle *p = (SEventHandle *)pHandles[i];
+        pFds[i].fd = (p ? p->fd[0] : -1);
+        pFds[i].events = POLLIN;
+    }
+    int timeout_ms = (dwTimeout == INFINITE) ? -1 : (int)dwTimeout;
+    int rc = poll(pFds, nCount, timeout_ms);
+    if (rc > 0) {
+        for (DWORD i = 0; i < nCount; i++) {
+            if (pFds[i].revents & POLLIN) {
+                SEventHandle *p = (SEventHandle *)pHandles[i];
+                if (p && !p->bManualReset) {
+                    char buf[64];
+                    while (read(p->fd[0], buf, sizeof(buf)) > 0) {}
+                }
+                return WAIT_OBJECT_0 + i;
+            }
+        }
+    }
+    return WAIT_TIMEOUT;
+}
 
 inline DWORD GetTickCount (void)
 {

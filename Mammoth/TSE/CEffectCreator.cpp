@@ -436,6 +436,11 @@ IEffectPainter *CEffectCreator::CreatePainterFromStream (SLoadCtx &Ctx, bool bNu
 
 	CCreatePainterCtx CreateCtx;
 	IEffectPainter *pPainter = pCreator->CreatePainter(CreateCtx);
+	if (pPainter == NULL)
+		{
+		Ctx.iLoadState = iOldLoadState;
+		return NULL;
+		}
 
 	//	Load it
 
@@ -475,6 +480,8 @@ IEffectPainter *CEffectCreator::CreatePainterFromStreamAndCreator (SLoadCtx &Ctx
 
 	CCreatePainterCtx CreateCtx;
 	IEffectPainter *pPainter = pCreator->CreatePainter(CreateCtx);
+	if (pPainter == NULL)
+		return NULL;
 	pPainter->ReadFromStream(Ctx);
 
 	//	Done

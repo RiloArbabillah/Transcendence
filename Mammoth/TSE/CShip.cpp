@@ -5749,7 +5749,7 @@ void CShip::OnPaintMap (CMapViewportCtx &Ctx, CG32bitImage &Dest, int x, int y)
 
 		CSovereign* pPlayer = GetUniverse().GetPlayerSovereign();
 		CSpaceObject* pPlayerShip;
-		if (IsPlayer() || GetSovereign()->IsPlayerOwned())
+		if (IsPlayer() || (GetSovereign() && GetSovereign()->IsPlayerOwned()))
 			{
 			Dest.DrawDot(x + 1, y + 1, 0, markerSmallCircle);
 			Dest.DrawDot(x, y, rgbColor, markerSmallFilledCircle);
@@ -6721,7 +6721,7 @@ void CShip::PaintLRSForeground (CG32bitImage &Dest, int x, int y, const Viewport
 	CG32bitPixel rgbColor = GetSymbolColor();
 	CSovereign* pPlayer = GetUniverse().GetPlayerSovereign();
 	CSpaceObject* pPlayerShip;
-	if (IsPlayer() || GetSovereign()->IsPlayerOwned())
+	if (IsPlayer() || (GetSovereign() && GetSovereign()->IsPlayerOwned()))
 		Dest.DrawDot(x, y, rgbColor, markerRoundDot);
 	else if ((pPlayerShip = GetUniverse().GetPlayerShip())
 			&& IsAngryAt(pPlayerShip) && (IsFriend(*pPlayer) || IsNeutral(*pPlayer)))
