@@ -32,7 +32,8 @@ static void log_va(const char* fmt, ...) {
 
 static void sigsegv_handler(int sig) {
     (void)sig;
-    write(STDOUT_FILENO, "!!! SIGSEGV received !!!\n", 25);
+    const char* msg = "!!! SIGSEGV received !!!\nA crash occurred. The save file may be incompatible.\nPlease start a new game.\n";
+    write(STDOUT_FILENO, msg, strlen(msg));
     void *frames[64];
     int frameCount = backtrace(frames, 64);
     backtrace_symbols_fd(frames, frameCount, STDOUT_FILENO);

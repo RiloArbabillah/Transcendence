@@ -283,7 +283,9 @@ void CEffectGroupPainter::OnReadFromStream (SLoadCtx &Ctx)
 
 		//	Validate the class
 
-		CString sExpected = (i < m_Painters.GetCount() ? m_Painters[i]->GetCreator()->GetTag() : NULL_STR);
+		CString sExpected;
+		if (i < m_Painters.GetCount() && m_Painters[i] && m_Painters[i]->GetCreator())
+			sExpected = m_Painters[i]->GetCreator()->GetTag();
 		if (IEffectPainter::ValidateClass(Ctx, sExpected) != NOERROR)
 			{
 			if (i < m_Painters.GetCount())
@@ -295,7 +297,11 @@ void CEffectGroupPainter::OnReadFromStream (SLoadCtx &Ctx)
 		//	Read the painter
 
 		if (m_Painters[i])
+			{
+			DEBUG_TRY
 			m_Painters[i]->ReadFromStream(Ctx);
+			DEBUG_CATCH
+			}
 		}
 
 	//	If we have extra painters, then delete them
