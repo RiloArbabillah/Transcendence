@@ -454,6 +454,7 @@ inline std::string posixResolvePathCase(const std::string &sPath)
 						{
 						if (strcasecmp(pEntry->d_name, sComp.c_str()) == 0)
 							{
+							fprintf(stderr, "Warning: case mismatch in path: '%s' -> '%s'\n", sComp.c_str(), pEntry->d_name);
 							sCandidate = sResolved;
 							if (!sCandidate.empty() && sCandidate.back() != '/')
 								sCandidate += '/';
@@ -2565,6 +2566,29 @@ CString pathGetTempPath (void);
 bool pathIsAbsolute (const CString &sPath);
 bool pathIsFolder (const CString &sFilespec);
 inline bool pathIsPathSeparator (char *pPos) { return (*pPos == '\\' || *pPos == '/'); }
+
+//	pathNormalizeSeparators
+//
+//	Replaces backslashes with forward slashes on non-Windows platforms.
+//	Call this when reading paths from XML/TDB that may have been authored on Windows.
+
+inline CString pathNormalizeSeparators (const CString &sPath)
+	{
+#ifdef _WIN32
+	return sPath;
+#else
+	CString sResult = sPath;
+	char *pPos = sResult.GetASCIIZPointer();
+	char *pEnd = pPos + sResult.GetLength();
+	while (pPos < pEnd)
+		{
+		if (*pPos == '\\')
+			*pPos = '/';
+		pPos++;
+		}
+	return sResult;
+#endif
+	}
 bool pathIsResourcePath (const CString &sPath, char **retpszResID);
 bool pathIsWritable (const CString &sFilespec);
 CString pathMakeAbsolute (const CString &sPath, const CString &sRoot = NULL_STR);
