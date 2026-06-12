@@ -217,7 +217,7 @@ ICCItem *CPlayerGameStats::FindProperty (const CString &sProperty) const
 			SStationTypeStats *pStats;
 			DWORD dwUNID = m_StationStats.GetNext(i, &pStats);
 			CStationType *pType = m_Universe.FindStationType(dwUNID);
-			if (pType == NULL)
+			if (pType == NULL || pType->GetSovereign() == NULL)
 				continue;
 
 			if (pType->GetSovereign()->IsEnemy(pPlayerSovereign))
@@ -258,7 +258,7 @@ ICCItem *CPlayerGameStats::FindProperty (const CString &sProperty) const
 			SStationTypeStats *pStats;
 			DWORD dwUNID = m_StationStats.GetNext(i, &pStats);
 			CStationType *pType = m_Universe.FindStationType(dwUNID);
-			if (pType == NULL)
+			if (pType == NULL || pType->GetSovereign() == NULL)
 				continue;
 
 			if (!pType->GetSovereign()->IsEnemy(pPlayerSovereign))
@@ -488,7 +488,7 @@ void CPlayerGameStats::GenerateGameStats (CGameStats &Stats, CSpaceObject *pPlay
 		SStationTypeStats *pStats;
 		DWORD dwUNID = m_StationStats.GetNext(i, &pStats);
 		CStationType *pType = m_Universe.FindStationType(dwUNID);
-		if (pType == NULL)
+		if (pType == NULL || pType->GetSovereign() == NULL)
 			continue;
 
 		CString sName = pType->GetNounPhrase(0);
@@ -1201,7 +1201,7 @@ CString CPlayerGameStats::GetStatString (const CString &sStat) const
 			SStationTypeStats *pStats;
 			DWORD dwUNID = m_StationStats.GetNext(i, &pStats);
 			CStationType *pType = m_Universe.FindStationType(dwUNID);
-			if (pType == NULL)
+			if (pType == NULL || pType->GetSovereign() == NULL)
 				continue;
 
 			if (pType->GetSovereign()->IsEnemy(pPlayerSovereign))
@@ -1245,7 +1245,7 @@ CString CPlayerGameStats::GetStatString (const CString &sStat) const
 			SStationTypeStats *pStats;
 			DWORD dwUNID = m_StationStats.GetNext(i, &pStats);
 			CStationType *pType = m_Universe.FindStationType(dwUNID);
-			if (pType == NULL)
+			if (pType == NULL || pType->GetSovereign() == NULL)
 				continue;
 
 			if (!pType->GetSovereign()->IsEnemy(pPlayerSovereign))
