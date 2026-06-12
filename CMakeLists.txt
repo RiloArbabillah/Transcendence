@@ -66,7 +66,6 @@ set(ALCHEMY_KERNEL_SOURCES
     "Alchemy/Kernel/CStackBase.cpp"
     "Alchemy/Kernel/CStepIncrementor.cpp"
     "Alchemy/Kernel/CString.cpp"
-    # "Alchemy/Kernel/CStringStub.cpp"  # Conflicts with CString.cpp on macOS
     "Alchemy/Kernel/CSymbolTable.cpp"
     "Alchemy/Kernel/CTextFileLog.cpp"
     "Alchemy/Kernel/CThreadPool.cpp"

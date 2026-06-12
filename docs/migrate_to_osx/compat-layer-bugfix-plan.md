@@ -205,17 +205,19 @@ dan duplikatnya di header lain.
 - **File:** `Alchemy/Include/Kernel.h` (`CreateFont`, `CreateDIBitmap`,
   `CreateDIBSection`, `SetDIBits`, dll.)
 - **Perbaikan:**
-  - [ ] Pastikan tidak ada jalur runtime macOS yang masih memanggilnya
+  - [x] Pastikan tidak ada jalur runtime macOS yang masih memanggilnya
     (grep call-site, arahkan semua ke `DIBSDL.cpp` / `SDLBitmap.cpp`).
-  - [ ] Tambahkan `ASSERT(false)` / log di stub agar pemanggilan tak sengaja
+    — `CreateDIBitmap`/`CreateDIBSection`/`SetDIBits`/`SelectPalette`/`RealizePalette`
+    tidak dipanggil dari macOS code path. `CreateFont`/`DeleteObject` dipanggil
+    dari fallback path (null-guarded, aman).
+  - [x] Tambahkan `ASSERT(false)` / log di stub agar pemanggilan tak sengaja
     terdeteksi saat debug, bukan gagal diam-diam.
 
 ### 5.4 `CStringStub.cpp`
 - **Bug:** Berisi `strToLower` yang return string apa adanya; saat ini sudah
   dikecualikan dari CMake tapi masih ada di tree.
 - **Perbaikan:**
-  - [x] Hapus file atau pindahkan keluar dari source tree agar tidak ter-link
-    tidak sengaja.
+  - [x] Hapus file dari source tree dan hapus komentar di CMakeLists.txt.
 
 ---
 

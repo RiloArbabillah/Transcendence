@@ -123,11 +123,11 @@ inline HFONT CreateFont(int nHeight, int nWidth, int nEscapement, int nOrientati
 #define BI_RGB 0
 #define BI_BITFIELDS 3
 #define RT_BITMAP 2
-inline HPALETTE SelectPalette(HDC hDC, HPALETTE hPal, BOOL bForceBackground) { return nullptr; }
-inline unsigned int RealizePalette(HDC hDC) { return 0; }
-inline HBITMAP CreateDIBitmap(HDC hDC, void* lpInfo, DWORD dwUsage, void* lpInitBits, void* lpColorInfo, DWORD dwColorUsage) { return nullptr; }
-inline HBITMAP CreateDIBSection(HDC hDC, void* pInfo, DWORD usage, void** ppBits, HANDLE hSection, DWORD offset) { return nullptr; }
-inline int SetDIBits(HDC hDC, HBITMAP hBitmap, unsigned int uStartScan, unsigned int cScanLines, void* pBits, void* pInfo, DWORD dwColorUse) { return 0; }
+inline HPALETTE SelectPalette(HDC hDC, HPALETTE hPal, BOOL bForceBackground) { ASSERT(false); return nullptr; }
+inline unsigned int RealizePalette(HDC hDC) { ASSERT(false); return 0; }
+inline HBITMAP CreateDIBitmap(HDC hDC, void* lpInfo, DWORD dwUsage, void* lpInitBits, void* lpColorInfo, DWORD dwColorUsage) { ASSERT(false); return nullptr; }
+inline HBITMAP CreateDIBSection(HDC hDC, void* pInfo, DWORD usage, void** ppBits, HANDLE hSection, DWORD offset) { ASSERT(false); return nullptr; }
+inline int SetDIBits(HDC hDC, HBITMAP hBitmap, unsigned int uStartScan, unsigned int cScanLines, void* pBits, void* pInfo, DWORD dwColorUse) { ASSERT(false); return 0; }
 #define SRCAND 0x008800C6
 #define SRCCOPY 0x00CC0020
 #define SRCPAINT 0x00EE0086
