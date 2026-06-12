@@ -14,8 +14,8 @@ Status: `[ ]` belum dikerjakan, `[x]` selesai.
 - **Bug:** `STR_PATH_SEPARATOR` didefinisikan sebagai `"\\"`. Semua path hasil
   `pathAddComponent` dkk. tidak valid di POSIX (`Game\Collection\file.tdb`).
 - **Perbaikan:**
-  - [ ] Ubah menjadi `"/"` di build non-Windows (gunakan `#ifdef _WIN32`).
-  - [ ] Audit semua fungsi `path*` (`pathGetExtension`, `pathStripExtension`,
+  - [x] Ubah menjadi `"/"` di build non-Windows (gunakan `#ifdef _WIN32`).
+  - [x] Audit semua fungsi `path*` (`pathGetExtension`, `pathStripExtension`,
     `pathGetPath`, `pathGetFilename`) agar menerima `/` sekaligus `\` sebagai
     separator input (resource lama dari TDB bisa berisi `\`).
   - [ ] Tambahkan fungsi normalisasi `pathNormalizeSeparators()` yang mengubah
@@ -28,10 +28,10 @@ Status: `[ ]` belum dikerjakan, `[x]` selesai.
   `WIN32_FIND_DATA FileInfo` **tidak terinisialisasi** → baca memori sampah/crash.
   Efek: daftar save game, extension, dan mod selalu kosong atau crash.
 - **Perbaikan:**
-  - [ ] Implementasi nyata berbasis `opendir()`/`readdir()`/`fnmatch()`:
+  - [x] Implementasi nyata berbasis `opendir()`/`readdir()`/`fnmatch()`:
     buat struct handle internal yang menyimpan `DIR*` + pattern.
-  - [ ] `FindFirstFile` gagal harus return `INVALID_HANDLE_VALUE`, bukan `nullptr`.
-  - [ ] Isi `dwFileAttributes` dari `stat()` (`FILE_ATTRIBUTE_DIRECTORY` untuk dir).
+  - [x] `FindFirstFile` gagal harus return `INVALID_HANDLE_VALUE`, bukan `nullptr`.
+  - [x] Isi `dwFileAttributes` dari `stat()` (`FILE_ATTRIBUTE_DIRECTORY` untuk dir).
   - [ ] Alternatif lebih bersih: tulis ulang `fileGetFileList` versi POSIX murni
     di blok `#else`, tanpa meniru API Win32.
 
@@ -40,26 +40,26 @@ Status: `[ ]` belum dikerjakan, `[x]` selesai.
 - **Bug:** Hanya `strcpy(lpBuffer, lpFileName)` — tidak meresolve path relatif,
   tidak menghormati `nBufferLength` (buffer overflow).
 - **Perbaikan:**
-  - [ ] Gunakan `realpath()` untuk path yang sudah ada; untuk path yang belum ada,
+  - [x] Gunakan `realpath()` untuk path yang sudah ada; untuk path yang belum ada,
     gabungkan dengan `getcwd()` lalu normalisasi `.`/`..` manual.
-  - [ ] Selalu cek `nBufferLength` (gunakan `strlcpy`).
+  - [x] Selalu cek `nBufferLength` (gunakan `strlcpy`).
 
 ### 1.4 `SHGetFolderPath` selalu `E_FAIL`
 - **File:** `Alchemy/Kernel/Path.cpp`
 - **Bug:** Folder save/AppData/Documents tidak pernah resolve → lokasi save game rusak.
 - **Perbaikan:**
-  - [ ] Map CSIDL ke lokasi macOS:
+  - [x] Map CSIDL ke lokasi macOS:
     - `CSIDL_LOCAL_APPDATA` / `CSIDL_APPDATA` → `~/Library/Application Support/Transcendence`
     - `CSIDL_PERSONAL` → `~/Documents`
     - `CSIDL_MYPICTURES` → `~/Pictures`, `CSIDL_MYMUSIC` → `~/Music`
-  - [ ] Gunakan `getenv("HOME")` + fallback `getpwuid(getuid())->pw_dir`.
+  - [x] Gunakan `getenv("HOME")` + fallback `getpwuid(getuid())->pw_dir`.
   - [ ] Buat direktori jika belum ada (`mkdir -p` semantics).
 
 ### 1.5 Case sensitivity filesystem
 - **Bug:** APFS bisa case-sensitive; referensi resource yang beda kapitalisasi
   gagal load padahal jalan di Windows.
 - **Perbaikan:**
-  - [ ] Tambahkan fallback lookup case-insensitive di resource loader
+  - [x] Tambahkan fallback lookup case-insensitive di resource loader
     (`CResourceDb` / `CResourcePathResolver`): jika `stat()` gagal, scan direktori
     dengan perbandingan `strcasecmp`.
   - [ ] Log warning saat fallback terpakai agar aset bisa dirapikan.
@@ -68,7 +68,7 @@ Status: `[ ]` belum dikerjakan, `[x]` selesai.
 - **File:** `Alchemy/Kernel/Path.cpp`
 - **Bug:** `SHFileOperation` stub return 1 (gagal).
 - **Perbaikan:**
-  - [ ] Minimal: fallback ke `unlink()` saat `bRecycle=true` di macOS, atau
+  - [x] Minimal: fallback ke `unlink()` saat `bRecycle=true` di macOS, atau
   - [ ] Implementasi trash via `NSFileManager trashItemAtURL` (butuh file .mm Obj-C++).
 
 ---
@@ -82,9 +82,9 @@ Status: `[ ]` belum dikerjakan, `[x]` selesai.
   - Save game & format binary (`.tdb`, `CDataFile`, `CArchiver`) yang menulis
     struct mentah jadi korup / tidak kompatibel lintas platform.
 - **Perbaikan:**
-  - [ ] Ubah ke `typedef std::int32_t LONG;` dan `typedef std::uint32_t ULONG;`.
+  - [x] Ubah ke `typedef std::int32_t LONG;` dan `typedef std::uint32_t ULONG;`.
   - [ ] Rebuild penuh + jalankan self-test serialisasi (tulis-baca save game).
-  - [ ] Grep semua `sizeof(LONG)`, cast `(long)`, dan `memcpy` struct yang
+  - [x] Grep semua `sizeof(LONG)`, cast `(long)`, dan `memcpy` struct yang
     mengandung `LONG` untuk verifikasi.
 
 ### 2.2 `LARGE_INTEGER` union rusak
@@ -93,8 +93,8 @@ Status: `[ ]` belum dikerjakan, `[x]` selesai.
   `QuadPart` tidak lagi overlap dengan pasangan Low/HighPart. Semua kode yang
   mengisi Low/High lalu membaca QuadPart (timer, ukuran file) menghasilkan nilai salah.
 - **Perbaikan:**
-  - [ ] Otomatis benar setelah 2.1 (`LONG` jadi 32-bit).
-  - [ ] Tambahkan `static_assert(sizeof(LARGE_INTEGER) == 8)` sebagai pengaman.
+  - [x] Otomatis benar setelah 2.1 (`LONG` jadi 32-bit).
+  - [x] Tambahkan `static_assert(sizeof(LARGE_INTEGER) == 8)` sebagai pengaman.
   - [ ] Catatan: guard `#ifndef LARGE_INTEGER` tidak berfungsi untuk typedef
     (bukan macro) — ganti dengan include guard / definisi tunggal di satu header.
 
@@ -103,7 +103,7 @@ Status: `[ ]` belum dikerjakan, `[x]` selesai.
 - **Bug:** `typedef unsigned int SOCKET` padahal fd POSIX adalah `int` (bisa -1);
   perbandingan dengan `SOCKET_ERROR (-1)` pada tipe unsigned berisiko salah.
 - **Perbaikan:**
-  - [ ] Ubah ke `typedef int SOCKET;` dengan `INVALID_SOCKET (-1)`.
+  - [x] Ubah ke `typedef int SOCKET;` dengan `INVALID_SOCKET (-1)`.
   - [ ] Audit pengecekan `== INVALID_SOCKET` / `== SOCKET_ERROR` di `Internets.h`,
     `CHTTPClientSession.cpp`, `NetUtil`.
 
@@ -112,7 +112,7 @@ Status: `[ ]` belum dikerjakan, `[x]` selesai.
 - **Bug:** `typedef std::uint16_t WCHAR;` tidak kompatibel dengan literal `L"..."`
   (32-bit di macOS).
 - **Perbaikan:**
-  - [ ] Pertahankan `WCHAR` 16-bit (UTF-16) untuk kompatibilitas data, tapi
+  - [x] Pertahankan `WCHAR` 16-bit (UTF-16) untuk kompatibilitas data, tapi
     grep semua penggunaan `L"..."` yang di-assign ke `WCHAR*` dan ganti dengan
     `u"..."` (char16_t) atau konversi eksplisit.
 
@@ -125,8 +125,8 @@ Status: `[ ]` belum dikerjakan, `[x]` selesai.
 - **Bug:** macOS arm64 little-endian; tanpa byte-swap, `sin_port` salah endian
   (port 80 → 20480). Semua fitur online (Multiverse/Hexarc, HTTP) gagal connect.
 - **Perbaikan:**
-  - [ ] Hapus `#undef htons` / `#undef ntohs` dan shim identity-nya.
-  - [ ] Pakai implementasi sistem dari `<arpa/inet.h>` apa adanya.
+  - [x] Hapus `#undef htons` / `#undef ntohs` dan shim identity-nya.
+  - [x] Pakai implementasi sistem dari `<arpa/inet.h>` apa adanya.
   - [ ] Audit juga penggunaan `htonl`/`ntohl` jika ada shim serupa.
 
 ### 3.2 Redefinisi konstanta socket
@@ -134,7 +134,7 @@ Status: `[ ]` belum dikerjakan, `[x]` selesai.
 - **Bug:** `#define AF_INET 2`, `SOCK_STREAM 1`, dst. setelah include
   `<sys/socket.h>` → redefinition warning dan rapuh jika nilai sistem berbeda.
 - **Perbaikan:**
-  - [ ] Hapus semua `#define` konstanta socket yang sudah disediakan header sistem;
+  - [x] Hapus semua `#define` konstanta socket yang sudah disediakan header sistem;
     bungkus sisanya dengan `#ifndef`.
 
 ---
@@ -148,7 +148,7 @@ dan duplikatnya di header lain.
 - **Bug:** Macro `lseek(fd, 0, SEEK_END)` memindahkan posisi baca ke EOF sebagai
   efek samping; read berikutnya dapat 0 byte (di Windows tidak menggeser pointer).
 - **Perbaikan:**
-  - [ ] Ganti dengan `fstat(fd, &st)` dan return `st.st_size`, atau
+  - [x] Ganti dengan `fstat(fd, &st)` dan return `st.st_size`, atau
     simpan posisi → seek end → restore posisi.
 
 ### 4.2 `CreateFileMapping` + `MapViewOfFile` dobel-mmap
@@ -156,28 +156,28 @@ dan duplikatnya di header lain.
   `MapViewOfFile` memanggil `mmap` lagi dengan pointer itu sebagai fd → EBADF/crash.
   `MAP_PRIVATE` juga berarti tulisan tidak pernah masuk ke file.
 - **Perbaikan:**
-  - [ ] Jadikan `CreateFileMapping` hanya menyimpan fd + ukuran + proteksi dalam
+  - [x] Jadikan `CreateFileMapping` hanya menyimpan fd + ukuran + proteksi dalam
     struct handle; `MapViewOfFile` yang melakukan `mmap` sebenarnya.
-  - [ ] Gunakan `MAP_SHARED` saat `FILE_MAP_WRITE`.
-  - [ ] Cek hasil `mmap` terhadap `MAP_FAILED`, bukan `NULL`.
+  - [x] Gunakan `MAP_SHARED` saat `FILE_MAP_WRITE`.
+  - [x] Cek hasil `mmap` terhadap `MAP_FAILED`, bukan `NULL`.
 
 ### 4.3 `UnmapViewOfFile` → `munmap(ptr, 0)`
 - **Bug:** `munmap` dengan length 0 gagal (EINVAL) di macOS → leak setiap unmap.
 - **Perbaikan:**
-  - [ ] Simpan length mapping di handle (peta `ptr → size`) dan panggil
+  - [x] Simpan length mapping di handle (peta `ptr → size`) dan panggil
     `munmap(ptr, size)`.
 
 ### 4.4 `ReadFile`/`WriteFile` selalu return TRUE
 - **Bug:** `ssize_t -1` saat error disimpan ke `DWORD` (jadi 4294967295) dan
   macro tetap return `TRUE` → error I/O tidak pernah terdeteksi.
 - **Perbaikan:**
-  - [ ] Ganti macro dengan inline function yang mengecek hasil `read`/`write`,
+  - [x] Ganti macro dengan inline function yang mengecek hasil `read`/`write`,
     return `FALSE` saat `< 0`, dan menangani partial read/write (loop sampai habis).
 
 ### 4.5 `CloseHandle(fd)` → `close(fd)`
 - **Bug:** `HANDLE` adalah `void*`; cast implisit ke `int` tidak valid/truncation.
 - **Perbaikan:**
-  - [ ] Standardisasi representasi handle file: bungkus fd dalam
+  - [x] Standardisasi representasi handle file: bungkus fd dalam
     `(HANDLE)(intptr_t)fd` di seluruh shim, dan unwrap secara konsisten.
 
 ---
@@ -189,13 +189,13 @@ dan duplikatnya di header lain.
 - **Bug:** `MultiByteToWideChar`/`WideCharToMultiByte` stub return 0 → string
   hasil konversi selalu kosong (input non-ASCII, nama file UTF-8).
 - **Perbaikan:**
-  - [ ] Implementasi UTF-8 ↔ UTF-16 nyata (manual encoder/decoder kecil, atau
+  - [x] Implementasi UTF-8 ↔ UTF-16 nyata (manual encoder/decoder kecil, atau
     pakai utilitas yang sudah ada di `Alchemy/Kernel/Unicode.cpp`).
 
 ### 5.2 `GetClientRect` hardcode 800x600
 - **File:** `Alchemy/Include/Win32Compat.h`
 - **Perbaikan:**
-  - [ ] Routing ke ukuran window SDL aktual (`SDL_GetWindowSize` /
+  - [x] Routing ke ukuran window SDL aktual (`SDL_GetWindowSize` /
     `SDL_GL_GetDrawableSize` untuk Retina) via `CScreenMgrSDL`.
 
 ### 5.3 GDI stubs return nullptr
@@ -211,7 +211,7 @@ dan duplikatnya di header lain.
 - **Bug:** Berisi `strToLower` yang return string apa adanya; saat ini sudah
   dikecualikan dari CMake tapi masih ada di tree.
 - **Perbaikan:**
-  - [ ] Hapus file atau pindahkan keluar dari source tree agar tidak ter-link
+  - [x] Hapus file atau pindahkan keluar dari source tree agar tidak ter-link
     tidak sengaja.
 
 ---
@@ -227,9 +227,9 @@ dan duplikatnya di header lain.
   - Macro `RGB` tanda kurungnya tidak seimbang
   - `LPARAM`/`LRESULT` di-typedef dua kali dengan tipe berbeda
 - **Perbaikan:**
-  - [ ] Putuskan satu sumber kebenaran: konsolidasikan semua shim ke `Kernel.h`
+  - [x] Putuskan satu sumber kebenaran: konsolidasikan semua shim ke `Kernel.h`
     (atau sebaliknya), lalu **hapus** file yang tidak dipakai.
-  - [ ] Macro `min`/`max` di file ini menabrak `std::min`/`std::max` — hapus dan
+  - [x] Macro `min`/`max` di file ini menabrak `std::min`/`std::max` — hapus dan
     ganti call-site dengan `std::min`/`std::max` atau `Min`/`Max` milik engine.
 
 ---
@@ -241,7 +241,7 @@ dan duplikatnya di header lain.
 - **Bug:** `gettimeofday` sejak epoch di-truncate ke `DWORD` → wrap tiap ~49,7 hari
   dengan titik wrap yang arbitrer; berbeda semantik dengan Windows (sejak boot).
 - **Perbaikan:**
-  - [ ] Implementasi dengan `clock_gettime(CLOCK_MONOTONIC)` atau
+  - [x] Implementasi dengan `clock_gettime(CLOCK_MONOTONIC)` atau
     `mach_absolute_time`, dikurangi timestamp startup proses (sehingga mulai
     dari ~0 seperti Windows).
 
@@ -250,7 +250,7 @@ dan duplikatnya di header lain.
 - **Bug:** Mencampur `QueryPerformanceCounter` dan `GetTickCount` pada basis
   waktu berbeda.
 - **Perbaikan:**
-  - [ ] Satukan ke satu sumber monotonic; pastikan shim
+  - [x] Satukan ke satu sumber monotonic; pastikan shim
     `QueryPerformanceCounter`/`QueryPerformanceFrequency` konsisten
     (mach_absolute_time + timebase).
 
@@ -258,10 +258,10 @@ dan duplikatnya di header lain.
 
 ## Fase 8 — Low: Build System (`CMakeLists.txt`)
 
-- [ ] Ganti path Homebrew hardcoded (`/opt/homebrew/Cellar/zlib/1.3.2/...`,
+- [x] Ganti path Homebrew hardcoded (`/opt/homebrew/Cellar/zlib/1.3.2/...`,
   `minizip/1.3.2_1`) dengan `find_package(ZLIB REQUIRED)` dan
   `pkg_check_modules(MINIZIP minizip)`.
-- [ ] Hapus variabel `MAMMOTH_TSE_SOURCES` yang didefinisikan tapi tidak dipakai
+- [x] Hapus variabel `MAMMOTH_TSE_SOURCES` yang didefinisikan tapi tidak dipakai
   (target `mammoth_tse` mendaftar source-nya sendiri) — membingungkan.
 - [ ] Tinjau `-Wno-non-pod-varargs`: warning ini sering menandakan bug nyata
   (CString dipassing ke varargs); idealnya perbaiki call-site lalu hapus flag.
@@ -282,10 +282,10 @@ dan duplikatnya di header lain.
 
 ## Kriteria Verifikasi
 
-- [ ] `static_assert` ukuran tipe: `LONG`==4, `DWORD`==4, `LARGE_INTEGER`==8,
+- [x] `static_assert` ukuran tipe: `LONG`==4, `DWORD`==4, `LARGE_INTEGER`==8,
   `POINT`==8 byte.
 - [ ] Save game bisa ditulis lalu dibaca ulang tanpa korupsi (round-trip test).
 - [ ] `fileGetFileList` menemukan file di direktori test (termasuk pattern `*.sav`).
 - [ ] Folder save terbuat di `~/Library/Application Support/Transcendence`.
 - [ ] HTTP request ke Multiverse mengembalikan respons valid (cek port endian).
-- [ ] Build bersih tanpa warning redefinition di `Kernel.h`.
+- [x] Build bersih tanpa warning redefinition di `Kernel.h`.
