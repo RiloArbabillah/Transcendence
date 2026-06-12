@@ -128,7 +128,9 @@ Status: `[ ]` belum dikerjakan, `[x]` selesai.
 - **Perbaikan:**
   - [x] Hapus `#undef htons` / `#undef ntohs` dan shim identity-nya.
   - [x] Pakai implementasi sistem dari `<arpa/inet.h>` apa adanya.
-  - [ ] Audit juga penggunaan `htonl`/`ntohl` jika ada shim serupa.
+  - [x] Audit juga penggunaan `htonl`/`ntohl` jika ada shim serupa. —
+    Tidak ada shim: hanya satu penggunaan di `CNetServer.cpp` (`htonl(INADDR_ANY)`),
+    memanggil sistem langsung.
 
 ### 3.2 Redefinisi konstanta socket
 - **File:** `Alchemy/Include/Kernel.h`
