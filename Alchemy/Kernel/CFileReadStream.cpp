@@ -118,6 +118,12 @@ ALERROR CFileReadStream::Open (void)
 	//	Figure out the size of the file
 
 	m_dwFileSize = ::GetFileSize(m_hFile, NULL);
+	if (m_dwFileSize == INVALID_SET_FILE_POINTER)
+		{
+		CloseHandle(m_hFile);
+		m_hFile = NULL;
+		return ERR_FAIL;
+		}
 	m_pPos = m_pFile;
 
 	return NOERROR;

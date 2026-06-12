@@ -105,9 +105,20 @@ ALERROR CFileReadBlock::Open (void)
 	m_dwFileSize = ::GetFileSize(m_hFile, NULL);
 
 #ifdef TARGET_PLATFORM_MACOS
-	if (m_dwFileSize == 0)
+	if (m_dwFileSize == 0 || m_dwFileSize == INVALID_SET_FILE_POINTER)
 		{
-		m_pFile = NULL;
+		if (m_dwFileSize == INVALID_SET_FILE_POINTER)
+			{
+			CloseHandle(m_hFile);
+			m_hFile = NULL;
+			return ERR_FAIL;
+			}
+		//	Empty file: close the file handle and set m_pFile to a safe
+		//	non-NULL address so that GetPointer() doesn't return NULL + offset.
+
+		m_pFile = (char *)"";
+		CloseHandle(m_hFile);
+		m_hFile = NULL;
 		return NOERROR;
 		}
 
