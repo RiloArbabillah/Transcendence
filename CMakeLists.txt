@@ -9,6 +9,9 @@ endif()
 find_package(SDL2 REQUIRED)
 find_package(SDL2_image REQUIRED)
 find_package(SDL2_mixer REQUIRED)
+find_package(ZLIB REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(MINIZIP REQUIRED IMPORTED_TARGET minizip)
 
 include_directories(${SDL2_INCLUDE_DIRS} ${SDL2_IMAGE_INCLUDE_DIRS} ${SDL2_MIXER_INCLUDE_DIRS})
 
@@ -240,13 +243,6 @@ set(ALCHEMY_GRAPHICS_SOURCES
     "Alchemy/DirectXUtil/lodepng/lodepng.cpp"
 )
 
-set(MAMMOTH_TSE_SOURCES
-    "Mammoth/TSE/CDesignCollection.cpp"
-    "Mammoth/TSE/CSystem.cpp"
-    "Mammoth/TSE/CUniverse.cpp"
-    "Mammoth/TSE/CreateSystem.cpp"
-)
-
 set(MAMMOTH_TSUI_SOURCES
     "Mammoth/TSUI/CVisualPalette.cpp"
     "Mammoth/TSUI/IHISession.cpp"
@@ -393,12 +389,11 @@ add_library(alchemy_kernel STATIC ${ALCHEMY_KERNEL_SOURCES})
 target_include_directories(alchemy_kernel PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/Alchemy/Include"
     "${CMAKE_CURRENT_SOURCE_DIR}/Alchemy"
-    /opt/homebrew/Cellar/zlib/1.3.2/include
-    /opt/homebrew/Cellar/minizip/1.3.2_1/include
+    ${ZLIB_INCLUDE_DIRS}
 )
 target_link_libraries(alchemy_kernel PUBLIC
-    /opt/homebrew/Cellar/zlib/1.3.2/lib/libz.dylib
-    /opt/homebrew/Cellar/minizip/1.3.2_1/lib/libminizip.dylib
+    ZLIB::ZLIB
+    PkgConfig::MINIZIP
 )
 
 add_library(alchemy_codechain STATIC ${ALCHEMY_CODECHAIN_SOURCES})
