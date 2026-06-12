@@ -83,14 +83,37 @@ inline HRESULT SHGetFolderPath(void* pToken, int iCSIDL, void* pReserved, DWORD 
 		}
 
 	snprintf(pDest, MAX_PATH, "%s%s", pHome, pSuffix);
+
+	//	Create the directory if it doesn't exist (mkdir -p semantics)
+
+	{
+	std::string sDir = pDest;
+	std::string sAccum;
+	size_t iPos = (sDir[0] == '/') ? 1 : 0;
+	while (iPos <= sDir.size())
+		{
+		size_t iNext = sDir.find('/', iPos);
+		size_t iEnd = (iNext == std::string::npos) ? sDir.size() : iNext;
+		std::string sComp = sDir.substr(iPos, iEnd - iPos);
+		if (!sComp.empty())
+			{
+			sAccum += '/';
+			sAccum += sComp;
+			mkdir(sAccum.c_str(), 0755);
+			}
+		if (iNext == std::string::npos)
+			break;
+		iPos = iNext + 1;
+		}
+	}
+
 	return S_OK;
 	}
 
+extern "C" int macosTrashFile(const char *pPath);
+
 inline int SHFileOperation(SHFILEOPSTRUCT* lpFileOp)
 	{
-	//	macOS has no recycle bin via this API: fall back to a permanent delete
-	//	so that fileDelete(..., bRecycle = true) still works.
-
 	if (lpFileOp == NULL || lpFileOp->wFunc != FO_DELETE || lpFileOp->pFrom == NULL)
 		return 1;
 
@@ -98,6 +121,17 @@ inline int SHFileOperation(SHFILEOPSTRUCT* lpFileOp)
 
 	std::string sPath = lpFileOp->pFrom;
 	std::replace(sPath.begin(), sPath.end(), '\\', '/');
+
+	//	If FOF_ALLOWUNDO is set, try to move to trash via NSFileManager
+
+	if (lpFileOp->fFlags & FOF_ALLOWUNDO)
+		{
+		if (macosTrashFile(sPath.c_str()) == 0)
+			return 0;
+		}
+
+	//	Fall back to permanent delete
+
 	return (unlink(sPath.c_str()) == 0 ? 0 : 1);
 	}
 
@@ -685,6 +719,20 @@ CString Kernel::pathAddComponent (const CString &sPath, const CString &sComponen
 
 		sResult.Append(sComponent);
 
+#ifdef TARGET_PLATFORM_MACOS
+		//	Normalize backslashes in the combined result
+
+		{
+		char *pRes = sResult.GetASCIIZPointer();
+		while (*pRes)
+			{
+			if (*pRes == '\\')
+				*pRes = '/';
+			pRes++;
+			}
+		}
+#endif
+
 		return sResult;
 		}
 	}
@@ -1042,6 +1090,11 @@ CString Kernel::pathGetSpecialFolder (ESpecialFolders iFolder)
 	//	Truncate to the correct size
 
 	sPath.Truncate(lstrlen(pDest));
+
+	//	Ensure the directory exists (mkdir -p semantics)
+
+	if (!sPath.IsBlank())
+		pathCreate(sPath);
 
 	//	Done
 
