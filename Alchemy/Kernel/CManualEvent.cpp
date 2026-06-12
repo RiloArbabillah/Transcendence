@@ -24,26 +24,12 @@ void CManualEvent::Create (const CString &sName, bool *retbExists)
 	{
 	Close();
 
-	//	Create the semaphore/event handle. On macOS we currently use Win32
-	//	compatibility stubs, so ::CreateEvent() is not a real kernel object and
-	//	returns NULL. For the single-threaded compatibility path we only need a
-	//	stable non-null sentinel handle here.
+	//	Create the event handle using the real CreateEvent implementation
 
-#ifdef TARGET_PLATFORM_MACOS
-	m_hHandle = reinterpret_cast<HANDLE>(this);
-	if (retbExists)
-		*retbExists = false;
-#else
-	m_hHandle = ::CreateEvent(NULL, 
-			TRUE, 
-			FALSE, 
-			(sName.IsBlank() ? NULL : (LPSTR)sName));
+	m_hHandle = ::CreateEvent(NULL, TRUE, FALSE, NULL);
 	if (m_hHandle == NULL)
 		throw CException(ERR_MEMORY);
 
-	//	See if the semaphore already exists
-
 	if (retbExists)
-		*retbExists = (::GetLastError() == ERROR_ALREADY_EXISTS);
-#endif
+		*retbExists = false;
 	}

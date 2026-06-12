@@ -310,8 +310,6 @@ HANDLE Kernel::kernelCreateThread (LPTHREAD_START_ROUTINE pfStart, LPVOID pData)
 //	Creates a new thread
 
 	{
-	HANDLE hThread;
-	DWORD dwThreadID;
 	THREADCTX *pCtx;
 
 	//	Allocate a context block to pass to the thread
@@ -323,16 +321,59 @@ HANDLE Kernel::kernelCreateThread (LPTHREAD_START_ROUTINE pfStart, LPVOID pData)
 	pCtx->pfStart = pfStart;
 	pCtx->pData = pData;
 
-	//	Run the new thread
+	//	Create a pipe to serve as a thread-handle (signal when thread exits)
 
-	hThread = (HANDLE)_beginthreadex(NULL,
-			0,
-			(unsigned int (__stdcall *)(void *))kernelThreadProc,
-			pCtx,
-			0,
-			(unsigned int *)&dwThreadID);
+	int fds[2];
+	if (pipe(fds) != 0)
+		{
+		MemFree(pCtx);
+		return NULL;
+		}
 
-	return hThread;
+	pthread_t thread;
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+
+	auto threadFunc = [](void *arg) -> void * {
+		THREADCTX *pCtx = (THREADCTX *)arg;
+		LPTHREAD_START_ROUTINE pfStart = pCtx->pfStart;
+		LPVOID pData = pCtx->pData;
+		MemFree(pCtx);
+		pfStart(pData);
+		return NULL;
+	};
+
+	if (pthread_create(&thread, &attr, threadFunc, pCtx) != 0)
+		{
+		MemFree(pCtx);
+		close(fds[0]);
+		close(fds[1]);
+		return NULL;
+		}
+
+	pthread_attr_destroy(&attr);
+
+	//	Store the pipe write-end as the "thread handle". When the thread exits
+	//	we close the write-end, causing the read-end to signal EOF. Waiters
+	//	can poll the read-end to detect thread completion.
+
+	//	We repurpose the SEventHandle struct to hold the pipe fds.
+
+	SEventHandle *pHandle = new SEventHandle;
+	pHandle->dwMagic = EVENT_MAGIC;
+	pHandle->fd[0] = fds[0];
+	pHandle->fd[1] = fds[1];
+	pHandle->bManualReset = true;
+
+	//	Close the write-end in a detached cleanup thread so that
+	// WaitForSingleObject on the read-end will unblock.
+
+	std::thread([thread, fds]() {
+		pthread_join(thread, NULL);
+		close(fds[1]);
+		}).detach();
+
+	return (HANDLE)pHandle;
 	}
 
 bool Kernel::kernelDispatchUntilEventSet (HANDLE hEvent, DWORD dwTimeout)
