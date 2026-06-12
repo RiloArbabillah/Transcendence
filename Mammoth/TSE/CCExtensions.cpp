@@ -9375,7 +9375,7 @@ ICCItem *fnObjSet (CEvalContext *pEvalCtx, ICCItem *pArgs, DWORD dwData)
 			ICCItem *pData = (pArgs->GetCount() > 2 ? pArgs->GetElement(2) : NULL);
 			pObj->FireCustomEvent(pArgs->GetElement(1)->GetStringValue(), eventObjFireEvent, pData, &pResult);
 			if (pResult->IsError() && pCtx->GetUniverse().InDebugMode())
-				::kernelDebugLogPattern("[%s %s]: %s", pObj->GetNounPhrase(), pArgs->GetElement(1)->GetStringValue(), pResult->GetStringValue());
+				::kernelDebugLogPattern("[%s %s]: %s", pObj->GetNounPhrase().GetASCIIZPointer(), pArgs->GetElement(1)->GetStringValue().GetASCIIZPointer(), pResult->GetStringValue().GetASCIIZPointer());
 			return pResult;
 			}
 
@@ -9407,7 +9407,7 @@ ICCItem *fnObjSet (CEvalContext *pEvalCtx, ICCItem *pArgs, DWORD dwData)
 			CString sError;
 			if (!pObj->UseItem(Item, &sError))
 				{
-				::kernelDebugLogPattern("[%s %s Invoke]: %s", pObj->GetNounPhrase(), pType->GetNounPhrase(), sError);
+				::kernelDebugLogPattern("[%s %s Invoke]: %s", pObj->GetNounPhrase().GetASCIIZPointer(), pType->GetNounPhrase().GetASCIIZPointer(), sError.GetASCIIZPointer());
 				return pCC->CreateNil();
 				}
 
@@ -9450,7 +9450,7 @@ ICCItem *fnObjSet (CEvalContext *pEvalCtx, ICCItem *pArgs, DWORD dwData)
 
 			if (!sError.IsBlank())
 				{
-				::kernelDebugLogPattern("[%s %s Invoke]: %s", pObj->GetNounPhrase(), pPower->GetNounPhrase(), sError);
+				::kernelDebugLogPattern("[%s %s Invoke]: %s", pObj->GetNounPhrase().GetASCIIZPointer(), pPower->GetNounPhrase().GetASCIIZPointer(), sError.GetASCIIZPointer());
 				return pCC->CreateNil();
 				}
 			return pCC->CreateTrue();

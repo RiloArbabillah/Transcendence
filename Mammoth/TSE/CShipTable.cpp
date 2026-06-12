@@ -854,7 +854,7 @@ void CSingleShip::CreateShip (SShipCreateCtx &Ctx,
 	IShipController *pController = Ctx.GetUniverse().CreateShipController(m_sController);
 	if (pController == NULL)
 		{
-		kernelDebugLogPattern("Cannot create ship %x; invalid controller: %s", dwClass, m_sController);
+		kernelDebugLogPattern("Cannot create ship %x; invalid controller: %s", dwClass, m_sController.GetASCIIZPointer());
 		if (retpShip)
 			*retpShip = NULL;
 		return;

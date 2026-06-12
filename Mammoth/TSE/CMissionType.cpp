@@ -282,7 +282,7 @@ bool CMissionType::FireCanCreate (CSpaceObject *pOwner, ICCItem *pCreateData) co
 	ICCItemPtr pResult = Ctx.RunCode(Handler);
 	if (pResult->IsError())
 		{
-		::kernelDebugLogPattern("[%08x] <CanCreate>: %s", GetUNID(), pResult->GetStringValue());
+		::kernelDebugLogPattern("[%08x] <CanCreate>: %s", GetUNID(), pResult->GetStringValue().GetASCIIZPointer());
 		return false;
 		}
 	else

@@ -268,8 +268,10 @@ dan duplikatnya di header lain.
   `pkg_check_modules(MINIZIP minizip)`.
 - [x] Hapus variabel `MAMMOTH_TSE_SOURCES` yang didefinisikan tapi tidak dipakai
   (target `mammoth_tse` mendaftar source-nya sendiri) — membingungkan.
-- [ ] Tinjau `-Wno-non-pod-varargs`: warning ini sering menandakan bug nyata
+- [x] Tinjau `-Wno-non-pod-varargs`: warning ini sering menandakan bug nyata
   (CString dipassing ke varargs); idealnya perbaiki call-site lalu hapus flag.
+  — Fixed: added 6 missing typed overloads for `kernelDebugLogPattern`,
+  fixed 6 individual call-sites, removed `-Wno-non-pod-varargs` flag.
 
 ---
 

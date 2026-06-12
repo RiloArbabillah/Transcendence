@@ -7304,7 +7304,7 @@ ALERROR CShip::ReportCreateError (const CString &sError) const
 //  Reports an error while creating a ship.
 
 	{
-	::kernelDebugLogPattern("Error creating ship %08x: %s", (m_pClass ? m_pClass->GetUNID() : 0), sError);
+	::kernelDebugLogPattern("Error creating ship %08x: %s", (m_pClass ? m_pClass->GetUNID() : 0), sError.GetASCIIZPointer());
 	return ERR_FAIL;
 	}
 

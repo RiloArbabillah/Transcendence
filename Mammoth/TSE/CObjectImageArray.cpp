@@ -2293,7 +2293,7 @@ bool CObjectImageArray::ValidateImageSize (int cxWidth, int cyHeight) const
 
 	//	Otherwise, log it.
 
-    ::kernelDebugLogPattern("[0x%08x %s]: Image not large enough; %d x %d needed.", m_pImage->GetUNID(), m_pImage->GetImageFilename(), cxRequired, cyRequired);
+    ::kernelDebugLogPattern("[0x%08x %s]: Image not large enough; %d x %d needed.", m_pImage->GetUNID(), m_pImage->GetImageFilename().GetASCIIZPointer(), cxRequired, cyRequired);
 
 	return false;
 	}

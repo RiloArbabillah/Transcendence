@@ -123,11 +123,11 @@ inline HFONT CreateFont(int nHeight, int nWidth, int nEscapement, int nOrientati
 #define BI_RGB 0
 #define BI_BITFIELDS 3
 #define RT_BITMAP 2
-inline HPALETTE SelectPalette(HDC hDC, HPALETTE hPal, BOOL bForceBackground) { ASSERT(false); return nullptr; }
-inline unsigned int RealizePalette(HDC hDC) { ASSERT(false); return 0; }
-inline HBITMAP CreateDIBitmap(HDC hDC, void* lpInfo, DWORD dwUsage, void* lpInitBits, void* lpColorInfo, DWORD dwColorUsage) { ASSERT(false); return nullptr; }
-inline HBITMAP CreateDIBSection(HDC hDC, void* pInfo, DWORD usage, void** ppBits, HANDLE hSection, DWORD offset) { ASSERT(false); return nullptr; }
-inline int SetDIBits(HDC hDC, HBITMAP hBitmap, unsigned int uStartScan, unsigned int cScanLines, void* pBits, void* pInfo, DWORD dwColorUse) { ASSERT(false); return 0; }
+inline HPALETTE SelectPalette(HDC hDC, HPALETTE hPal, BOOL bForceBackground) { fprintf(stderr, "ERROR: SelectPalette called on macOS\n"); return nullptr; }
+inline unsigned int RealizePalette(HDC hDC) { fprintf(stderr, "ERROR: RealizePalette called on macOS\n"); return 0; }
+inline HBITMAP CreateDIBitmap(HDC hDC, void* lpInfo, DWORD dwUsage, void* lpInitBits, void* lpColorInfo, DWORD dwColorUsage) { fprintf(stderr, "ERROR: CreateDIBitmap called on macOS\n"); return nullptr; }
+inline HBITMAP CreateDIBSection(HDC hDC, void* pInfo, DWORD usage, void** ppBits, HANDLE hSection, DWORD offset) { fprintf(stderr, "ERROR: CreateDIBSection called on macOS\n"); return nullptr; }
+inline int SetDIBits(HDC hDC, HBITMAP hBitmap, unsigned int uStartScan, unsigned int cScanLines, void* pBits, void* pInfo, DWORD dwColorUse) { fprintf(stderr, "ERROR: SetDIBits called on macOS\n"); return 0; }
 #define SRCAND 0x008800C6
 #define SRCCOPY 0x00CC0020
 #define SRCPAINT 0x00EE0086
@@ -2486,6 +2486,12 @@ inline void kernelDebugLogPattern (const char *pszLine, const CString &s1, int i
 inline void kernelDebugLogPattern (const char *pszLine, const CString &s1, int i2, const CString &s3) { kernelDebugLogString(strPatternSubst(CString(pszLine, -1, TRUE), s1, i2, s3)); }
 inline void kernelDebugLogPattern (const char *pszLine, const CString &s1, int i2, const CString &s3, int i4) { kernelDebugLogString(strPatternSubst(CString(pszLine, -1, TRUE), s1, i2, s3, i4)); }
 inline void kernelDebugLogPattern (const char *pszLine, const CString &s1, int i2, const CString &s3, int i4, const CString &s5) { kernelDebugLogString(strPatternSubst(CString(pszLine, -1, TRUE), s1, i2, s3, i4, s5)); }
+inline void kernelDebugLogPattern (const char *pszLine, int i1, const CString &s2) { kernelDebugLogString(strPatternSubst(CString(pszLine, -1, TRUE), i1, s2)); }
+inline void kernelDebugLogPattern (const char *pszLine, const CString &s1, const CString &s2, int i3) { kernelDebugLogString(strPatternSubst(CString(pszLine, -1, TRUE), s1, s2, i3)); }
+inline void kernelDebugLogPattern (const char *pszLine, const CString &s1, int i2, int i3) { kernelDebugLogString(strPatternSubst(CString(pszLine, -1, TRUE), s1, i2, i3)); }
+inline void kernelDebugLogPattern (const char *pszLine, const CString &s1, const CString &s2, const CString &s3) { kernelDebugLogString(strPatternSubst(CString(pszLine, -1, TRUE), s1, s2, s3)); }
+inline void kernelDebugLogPattern (const char *pszLine, const CString &s1, const CString &s2, int i3, const CString &s4) { kernelDebugLogString(strPatternSubst(CString(pszLine, -1, TRUE), s1, s2, i3, s4)); }
+inline void kernelDebugLogPattern (const char *pszLine, const CString &s1, int i2, const CString &s3, const CString &s4) { kernelDebugLogString(strPatternSubst(CString(pszLine, -1, TRUE), s1, i2, s3, s4)); }
 CString kernelGetSessionDebugLog (void);
 
 #define KERNEL_FLAG_INTERNETS					0x00000001

@@ -20,7 +20,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_OBJCXX_STANDARD 20)
 set(CMAKE_OBJCXX_STANDARD_REQUIRED ON)
-add_compile_options(-Wno-non-pod-varargs)
+# add_compile_options(-Wno-non-pod-varargs)  # Re-enable after fixing warnings
 add_compile_definitions(TARGET_PLATFORM_MACOS)
 
 option(TRANSCENDENCE_M1_MENU_ONLY "Limit the build graph to the milestone-1 menu path." ON)

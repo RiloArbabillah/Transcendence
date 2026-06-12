@@ -3532,7 +3532,7 @@ ALERROR CShipClass::OnBindDesign (SDesignLoadCtx &Ctx)
 			&& m_Armor.GetCount() > 0
 			&& m_Hull.HasArmorLimits()
 			&& m_Hull.GetArmorLimits().CanInstallArmor(CItem(m_Armor.GetSegment(0).GetArmorClass()->GetItemType(), 1)) != CArmorLimits::resultOK)
-		::kernelDebugLogPattern("WARNING: %s armor not compatible with ship class %s (%08x)", m_Armor.GetSegment(0).GetArmorClass()->GetName(), GetNounPhrase(), GetUNID());
+		::kernelDebugLogPattern("WARNING: %s armor not compatible with ship class %s (%08x)", m_Armor.GetSegment(0).GetArmorClass()->GetName().GetASCIIZPointer(), GetNounPhrase().GetASCIIZPointer(), GetUNID());
 
 	return NOERROR;
 	}
