@@ -882,11 +882,12 @@ bool CIntroSession::HandleChar (char chChar, DWORD dwKeyData)
 			int i;
 
 			CSpaceObject *pPOV = g_pUniverse->GetPOV();
-			if (pPOV->GetCategory() != CSpaceObject::catShip)
+			if (pPOV == NULL || pPOV->GetCategory() != CSpaceObject::catShip)
 				break;
 
 			CSystem *pSystem = pPOV->GetSystem();
 			CSovereign *pCurSovereign = pPOV->GetSovereign();
+
 
 			//	Make a list of all opponents
 

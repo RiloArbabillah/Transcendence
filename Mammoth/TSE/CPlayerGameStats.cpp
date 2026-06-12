@@ -1824,6 +1824,8 @@ void CPlayerGameStats::OnObjDestroyedByPlayer (const SDestroyCtx &Ctx, CSpaceObj
 		if (Ctx.Obj.HasAttribute(CONSTLIT("populated"))
 				|| Ctx.Obj.HasAttribute(CONSTLIT("score")))
 			{
+			if (Ctx.Obj.GetType() == NULL)
+				break;
 			SStationTypeStats *pStats = GetStationStats(Ctx.Obj.GetType()->GetUNID());
 
 			pStats->iDestroyed++;
@@ -1886,7 +1888,7 @@ void CPlayerGameStats::OnSwitchPlayerShip (const CShip &NewShip, const CShip *pO
 
 	//	Stop using the old ship
 
-	if (pOldShip)
+	if (pOldShip && pOldShip->GetType())
 		{
 		DWORD dwOldClass = pOldShip->GetType()->GetUNID();
 		SPlayerShipStats *pOldStats = m_PlayerShipStats.GetAt(dwOldClass);
@@ -1899,6 +1901,8 @@ void CPlayerGameStats::OnSwitchPlayerShip (const CShip &NewShip, const CShip *pO
 
 	//	Add an entry for the new ship.
 
+	if (NewShip.GetType() == NULL)
+		return;
 	DWORD dwNewClass = NewShip.GetType()->GetUNID();
 	SPlayerShipStats *pNewStats = m_PlayerShipStats.SetAt(dwNewClass);
 	if (pNewStats->dwFirstEntered == INVALID_TIME)

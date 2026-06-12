@@ -677,7 +677,8 @@ void CFleetCommandAI::OnNewSystemNotify (void)
 		{
 		if (m_Assets[i].pAsset->GetSystem() != pNewSystem)
 			{
-			IShipController::OrderTypes iOrder = m_Assets[i].pAsset->AsShip()->GetController()->GetCurrentOrderDesc().GetOrder();
+			CShip *pShip = m_Assets[i].pAsset->AsShip();
+			IShipController::OrderTypes iOrder = (pShip && pShip->GetController()) ? pShip->GetController()->GetCurrentOrderDesc().GetOrder() : IShipController::orderNone;
 			m_Assets[i].pAsset = NULL;
 			iNewCount--;
 			}

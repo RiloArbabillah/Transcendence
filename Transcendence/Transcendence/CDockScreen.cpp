@@ -867,6 +867,8 @@ const CDockScreenVisuals &CDockScreen::GetDockScreenVisuals (void) const
 	
 	{
 	ASSERT(m_pPlayer);
+	if (m_pPlayer == NULL || m_pPlayer->GetShip() == NULL || m_pPlayer->GetShip()->GetClass() == NULL || m_pPlayer->GetShip()->GetClass()->GetPlayerSettings() == NULL)
+		return CVisualPalette();
 	return m_pPlayer->GetShip()->GetClass()->GetPlayerSettings()->GetDockScreenVisuals(GetUniverse());
 	}
 
@@ -2259,7 +2261,7 @@ void CDockScreen::UpdateCredits (void)
 			));
 
 	//	Cargo space
-	Metric rCargoSpace = m_pPlayer->GetShip()->GetCargoSpaceLeft();
+	Metric rCargoSpace = (m_pPlayer && m_pPlayer->GetShip()) ? m_pPlayer->GetShip()->GetCargoSpaceLeft() : 0.0;
 	if(rCargoSpace == 1.0)
 		m_pCargoSpace->SetText(CONSTLIT("1 CBM"));
 	else

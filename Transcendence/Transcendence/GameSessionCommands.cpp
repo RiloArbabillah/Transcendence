@@ -17,6 +17,11 @@ void CGameSession::ExecuteCommand (CPlayerShipController *pPlayer, CGameKeys::Ke
 	if (pPlayer == NULL)
 		return;
 
+	//	All commands require an active ship
+
+	if (pPlayer->GetShip() == NULL)
+		return;
+
 	switch (iCommand)
 		{
 		case CGameKeys::keyAutopilot:
@@ -69,7 +74,7 @@ void CGameSession::ExecuteCommand (CPlayerShipController *pPlayer, CGameKeys::Ke
 					|| pPlayer->GetShip()->IsOutOfPlaneObj()
 					|| pPlayer->GetShip()->IsTimeStopped())
 				{ }
-			else if (GetUniverse().GetCurrentSystem()->GetStargateInRange(pPlayer->GetShip()->GetPos()))
+			else if (GetUniverse().GetCurrentSystem() && GetUniverse().GetCurrentSystem()->GetStargateInRange(pPlayer->GetShip()->GetPos()))
 				{
 				g_pUniverse->PlaySound(NULL, g_pUniverse->FindSound(UNID_DEFAULT_BUTTON_CLICK));
 				g_pTrans->Autopilot(false);

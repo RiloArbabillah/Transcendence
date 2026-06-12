@@ -261,7 +261,7 @@ inline BOOL FindClose(void* hFind)
 	}
 inline BOOL GetFileTime(HANDLE hFile, FILETIME* pCreation, FILETIME* pLastAccess, FILETIME* pLastWrite) { return TRUE; }
 inline BOOL FileTimeToSystemTime(FILETIME* pFileTime, SYSTEMTIME* pSystemTime) { return TRUE; }
-inline DWORD GetTempPath(DWORD nBufferLength, char* lpBuffer) { strcpy(lpBuffer, "/tmp"); return strlen(lpBuffer); }
+inline DWORD GetTempPath(DWORD nBufferLength, char* lpBuffer) { if (lpBuffer && nBufferLength > 4) { strlcpy(lpBuffer, "/tmp", nBufferLength); return strlen(lpBuffer); } return 4; }
 inline DWORD GetFileAttributes(const char* lpFileName) {
 #ifndef _WIN32
     std::string sFilename = (lpFileName ? lpFileName : "");

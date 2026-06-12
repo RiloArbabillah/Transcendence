@@ -986,7 +986,7 @@ void CTranscendenceWnd::DestroyAllIntroShips(void)
 {
 	int i;
 
-	CShip *pShip = g_pUniverse->GetPOV()->AsShip();
+	CShip *pShip = (g_pUniverse->GetPOV() ? g_pUniverse->GetPOV()->AsShip() : NULL);
 	if (pShip == NULL)
 		return;
 
@@ -1013,7 +1013,7 @@ void CTranscendenceWnd::DestroyPOVIntroShips (void)
 	{
 	int i;
 
-	CShip *pShip = g_pUniverse->GetPOV()->AsShip();
+	CShip *pShip = (g_pUniverse->GetPOV() ? g_pUniverse->GetPOV()->AsShip() : NULL);
 	if (pShip == NULL)
 		return;
 
