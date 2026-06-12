@@ -268,7 +268,7 @@ void CEffectGroupPainter::OnReadFromStream (SLoadCtx &Ctx)
 	if (Ctx.dwVersion >= 93)
 		{
 		Ctx.pStream->Read((char *)&dwLoad, sizeof(DWORD));
-		iCount = dwLoad;
+		iCount = Min((int)dwLoad, m_Painters.GetCount());
 		}
 	else
 		iCount = m_Painters.GetCount();
@@ -294,7 +294,8 @@ void CEffectGroupPainter::OnReadFromStream (SLoadCtx &Ctx)
 
 		//	Read the painter
 
-		m_Painters[i]->ReadFromStream(Ctx);
+		if (m_Painters[i])
+			m_Painters[i]->ReadFromStream(Ctx);
 		}
 
 	//	If we have extra painters, then delete them
