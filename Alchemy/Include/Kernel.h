@@ -49,6 +49,7 @@
 #include <strings.h>
 #include <string>
 #include <algorithm>
+#include <thread>
 
 #undef htons
 inline unsigned short htons(unsigned short x) { return (unsigned short)__builtin_bswap16(x); }
@@ -282,10 +283,15 @@ inline LONG RegSetValueEx(HKEY hKey, const char* pValueName, DWORD Reserved, DWO
 inline DWORD WSAGetLastError() { return errno; }
 typedef struct protoent PROTOENT;
 #define closesocket close
+inline BOOL CancelIo(HANDLE hFile) { return TRUE; }
 struct OVERLAPPED { void *Internal; void *InternalHigh; void *Offset; DWORD OffsetHigh; HANDLE hEvent; };
 typedef OVERLAPPED *LPOVERLAPPED;
 typedef DWORD *LPDWORD;
-inline BOOL GetOverlappedResult(HANDLE hFile, LPOVERLAPPED lpOverlapped, LPDWORD lpNumberOfBytesTransferred, BOOL bWait) { return TRUE; }
+inline BOOL GetOverlappedResult(HANDLE hFile, LPOVERLAPPED lpOverlapped, LPDWORD lpNumberOfBytesTransferred, BOOL bWait) {
+    if (lpNumberOfBytesTransferred)
+        *lpNumberOfBytesTransferred = (DWORD)(intptr_t)lpOverlapped->InternalHigh;
+    return (lpOverlapped->Internal == 0);
+}
 typedef DWORD (*LPTHREAD_START_ROUTINE)(LPVOID);
 
 typedef unsigned int UINT;
@@ -550,7 +556,15 @@ inline HANDLE CreateFile(const char* pFilename, DWORD dwAccess, DWORD dwShareMod
 #ifndef ReadFile
 inline BOOL ReadFile(HANDLE hFile, void* buf, DWORD len, DWORD* read_out, void* extra) {
     ssize_t result = read((int)(intptr_t)hFile, buf, len);
-    if (read_out) *read_out = (DWORD)result;
+    if (read_out) *read_out = (result >= 0) ? (DWORD)result : 0;
+    //	For overlapped I/O: store result and signal the event
+    if (extra) {
+        LPOVERLAPPED pOverlapped = (LPOVERLAPPED)extra;
+        pOverlapped->Internal = (void *)(intptr_t)((result >= 0) ? 0 : -1);
+        pOverlapped->InternalHigh = (void *)(intptr_t)((result >= 0) ? result : 0);
+        if (pOverlapped->hEvent)
+            SetEvent(pOverlapped->hEvent);
+    }
     return result >= 0;
 }
 #endif
@@ -558,7 +572,14 @@ inline BOOL ReadFile(HANDLE hFile, void* buf, DWORD len, DWORD* read_out, void* 
 #ifndef WriteFile
 inline BOOL WriteFile(HANDLE hFile, const void* buf, DWORD len, DWORD* written_out, void* extra) {
     ssize_t result = write((int)(intptr_t)hFile, buf, len);
-    if (written_out) *written_out = (DWORD)result;
+    if (written_out) *written_out = (result >= 0) ? (DWORD)result : 0;
+    if (extra) {
+        LPOVERLAPPED pOverlapped = (LPOVERLAPPED)extra;
+        pOverlapped->Internal = (void *)(intptr_t)((result >= 0) ? 0 : -1);
+        pOverlapped->InternalHigh = (void *)(intptr_t)((result >= 0) ? result : 0);
+        if (pOverlapped->hEvent)
+            SetEvent(pOverlapped->hEvent);
+    }
     return result >= 0;
 }
 #endif
@@ -1107,7 +1128,7 @@ typedef VS_FIXEDFILEINFO* LPVSFIXEDFILEINFO;
 
 inline void DebugBreak (void) { }
 inline int GetAsyncKeyState (int) { return 0; }
-inline DWORD GetCurrentThreadId (void) { return 0; }
+inline DWORD GetCurrentThreadId (void) { return (DWORD)(uintptr_t)pthread_self(); }
 inline SHORT GetKeyState (int) { return 0; }
 inline BOOL IsCharAlpha (char chChar) { return (((chChar >= 'a' && chChar <= 'z') || (chChar >= 'A' && chChar <= 'Z')) ? TRUE : FALSE); }
 inline BOOL IsCharAlphaNumeric (char chChar) { return (((chChar >= 'a' && chChar <= 'z') || (chChar >= 'A' && chChar <= 'Z') || (chChar >= '0' && chChar <= '9')) ? TRUE : FALSE); }
