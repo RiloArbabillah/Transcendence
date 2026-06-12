@@ -18,6 +18,8 @@ include_directories(${SDL2_INCLUDE_DIRS} ${SDL2_IMAGE_INCLUDE_DIRS} ${SDL2_MIXER
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_OBJCXX_STANDARD 20)
+set(CMAKE_OBJCXX_STANDARD_REQUIRED ON)
 add_compile_options(-Wno-non-pod-varargs)
 add_compile_definitions(TARGET_PLATFORM_MACOS)
 
@@ -79,6 +81,7 @@ set(ALCHEMY_KERNEL_SOURCES
     "Alchemy/Kernel/Kernel.cpp"
     "Alchemy/Kernel/Math.cpp"
     "Alchemy/Kernel/Path.cpp"
+    "Alchemy/Kernel/PathMacOS.mm"
     "Alchemy/Kernel/Pattern.cpp"
     "Alchemy/Kernel/quickhull/QuickHull.cpp"
     "Alchemy/Kernel/RegEx.cpp"
@@ -394,6 +397,7 @@ target_include_directories(alchemy_kernel PUBLIC
 target_link_libraries(alchemy_kernel PUBLIC
     ZLIB::ZLIB
     PkgConfig::MINIZIP
+    "-framework Foundation"
 )
 
 add_library(alchemy_codechain STATIC ${ALCHEMY_CODECHAIN_SOURCES})

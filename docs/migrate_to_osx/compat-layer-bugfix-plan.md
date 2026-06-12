@@ -18,7 +18,7 @@ Status: `[ ]` belum dikerjakan, `[x]` selesai.
   - [x] Audit semua fungsi `path*` (`pathGetExtension`, `pathStripExtension`,
     `pathGetPath`, `pathGetFilename`) agar menerima `/` sekaligus `\` sebagai
     separator input (resource lama dari TDB bisa berisi `\`).
-  - [ ] Tambahkan fungsi normalisasi `pathNormalizeSeparators()` yang mengubah
+  - [x] Tambahkan fungsi normalisasi `pathNormalizeSeparators()` yang mengubah
     `\` → `/` saat membaca path dari XML/TDB.
 
 ### 1.2 `FindFirstFile` stub mengembalikan `nullptr` + struct tak terinisialisasi
@@ -32,7 +32,7 @@ Status: `[ ]` belum dikerjakan, `[x]` selesai.
     buat struct handle internal yang menyimpan `DIR*` + pattern.
   - [x] `FindFirstFile` gagal harus return `INVALID_HANDLE_VALUE`, bukan `nullptr`.
   - [x] Isi `dwFileAttributes` dari `stat()` (`FILE_ATTRIBUTE_DIRECTORY` untuk dir).
-  - [ ] Alternatif lebih bersih: tulis ulang `fileGetFileList` versi POSIX murni
+  - [x] Alternatif lebih bersih: tulis ulang `fileGetFileList` versi POSIX murni
     di blok `#else`, tanpa meniru API Win32.
 
 ### 1.3 `GetFullPathName` stub salah dan rawan overflow
@@ -53,7 +53,7 @@ Status: `[ ]` belum dikerjakan, `[x]` selesai.
     - `CSIDL_PERSONAL` → `~/Documents`
     - `CSIDL_MYPICTURES` → `~/Pictures`, `CSIDL_MYMUSIC` → `~/Music`
   - [x] Gunakan `getenv("HOME")` + fallback `getpwuid(getuid())->pw_dir`.
-  - [ ] Buat direktori jika belum ada (`mkdir -p` semantics).
+  - [x] Buat direktori jika belum ada (`mkdir -p` semantics).
 
 ### 1.5 Case sensitivity filesystem
 - **Bug:** APFS bisa case-sensitive; referensi resource yang beda kapitalisasi
@@ -62,14 +62,14 @@ Status: `[ ]` belum dikerjakan, `[x]` selesai.
   - [x] Tambahkan fallback lookup case-insensitive di resource loader
     (`CResourceDb` / `CResourcePathResolver`): jika `stat()` gagal, scan direktori
     dengan perbandingan `strcasecmp`.
-  - [ ] Log warning saat fallback terpakai agar aset bisa dirapikan.
+  - [x] Log warning saat fallback terpakai agar aset bisa dirapikan.
 
 ### 1.6 `fileDelete` dengan recycle selalu gagal
 - **File:** `Alchemy/Kernel/Path.cpp`
 - **Bug:** `SHFileOperation` stub return 1 (gagal).
 - **Perbaikan:**
   - [x] Minimal: fallback ke `unlink()` saat `bRecycle=true` di macOS, atau
-  - [ ] Implementasi trash via `NSFileManager trashItemAtURL` (butuh file .mm Obj-C++).
+  - [x] Implementasi trash via `NSFileManager trashItemAtURL` (butuh file .mm Obj-C++).
 
 ---
 
