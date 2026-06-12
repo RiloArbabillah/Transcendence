@@ -1520,7 +1520,7 @@ ICCItem *fnPlySetOld (CEvalContext *pEvalCtx, ICCItem *pArguments, DWORD dwData)
 	//	Convert the first argument into a player controller
 
 	CPlayerShipController *pPlayer = GetPlayerArg(pArgs->GetElement(0));
-	if (pPlayer == NULL)
+	if (pPlayer == NULL || pPlayer->GetShip() == NULL)
 		{
 		pArgs->Discard();
 		return pCC->CreateNil();
@@ -1532,14 +1532,16 @@ ICCItem *fnPlySetOld (CEvalContext *pEvalCtx, ICCItem *pArguments, DWORD dwData)
 		{
 		case FN_PLY_COMPOSE_STRING:
 			{
-			pResult = pCC->CreateString(CLanguage::Compose(pArgs->GetElement(1)->GetStringValue(), NULL));
+			ICCItem *pElem = (pArgs->GetCount() > 1 ? pArgs->GetElement(1) : NULL);
+			pResult = pCC->CreateString(CLanguage::Compose(pElem ? pElem->GetStringValue() : CString(), NULL));
 			pArgs->Discard();
 			break;
 			}
 
 		case FN_PLY_DESTROYED:
 			{
-			CString sText = pArgs->GetElement(1)->GetStringValue();
+			ICCItem *pElem = (pArgs->GetCount() > 1 ? pArgs->GetElement(1) : NULL);
+			CString sText = pElem ? pElem->GetStringValue() : CString();
 			pArgs->Discard();
 			CDamageSource Cause(NULL, killedByOther, NULL, sText, 0);
 			pPlayer->GetShip()->Destroy(killedByOther, Cause);
@@ -1563,7 +1565,7 @@ ICCItem *fnPlySetOld (CEvalContext *pEvalCtx, ICCItem *pArguments, DWORD dwData)
 
 			//	Otherwise, we just set the text
 
-			else
+			else if (pArgs->GetCount() > 1)
 				sText = CLanguage::Compose(pArgs->GetElement(1)->GetStringValue(), NULL);
 
 			pPlayer->DisplayMessage(sText);
@@ -1575,7 +1577,7 @@ ICCItem *fnPlySetOld (CEvalContext *pEvalCtx, ICCItem *pArguments, DWORD dwData)
 
 		case FN_PLY_REDIRECT_MESSAGE:
 			{
-			bool bRedirect = !pArgs->GetElement(1)->IsNil();
+			bool bRedirect = (pArgs->GetCount() > 1) ? !pArgs->GetElement(1)->IsNil() : false;
 			pArgs->Discard();
 			pPlayer->RedirectDisplayMessage(bRedirect);
 			pResult = pCC->CreateTrue();
@@ -1583,7 +1585,8 @@ ICCItem *fnPlySetOld (CEvalContext *pEvalCtx, ICCItem *pArguments, DWORD dwData)
 			}
 
 		default:
-			throw CException(ERR_FAIL);
+			pArgs->Discard();
+			return pCC->CreateNil();
 		}
 
 	return pResult;
