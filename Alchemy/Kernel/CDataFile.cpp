@@ -898,7 +898,7 @@ ALERROR CDataFile::ReadBuffer (DWORD dwFilePos, DWORD dwLen, void *pBuffer)
 		DWORD dwRead;
 		if (!::ReadFile(m_hFile, pBuffer, dwLen, &dwRead, NULL) || dwRead != dwLen)
 			{
-			::kernelDebugLogPattern("I/O Error [%s]: Cannot read %d bytes at %d.", m_sFilename, dwLen, dwFilePos);
+			::kernelDebugLogPattern("I/O Error [%s]: Cannot read %d bytes at %d.", m_sFilename.GetASCIIZPointer(), dwLen, dwFilePos);
 			return ERR_FAIL;
 			}
 		}
