@@ -525,6 +525,7 @@ CTimeDate Kernel::fileGetModifiedTime (const CString &sFilespec)
 //	Returns the modified time
 
 	{
+#ifdef _WIN32
 	HANDLE hFile = ::CreateFile(sFilespec.GetASCIIZPointer(),
 			GENERIC_READ,
 			FILE_SHARE_READ | FILE_SHARE_WRITE,
@@ -553,6 +554,30 @@ CTimeDate Kernel::fileGetModifiedTime (const CString &sFilespec)
 
 	::CloseHandle(hFile);
 	return CTimeDate(SystemTime);
+#else
+	std::string sPath = sFilespec.GetASCIIZPointer();
+	std::replace(sPath.begin(), sPath.end(), '\\', '/');
+
+	struct stat st;
+	if (stat(sPath.c_str(), &st) != 0)
+		return CTimeDate();
+
+	struct tm *pTm = localtime(&st.st_mtime);
+	if (pTm == NULL)
+		return CTimeDate();
+
+	SYSTEMTIME SystemTime;
+	SystemTime.wYear = pTm->tm_year + 1900;
+	SystemTime.wMonth = pTm->tm_mon + 1;
+	SystemTime.wDayOfWeek = pTm->tm_wday;
+	SystemTime.wDay = pTm->tm_mday;
+	SystemTime.wHour = pTm->tm_hour;
+	SystemTime.wMinute = pTm->tm_min;
+	SystemTime.wSecond = pTm->tm_sec;
+	SystemTime.wMilliseconds = 0;
+
+	return CTimeDate(SystemTime);
+#endif
 	}
 
 CString Kernel::fileGetProductName (void)
