@@ -902,18 +902,24 @@ inline void CloseHandle(HANDLE h)
 	if (h == NULL || h == INVALID_HANDLE_VALUE)
 		return;
 
-	//	Check if this is an event handle (pipe-based)
+	//	Event handles are heap-allocated structs (large pointer values).
+	//	File descriptors are small integers (typically < 1024).
+	//	Check if this looks like a pointer before dereferencing.
 
-	SEventHandle *pEvent = (SEventHandle *)h;
-	if (pEvent->dwMagic == EVENT_MAGIC)
+	intptr_t iHandle = (intptr_t)h;
+	if (iHandle > 1024)
 		{
-		close(pEvent->fd[0]);
-		close(pEvent->fd[1]);
-		delete pEvent;
-		return;
+		SEventHandle *pEvent = (SEventHandle *)h;
+		if (pEvent->dwMagic == EVENT_MAGIC)
+			{
+			close(pEvent->fd[0]);
+			close(pEvent->fd[1]);
+			delete pEvent;
+			return;
+			}
 		}
 
-	close((int)(intptr_t)h);
+	close((int)iHandle);
 	}
 
 #define TIMER_RESOLUTION 1
