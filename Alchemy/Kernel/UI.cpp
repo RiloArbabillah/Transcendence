@@ -68,6 +68,15 @@ void Kernel::uiGetCenteredWindowRect (int cxWidth,
 	RECT rcWorkArea;
 	::SystemParametersInfo(SPI_GETWORKAREA, 0, &rcWorkArea, 0);
 
+	// If SystemParametersInfo failed (e.g., on macOS), use screen bounds
+	if (rcWorkArea.right == 0 && rcWorkArea.bottom == 0)
+		{
+		rcWorkArea.left = 0;
+		rcWorkArea.top = 0;
+		rcWorkArea.right = 1920;
+		rcWorkArea.bottom = 1080;
+		}
+
 	if (bClip)
 		{
 		int xOffset = Max(0, (RectWidth(rcWorkArea) - cxWidth) / 2);

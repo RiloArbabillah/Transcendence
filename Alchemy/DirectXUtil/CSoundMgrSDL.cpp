@@ -327,7 +327,10 @@ ALERROR CSoundMgr::LoadWaveFromBuffer(IReadBlock &Data, int *retiChannel)
 
     Mix_Chunk *pChunk = Mix_LoadWAV_RW(pRW, 1);
     if (!pChunk)
+        {
+        SDL_RWclose(pRW);
         return ERR_FAIL;
+        }
 
     int iChannel = AllocChannel();
     SChannel *pChannel = GetChannel(iChannel);
