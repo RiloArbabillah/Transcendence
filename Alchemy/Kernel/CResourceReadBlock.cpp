@@ -8,7 +8,12 @@
 static CObjectClass<CResourceReadBlock>g_Class(OBJID_CRESOURCEREADBLOCK, NULL);
 
 CResourceReadBlock::CResourceReadBlock (void) :
-		CObject(&g_Class)
+		CObject(&g_Class),
+		m_hModule(NULL),
+		m_pszRes(NULL),
+		m_pszType(NULL),
+		m_pData(NULL),
+		m_dwLength(0)
 
 //	CResourceReadBlock constructor
 
@@ -20,7 +25,8 @@ CResourceReadBlock::CResourceReadBlock (HMODULE hModule, const char *pszRes, con
 		m_hModule(hModule),
 		m_pszRes(pszRes),
 		m_pszType(pszType),
-		m_pData(NULL)
+		m_pData(NULL),
+		m_dwLength(0)
 
 //	CResourceReadBlock constructor
 

@@ -28,7 +28,10 @@ static CObjectClass<CArchiver>g_ArchiverClass(OBJID_CARCHIVER, NULL);
 static CObjectClass<CUnarchiver>g_UnarchiverClass(OBJID_CUNARCHIVER, NULL);
 
 CArchiver::CArchiver (void) :
-		CObject(&g_ArchiverClass)
+		CObject(&g_ArchiverClass),
+		m_pStream(NULL),
+		m_iNextID(1),
+		m_dwVersion(0)
 
 //	CArchiver constructor
 
@@ -287,7 +290,11 @@ ALERROR CArchiver::WriteData (char *pData, int iLength)
 //	Unarchiver class ----------------------------------------------------------
 
 CUnarchiver::CUnarchiver (void) :
-		CObject(&g_UnarchiverClass)
+		CObject(&g_UnarchiverClass),
+		m_pStream(NULL),
+		m_pExternalReferences(NULL),
+		m_dwVersion(0),
+		m_dwMinVersion(0)
 
 //	CUnarchiver constructor
 

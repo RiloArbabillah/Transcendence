@@ -50,6 +50,8 @@
 #include <string>
 #include <algorithm>
 #include <thread>
+#include <chrono>
+#include <atomic>
 
 #undef htons
 inline unsigned short htons(unsigned short x) { return (unsigned short)__builtin_bswap16(x); }
@@ -207,7 +209,8 @@ inline int WideCharToMultiByte(unsigned int CodePage, DWORD dwFlags, const WCHAR
     (void)dwFlags; (void)lpDefaultChar; (void)lpUsedDefaultChar;
     if (!lpWideCharStr) return 0;
     if (CodePage != CP_UTF8 && CodePage != CP_ACP) return 0;
-    int iLen = (cchWideChar < 0) ? (int)wcslen((const wchar_t*)lpWideCharStr) : cchWideChar;
+    int iLen = cchWideChar;
+    if (iLen < 0) { const WCHAR* p = lpWideCharStr; while (*p) p++; iLen = (int)(p - lpWideCharStr); }
     int iCount = 0;
     for (int i = 0; i < iLen; i++) {
         unsigned int cp = lpWideCharStr[i];
@@ -725,7 +728,7 @@ inline BOOL SetWindowPos(HWND hWnd, HWND hWndInsertAfter, int X, int Y, int cx, 
 inline BOOL GetWindowRect(HWND hWnd, RECT* pRect) { if (pRect) { pRect->left = pRect->top = pRect->right = pRect->bottom = 0; } return TRUE; }
 inline BOOL IsWindow(HWND hWnd) { return hWnd != nullptr; }
 inline BOOL DestroyWindow(HWND hWnd) { return PlatformDestroyWindow(hWnd) ? TRUE : FALSE; }
-inline int GetSystemMetrics(int nIndex) { return 0; }
+inline int GetSystemMetrics(int nIndex) { if (nIndex == 0) return 1920; if (nIndex == 1) return 1080; return 0; }
 
 inline HICON LoadIcon(HINSTANCE hInstance, LPCSTR lpIconName) { return nullptr; }
 inline int SetCurrentDirectory(LPCSTR lpPathName) { return (lpPathName && *lpPathName ? chdir(lpPathName) : 1); }
@@ -834,9 +837,10 @@ typedef tagMSG MSG;
 #define PM_REMOVE 0x0001
 #define PM_NOYIELD 0x0002
 
-inline int MessageBox(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) { return 0; }
+inline int MessageBox(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) { if (lpCaption) fprintf(stderr, "[%s] ", lpCaption); if (lpText) fprintf(stderr, "%s\n", lpText); return IDOK; }
 #define MB_OK 0x00000000
 #define MB_YESNO 0x00000004
+#define IDOK 1
 #define IDYES 6
 #define IDNO 7
 
@@ -855,7 +859,7 @@ inline void SetCursorPos(int x, int y) { }
 #define VK_MEDIA_STOP 0xB2
 
 inline int timeBeginPeriod(int u) { return 0; }
-inline DWORD timeGetTime() { return 0; }
+inline DWORD timeGetTime() { return (DWORD)(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count()); }
 
 typedef void* HBRUSH;
 struct WNDCLASSEXA { UINT cbSize; UINT style; void* lpfnWndProc; int cbClsExtra; int cbWndExtra; HINSTANCE hInstance; HICON hIcon; HCURSOR hCursor; HBRUSH hbrBackground; LPCSTR lpszMenuName; LPCSTR lpszClassName; HICON hIconSm; };
@@ -1097,8 +1101,8 @@ inline int WSACleanup() { return 0; }
 inline void OutputDebugString(const char* pStr) { }
 inline void _set_se_translator(void* pFunc) { }
 typedef void* LPEXCEPTION_POINTERS;
-inline long InterlockedIncrement(long* p) { return ++(*p); }
-inline long InterlockedDecrement(long* p) { return --(*p); }
+inline long InterlockedIncrement(long* p) { return __sync_add_and_fetch(p, 1); }
+inline long InterlockedDecrement(long* p) { return __sync_sub_and_fetch(p, 1); }
 #define _beginthreadex(pSec, stack, start, arg, flags, id) ((HANDLE)0)
 #define QS_ALLINPUT 0x04FF
 #ifndef _WIN32
@@ -1119,7 +1123,13 @@ inline DWORD GetModuleFileName(HMODULE hModule, char* pFilename, DWORD nSize) {
 inline DWORD GetModuleFileName(HMODULE hModule, char* pFilename, DWORD nSize) { return 0; }
 #endif
 inline BOOL MoveFile(const char* pSrc, const char* pDst) { return rename(pSrc, pDst) == 0; }
-inline void* ShellExecute(void* hwnd, const char* pOp, const char* pFile, const char* pParams, const char* pDir, int nShow) { return nullptr; }
+inline void* ShellExecute(void* hwnd, const char* pOp, const char* pFile, const char* pParams, const char* pDir, int nShow) {
+    if (!pFile) return nullptr;
+    char cmd[1024];
+    snprintf(cmd, sizeof(cmd), "open \"%s\" &", pFile);
+    int ret = system(cmd);
+    return (ret == 0) ? (void*)33 : nullptr;
+}
 inline DWORD GetFileVersionInfoSize(const char* pFilename, void* pHandle) { return 0; }
 inline BOOL GetFileVersionInfo(const char* pFilename, DWORD handle, DWORD len, void* pData) { return FALSE; }
 inline BOOL VerQueryValue(const void* pData, const char* pSubBlock, void** ppBuf, UINT* puLen) { return FALSE; }
@@ -1137,7 +1147,7 @@ typedef VS_FIXEDFILEINFO* LPVSFIXEDFILEINFO;
 #define VK_SHIFT 0x10
 #define MAPVK_VK_TO_CHAR 2
 
-inline void DebugBreak (void) { }
+inline void DebugBreak (void) { __builtin_debugtrap(); }
 inline int GetAsyncKeyState (int) { return 0; }
 inline DWORD GetCurrentThreadId (void) { return (DWORD)(uintptr_t)pthread_self(); }
 inline SHORT GetKeyState (int) { return 0; }
@@ -1346,7 +1356,8 @@ inline void *operator new (size_t, ::placement_new_class, void *p) { return p; }
 #endif
 
 //	HACK: Declare _alloca so that we don't have to include malloc.h
-extern "C" void *          __cdecl _alloca(size_t);
+#include <alloca.h>
+#define _alloca alloca
 
 namespace Kernel {
 
