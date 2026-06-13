@@ -13,9 +13,14 @@ const int ONE_SECOND =									1000;
 CHTTPClientSession::CHTTPClientSession (void) :
 		m_iLastError(inetsOK),
 		m_bConnected(false),
+		m_Socket(INVALID_SOCKET),
 		m_hStop(INVALID_HANDLE_VALUE),
 		m_iStatus(notConnected),
 		m_iInternetStatus(internetUnknown),
+		m_pBufferStart(NULL),
+		m_dwBufferLeft(0),
+		m_pEvents(NULL),
+		m_iTotalRead(0),
 		m_dwLastActivity(0)
 
 //	CHTTPClientSession constructor

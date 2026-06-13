@@ -15,7 +15,12 @@ static DATADESCSTRUCT g_DataDesc[] =
 static CObjectClass<CFileReadStream>g_Class(OBJID_CFILEREADSTREAM, g_DataDesc);
 
 CFileReadStream::CFileReadStream (void) :
-		CObject(&g_Class)
+		CObject(&g_Class),
+		m_pFile(NULL),
+		m_pPos(NULL),
+		m_hFileMap(NULL),
+		m_hFile(NULL),
+		m_dwFileSize(0)
 
 //	CFileReadStream constructor
 
@@ -25,6 +30,9 @@ CFileReadStream::CFileReadStream (void) :
 CFileReadStream::CFileReadStream (const CString &sFilename) :
 		CObject(&g_Class),
 		m_sFilename(sFilename),
+		m_pFile(NULL),
+		m_pPos(NULL),
+		m_hFileMap(NULL),
 		m_hFile(NULL),
 		m_dwFileSize(0)
 

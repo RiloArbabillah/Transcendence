@@ -125,17 +125,17 @@ template <class OBJ> class TSharedPtr
 template <class OBJ> bool operator== (const TSharedPtr<OBJ> &lhs, const TSharedPtr<OBJ> &rhs) { return (OBJ *)lhs == (OBJ *)rhs; }
 template <class OBJ> bool operator!= (const TSharedPtr<OBJ> &lhs, const TSharedPtr<OBJ> &rhs) { return (OBJ *)lhs != (OBJ *)rhs; }
 
-template <class OBJ> bool operator== (const TSharedPtr<OBJ> &lhs, int rhs) { return ((int)(OBJ *)lhs == rhs); }
-template <class OBJ> bool operator== (int lhs, const TSharedPtr<OBJ> &rhs) { return (lhs == (int)(OBJ *)rhs); }
-template <class OBJ> bool operator== (const TSharedPtr<OBJ> &lhs, long rhs) { return ((long)(OBJ *)lhs == rhs); }
-template <class OBJ> bool operator== (long lhs, const TSharedPtr<OBJ> &rhs) { return (lhs == (long)(OBJ *)rhs); }
+template <class OBJ> bool operator== (const TSharedPtr<OBJ> &lhs, int rhs) { return ((intptr_t)(OBJ *)lhs == (intptr_t)rhs); }
+template <class OBJ> bool operator== (int lhs, const TSharedPtr<OBJ> &rhs) { return ((intptr_t)lhs == (intptr_t)(OBJ *)rhs); }
+template <class OBJ> bool operator== (const TSharedPtr<OBJ> &lhs, long rhs) { return ((intptr_t)(OBJ *)lhs == (intptr_t)rhs); }
+template <class OBJ> bool operator== (long lhs, const TSharedPtr<OBJ> &rhs) { return ((intptr_t)lhs == (intptr_t)(OBJ *)rhs); }
 template <class OBJ> bool operator== (const TSharedPtr<OBJ> &lhs, std::nullptr_t rhs) { return !(bool)lhs; }
 template <class OBJ> bool operator== (std::nullptr_t lhs, const TSharedPtr<OBJ> &rhs) { return !(bool)rhs; }
 
-template <class OBJ> bool operator!= (const TSharedPtr<OBJ> &lhs, int rhs) { return ((int)(OBJ *)lhs != rhs); }
-template <class OBJ> bool operator!= (int lhs, const TSharedPtr<OBJ> &rhs) { return (lhs != (int)(OBJ *)rhs); }
-template <class OBJ> bool operator!= (const TSharedPtr<OBJ> &lhs, long rhs) { return ((long)(OBJ *)lhs != rhs); }
-template <class OBJ> bool operator!= (long lhs, const TSharedPtr<OBJ> &rhs) { return (lhs != (long)(OBJ *)rhs); }
+template <class OBJ> bool operator!= (const TSharedPtr<OBJ> &lhs, int rhs) { return ((intptr_t)(OBJ *)lhs != (intptr_t)rhs); }
+template <class OBJ> bool operator!= (int lhs, const TSharedPtr<OBJ> &rhs) { return ((intptr_t)lhs != (intptr_t)(OBJ *)rhs); }
+template <class OBJ> bool operator!= (const TSharedPtr<OBJ> &lhs, long rhs) { return ((intptr_t)(OBJ *)lhs != (intptr_t)rhs); }
+template <class OBJ> bool operator!= (long lhs, const TSharedPtr<OBJ> &rhs) { return ((intptr_t)lhs != (intptr_t)(OBJ *)rhs); }
 template <class OBJ> bool operator!= (const TSharedPtr<OBJ> &lhs, std::nullptr_t rhs) { return (bool)lhs; }
 template <class OBJ> bool operator!= (std::nullptr_t lhs, const TSharedPtr<OBJ> &rhs) { return (bool)rhs; }
 

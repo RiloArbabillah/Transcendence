@@ -262,7 +262,7 @@ SProcessorInfo Kernel::sysGetProcessorInfo(void)
 //
 int Kernel::sysGetProcessorCountLegacy(void)
 	{
-	#if !defined(WIN32)
+	#if defined(__APPLE__) || defined(TARGET_PLATFORM_MACOS)
 	long iOnline = ::sysconf(_SC_NPROCESSORS_ONLN);
 	return (iOnline > 0 ? (int)iOnline : 1);
 	#else

@@ -674,7 +674,11 @@ inline void* MapViewOfFile(HANDLE hFileMapping, DWORD dwAccess, DWORD dwOffsetHi
 
 #ifndef UnmapViewOfFile
 inline BOOL UnmapViewOfFile(void* pBase) {
-    return munmap(pBase, 1) == 0;
+    // Note: munmap requires the exact mapped size. The caller should use
+    // UnmapViewOfFileEx or call munmap directly with the correct size.
+    // This fallback uses page size as a conservative estimate.
+    long pageSize = sysconf(_SC_PAGESIZE);
+    return munmap(pBase, (pageSize > 0 ? pageSize : 4096)) == 0;
 }
 #endif
 
@@ -994,8 +998,14 @@ inline int LoadString(HINSTANCE hInstance, UINT uID, char* pBuffer, int cchBuffe
 inline BOOL CharLowerBuff(char* s, DWORD n) { for (DWORD i = 0; i < n && s[i]; i++) s[i] = tolower(s[i]); return TRUE; }
 
 #define ERROR_SHARING_VIOLATION 32
-inline BOOL SetEndOfFile(HANDLE hFile) { return TRUE; }
-inline BOOL FlushFileBuffers(HANDLE hFile) { return TRUE; }
+inline BOOL SetEndOfFile(HANDLE hFile) {
+    off_t pos = lseek((int)(intptr_t)hFile, 0, SEEK_CUR);
+    if (pos < 0) return FALSE;
+    return ftruncate((int)(intptr_t)hFile, pos) == 0;
+}
+inline BOOL FlushFileBuffers(HANDLE hFile) {
+    return fsync((int)(intptr_t)hFile) == 0;
+}
 inline unsigned int rand_s(unsigned int* pVal) { *pVal = arc4random(); return 0; }
 
 typedef POINT* LPPOINT;
@@ -2780,7 +2790,7 @@ struct SProcessorInfo
 	DWORD dwSpare : 27 = 0;
 	};
 
-#ifdef WIN32
+#ifdef _WIN32
 #define RELIABLE_AFFINITY_MASK false
 #else
 #define RELIABLE_AFFINITY_MASK true
