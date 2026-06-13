@@ -16,7 +16,8 @@ CTextFileLog::CTextFileLog (void) :
 
 CTextFileLog::CTextFileLog (const CString &sFilename) : 
 		m_sFilename(sFilename),
-		m_hFile(NULL)
+		m_hFile(NULL),
+		m_dwSessionStart(0)
 
 //	CTextFileLog constructor
 

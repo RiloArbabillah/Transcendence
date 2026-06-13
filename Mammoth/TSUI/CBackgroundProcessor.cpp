@@ -112,6 +112,7 @@ void CBackgroundProcessor::CleanUp (void)
 		{
 		::SetEvent(m_hQuitEvent);
 		::WaitForSingleObject(m_hBackgroundThread, INFINITE);
+		::CloseHandle(m_hBackgroundThread);
 		m_hBackgroundThread = INVALID_HANDLE_VALUE;
 
 		::CloseHandle(m_hWorkAvailableEvent);

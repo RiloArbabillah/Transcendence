@@ -1678,7 +1678,7 @@ CString Kernel::strFormatInteger (INT64 iValue, int iMinFieldWidth, DWORD dwFlag
 
 	DWORDLONG dwRadix = 10;
 	bool bNegative = (iValue < 0) && !(dwFlags & FORMAT_UNSIGNED);
-	DWORDLONG dwValue = (bNegative ? (DWORD)(-iValue) : (DWORD)iValue);
+	DWORDLONG dwValue = (bNegative ? (DWORDLONG)(-iValue) : (DWORDLONG)iValue);
 
 	//	Convert to new base (we end up in reverse order)
 

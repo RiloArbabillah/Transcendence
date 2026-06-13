@@ -224,7 +224,7 @@ ALERROR CDataFile::Create (const CString &sFilename,
 	{
 	ALERROR error;
 	HEADERSTRUCT header;
-	HANDLE hFile;
+	HANDLE hFile = INVALID_HANDLE_VALUE;
 	DWORD dwWritten;
 	int iEntryTableSize;
 	ENTRYSTRUCT entry;
@@ -313,7 +313,7 @@ ALERROR CDataFile::Create (const CString &sFilename,
 
 Fail:
 
-	if (hFile)
+	if (hFile != INVALID_HANDLE_VALUE)
 		{
 		CloseHandle(hFile);
 		DeleteFile(sFilename.GetASCIIZPointer());

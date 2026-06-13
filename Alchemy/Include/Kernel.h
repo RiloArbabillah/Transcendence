@@ -255,11 +255,11 @@ inline void* LockResource(HGLOBAL hResData) { return nullptr; }
 #include <stdlib.h>
 #include <cstring>
 inline void* VirtualAlloc(void* lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect) {
-    (void)lpAddress;
     (void)flProtect;
-    (void)flAllocationType;
+    if (lpAddress && (flAllocationType & 0x1000))
+        return lpAddress;
     void* pMem = malloc(dwSize);
-    if (pMem && (flAllocationType & MEM_COMMIT))
+    if (pMem && (flAllocationType & 0x1000))
         memset(pMem, 0, dwSize);
     return pMem;
 }
@@ -995,7 +995,15 @@ inline DWORD CharUpperBuff(char* s, DWORD n) { for (DWORD i = 0; i < n && s[i]; 
 
 #define _CVTBUFSIZE 309
 inline int _gcvt_s(char* buf, int len, double value, int digits) { snprintf(buf, len, "%.*g", digits, value); return 0; }
-inline int _fcvt_s(char* buf, int len, double value, int decimals, int* sign, int* digits) { snprintf(buf, len, "%.*f", decimals, value); return 0; (void)sign; (void)digits; }
+inline int _fcvt_s(char* buf, int len, double value, int decimals, int* sign, int* dec) {
+    *sign = (value < 0) ? 1 : 0;
+    double absVal = fabs(value);
+    snprintf(buf, len, "%.*f", decimals, absVal);
+    char* dot = strchr(buf, '.');
+    if (dot) { *dec = (int)(dot - buf); memmove(dot, dot + 1, strlen(dot)); }
+    else { *dec = (int)strlen(buf); }
+    return 0;
+}
 
 inline char* CharLowerA(char* s) { if (s) while (*s) { *s = tolower(*s); s++; } return s; }
 inline int LoadString(HINSTANCE hInstance, UINT uID, char* pBuffer, int cchBuffer) { return 0; }
