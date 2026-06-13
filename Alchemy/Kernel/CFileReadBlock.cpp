@@ -8,7 +8,11 @@
 static CObjectClass<CFileReadBlock>g_Class(OBJID_CFILEREADBLOCK, NULL);
 
 CFileReadBlock::CFileReadBlock (void) :
-		CObject(&g_Class)
+		CObject(&g_Class),
+		m_pFile(NULL),
+		m_hFileMap(NULL),
+		m_hFile(NULL),
+		m_dwFileSize(0)
 
 //	CFileReadBlock constructor
 
@@ -18,6 +22,8 @@ CFileReadBlock::CFileReadBlock (void) :
 CFileReadBlock::CFileReadBlock (const CString &sFilename) :
 		CObject(&g_Class),
 		m_sFilename(sFilename),
+		m_pFile(NULL),
+		m_hFileMap(NULL),
 		m_hFile(NULL),
 		m_dwFileSize(0)
 

@@ -50,7 +50,7 @@ DWORD Kernel::sysGetProcessorsInMask(KAFFINITY &AffinityMask)
 //
 SProcessorInfo Kernel::sysGetProcessorInfo(void)
 	{
-	#if !defined(WIN32)
+	#if defined(__APPLE__) || defined(TARGET_PLATFORM_MACOS)
 	SProcessorInfo sInfo;
 
 	#if defined(__APPLE__)

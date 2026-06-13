@@ -553,6 +553,43 @@ inline HANDLE CreateFile(const char* pFilename, DWORD dwAccess, DWORD dwShareMod
 #define FILE_MAP_WRITE 0x0002
 #endif
 
+//	POSIX event synchronization using pipes.
+//	A signaled event has a byte in the pipe; an unsignaled event has an empty pipe.
+
+struct SEventHandle { DWORD dwMagic; int fd[2]; bool bManualReset; };
+#define EVENT_MAGIC 0x45565448
+
+inline HANDLE CreateEvent(void* pAttrs, BOOL bManualReset, BOOL bInitialState, LPCSTR lpName) {
+    (void)pAttrs; (void)lpName;
+    SEventHandle *pEvent = new SEventHandle;
+    pEvent->dwMagic = EVENT_MAGIC;
+    pEvent->bManualReset = (bManualReset != 0);
+    if (pipe(pEvent->fd) != 0) { delete pEvent; return nullptr; }
+    fcntl(pEvent->fd[0], F_SETFL, O_NONBLOCK);
+    fcntl(pEvent->fd[1], F_SETFL, O_NONBLOCK);
+    if (bInitialState) {
+        char c = 1;
+        if (write(pEvent->fd[1], &c, 1) < 0) {}
+    }
+    return (HANDLE)pEvent;
+}
+
+inline BOOL SetEvent(HANDLE h) {
+    if (!h || h == INVALID_HANDLE_VALUE) return FALSE;
+    SEventHandle *p = (SEventHandle *)h;
+    char c = 1;
+    if (write(p->fd[1], &c, 1) < 0) {}
+    return TRUE;
+}
+
+inline BOOL ResetEvent(HANDLE h) {
+    if (!h || h == INVALID_HANDLE_VALUE) return FALSE;
+    SEventHandle *p = (SEventHandle *)h;
+    char buf[64];
+    while (read(p->fd[0], buf, sizeof(buf)) > 0) {}
+    return TRUE;
+}
+
 #ifndef ReadFile
 inline BOOL ReadFile(HANDLE hFile, void* buf, DWORD len, DWORD* read_out, void* extra) {
     ssize_t result = read((int)(intptr_t)hFile, buf, len);
@@ -878,42 +915,6 @@ struct WNDCLASSEX { UINT cbSize; UINT style; void* lpfnWndProc; int cbClsExtra; 
 
 #define WAIT_TIMEOUT 258
 
-//	POSIX event synchronization using pipes.
-//	A signaled event has a byte in the pipe; an unsignaled event has an empty pipe.
-
-struct SEventHandle { DWORD dwMagic; int fd[2]; bool bManualReset; };
-#define EVENT_MAGIC 0x45565448
-
-inline HANDLE CreateEvent(void* pAttrs, BOOL bManualReset, BOOL bInitialState, LPCSTR lpName) {
-    (void)pAttrs; (void)lpName;
-    SEventHandle *pEvent = new SEventHandle;
-    pEvent->dwMagic = EVENT_MAGIC;
-    pEvent->bManualReset = (bManualReset != 0);
-    if (pipe(pEvent->fd) != 0) { delete pEvent; return nullptr; }
-    fcntl(pEvent->fd[0], F_SETFL, O_NONBLOCK);
-    fcntl(pEvent->fd[1], F_SETFL, O_NONBLOCK);
-    if (bInitialState) {
-        char c = 1;
-        if (write(pEvent->fd[1], &c, 1) < 0) {}
-    }
-    return (HANDLE)pEvent;
-}
-
-inline BOOL SetEvent(HANDLE h) {
-    if (!h || h == INVALID_HANDLE_VALUE) return FALSE;
-    SEventHandle *p = (SEventHandle *)h;
-    char c = 1;
-    if (write(p->fd[1], &c, 1) < 0) {}
-    return TRUE;
-}
-
-inline BOOL ResetEvent(HANDLE h) {
-    if (!h || h == INVALID_HANDLE_VALUE) return FALSE;
-    SEventHandle *p = (SEventHandle *)h;
-    char buf[64];
-    while (read(p->fd[0], buf, sizeof(buf)) > 0) {}
-    return TRUE;
-}
 inline void CloseHandle(HANDLE h)
 	{
 	//	NULL is a valid "no handle" value in caller code (e.g., CFileReadBlock
