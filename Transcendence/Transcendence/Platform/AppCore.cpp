@@ -436,6 +436,8 @@ void App_Shutdown(void)
 
     SDL_Quit();
     log_msg("App_Shutdown: done");
+
+    if (g_Log) { fclose(g_Log); g_Log = nullptr; }
 }
 
 static unsigned int SDLKeyToVK(SDL_Scancode scanCode)

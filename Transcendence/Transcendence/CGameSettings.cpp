@@ -249,7 +249,10 @@ ALERROR CGameSettings::Load (const CString &sFilespec, CString *retsError)
 		else if (strEquals(pItem->GetTag(), KEY_MAP_TAG))
 			{
 			if (error = m_KeyMap.ReadFromXML(pItem))
+				{
+				delete pData;
 				return error;
+				}
 			}
 		else if (strEquals(pItem->GetTag(), EXTENSION_FOLDER_TAG))
 			{
@@ -260,13 +263,19 @@ ALERROR CGameSettings::Load (const CString &sFilespec, CString *retsError)
 		else if (strEquals(pItem->GetTag(), EXTENSIONS_TAG))
 			{
 			if (error = m_Extensions.ReadFromXML(pItem))
+				{
+				delete pData;
 				return error;
+				}
 			}
 		else if (m_pExtra)
 			{
 			bool bModified;
 			if (error = m_pExtra->OnLoadSettings(pItem, &bModified))
+				{
+				delete pData;
 				return error;
+				}
 
 			if (bModified)
 				m_bModified = true;
