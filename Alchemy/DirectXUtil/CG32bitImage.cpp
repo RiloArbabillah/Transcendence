@@ -1752,6 +1752,6 @@ bool CG32bitImage::WriteToWindowsBMP (IWriteStream *pStream)
 		pStream->Write((char *)pRow, m_cxWidth * sizeof(DWORD));
 		}
 
-	delete pbmi;
+	delete [] (BYTE *)pbmi;
 	return true;
 	}

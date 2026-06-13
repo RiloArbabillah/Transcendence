@@ -372,7 +372,7 @@ ALERROR dibGetInfo (HBITMAP hDIB, int *retcxWidth, int *retcyHeight, void **retp
 		if (ds.dsBmih.biHeight > 0)
 			{
 			if (retpBase)
-				*retpBase = (void *) (((int) ds.dsBm.bmBits) + (ds.dsBm.bmWidthBytes * (ds.dsBm.bmHeight - 1))); 
+				*retpBase = (void *) (((intptr_t) ds.dsBm.bmBits) + (ds.dsBm.bmWidthBytes * (ds.dsBm.bmHeight - 1))); 
 			if (retiStride)
 				*retiStride = (int)(-ds.dsBm.bmWidthBytes);
 			}         

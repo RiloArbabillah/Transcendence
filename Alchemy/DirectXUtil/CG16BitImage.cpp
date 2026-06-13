@@ -1413,7 +1413,7 @@ void CG16bitImage::CopyData (const CG16bitImage &Src)
 		m_pRedAlphaTable = (WORD *)MemAlloc(2 * 32 * 32);
 		::utlMemCopy((char *)Src.m_pRedAlphaTable, (char *)m_pRedAlphaTable, 2 * 32 * 32);
 		m_pGreenAlphaTable = (WORD *)MemAlloc(2 * 64 * 64);
-		::utlMemCopy((char *)Src.m_pGreenAlphaTable, (char *)m_pGreenAlphaTable, 2 * 32 * 32);
+		::utlMemCopy((char *)Src.m_pGreenAlphaTable, (char *)m_pGreenAlphaTable, 2 * 64 * 64);
 		m_pBlueAlphaTable = (WORD *)MemAlloc(2 * 32 * 32);
 		::utlMemCopy((char *)Src.m_pBlueAlphaTable, (char *)m_pBlueAlphaTable, 2 * 32 * 32);
 		}
