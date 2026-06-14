@@ -2,7 +2,7 @@
 
 > **Last updated:** 2026-06-14
 > **Branch:** `osx`
-> **Status:** Phase 1–4 complete, Phase 5+ pending
+> **Status:** Phase 1–6 complete, Phase 7+ pending
 
 ---
 
@@ -121,10 +121,10 @@ batch commits.
 
 | # | File | Line | Bug | Fix | Status |
 |---|------|------|-----|-----|--------|
-| 6.1 | `Alchemy/Kernel/UI.cpp` | 9–55 | Clipboard operations always fail (`OpenClipboard` returns FALSE) | Implement using `NSPasteboard` via Objective-C++ or `SDL_SetClipboardText`/`SDL_GetClipboardText` | OPEN |
-| 6.2 | `Alchemy/Include/Kernel.h` | 1079–1080 | `GetUserName` always returns empty string | Implement using `getlogin()` or `getpwuid(getuid())` | OPEN |
-| 6.3 | `Alchemy/Include/Kernel.h` | 1113–1115 | `GetFileVersionInfoSize`/`GetFileVersionInfo`/`VerQueryValue` always return 0 | Read version from `Info.plist` bundle resource using `CFBundleGetValueForInfoDictionaryKey` | OPEN |
-| 6.4 | Build config | — | Game version always `0.0.0.0` in Debug.log | Set version in CMakeLists.txt or `Info.plist` | OPEN |
+| 6.1 | `Alchemy/Kernel/UI.cpp` | 9–55 | Clipboard operations always fail (`OpenClipboard` returns FALSE) | Fixed: uses `SDL_SetClipboardText` on macOS | DONE |
+| 6.2 | `Alchemy/Include/Kernel.h` | 1079–1080 | `GetUserName` always returns empty string | Fixed: uses POSIX `getlogin()` | DONE |
+| 6.3 | `Alchemy/Kernel/Path.cpp` | 616–675 | `fileGetVersionInfo` always returns 0 | Fixed: uses `GAME_VERSION` define + `CFBundleGetValueForInfoDictionaryKey` if available | DONE |
+| 6.4 | `CMakeLists.txt` | 25 | Game version always `0.0.0.0` in Debug.log | Fixed: `add_compile_definitions(GAME_VERSION="1.0")` | DONE |
 | 6.5 | `Alchemy/Include/Kernel.h` | 837 | `MessageBox` prints to stderr (fixed in Phase 3) | Fixed: prints to stderr, returns IDOK | DONE |
 
 **Commit group:** `fix: user-facing features — clipboard, username, version`
@@ -178,29 +178,22 @@ batch commits.
 
 | Status | Count |
 |--------|-------|
-| DONE | 28 |
-| OPEN | 9 |
+| DONE | 33 |
+| OPEN | 5 |
 | WONTFIX | 6 |
 
-### Remaining OPEN items (9 total)
+### Remaining OPEN items (5 total)
 
 | Priority | # | Description |
 |----------|---|-------------|
-| CRITICAL | 1.1 | CDockScreen.cpp type conversion error (build blocker) |
 | HIGH | 3.3 | SFX file path resolution needs bundle fallback |
 | HIGH | 5.1 | DIB.cpp BMP loading — GDI functions stubbed |
 | HIGH | 5.2 | CG16bitFont::CreateFromFont — GDI code |
-| MEDIUM | 6.1 | Clipboard operations |
-| MEDIUM | 6.2 | GetUserName |
-| MEDIUM | 6.3 | GetFileVersionInfo |
-| MEDIUM | 6.4 | Game version 0.0.0.0 |
+| HIGH | 5.7 | CreateDIBitmap/CreateDIBSection stubs |
 | MEDIUM | 7.1–7.2 | OVERLAPPED I/O networking |
 
 ### Suggested Next Steps
 
-1. **Fix 1.1** (CDockScreen.cpp) — unblocks full build
-2. **Fix 5.1 + 5.2** (DIB + Font) — unblocks visual correctness
-3. **Fix 3.3** (SFX paths) — unblocks audio parity
-4. **Fix 6.1** (Clipboard) — quick win using SDL API
-5. **Fix 6.2** (GetUserName) — quick win using POSIX API
-6. **Fix 7.1–7.2** (Networking) — complex, defer if not needed for single-player
+1. **Fix 5.1 + 5.2** (DIB + Font) — unblocks visual correctness
+2. **Fix 3.3** (SFX paths) — unblocks audio parity
+3. **Fix 7.1–7.2** (Networking) — complex, defer if not needed for single-player

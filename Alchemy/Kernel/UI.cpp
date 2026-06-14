@@ -6,6 +6,10 @@
 #include "PreComp.h"
 #include "DirectXUtilCompat.h"
 
+#ifdef TARGET_PLATFORM_MACOS
+#include <SDL.h>
+#endif
+
 ALERROR Kernel::uiCopyTextToClipboard (HWND hWnd, const CString &sText)
 
 //	uiCopyTextToClipboard
@@ -13,6 +17,11 @@ ALERROR Kernel::uiCopyTextToClipboard (HWND hWnd, const CString &sText)
 //	Copy the given text to the system clipboard
 
 	{
+#ifdef TARGET_PLATFORM_MACOS
+	if (SDL_SetClipboardText(sText.GetASCIIZPointer()) != 0)
+		return ERR_FAIL;
+	return NOERROR;
+#else
 	//	Open the clipboard
 
 	if (!::OpenClipboard(hWnd))
@@ -52,6 +61,7 @@ ALERROR Kernel::uiCopyTextToClipboard (HWND hWnd, const CString &sText)
 	::CloseClipboard();
 
 	return NOERROR;
+#endif
 	}
 
 void Kernel::uiGetCenteredWindowRect (int cxWidth, 

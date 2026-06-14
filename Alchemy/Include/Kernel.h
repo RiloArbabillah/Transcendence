@@ -1103,7 +1103,15 @@ struct SYSTEM_INFO { DWORD dwOemId; DWORD dwPageSize; LPVOID lpMinimumApplicatio
 inline BOOL GetLogicalProcessorInformationEx(DWORD Type, void* pBuffer, DWORD* pLength) { (void)Type; (void)pBuffer; if (pLength) *pLength = 0; return FALSE; }
 inline void GetSystemInfo(SYSTEM_INFO* pInfo) { memset(pInfo, 0, sizeof(SYSTEM_INFO)); pInfo->dwNumberOfProcessors = 1; }
 #define SW_SHOWNORMAL 1
-inline BOOL GetUserNameA(char* pName, DWORD* pSize) { return FALSE; }
+inline BOOL GetUserNameA(char* pName, DWORD* pSize) {
+    const char* pLogin = getlogin();
+    if (!pLogin || !pName || !pSize) return FALSE;
+    DWORD dwLen = (DWORD)strlen(pLogin);
+    if (dwLen >= *pSize) return FALSE;
+    memcpy(pName, pLogin, dwLen + 1);
+    *pSize = dwLen + 1;
+    return TRUE;
+}
 #define GetUserName GetUserNameA
 
 #ifndef _WIN32

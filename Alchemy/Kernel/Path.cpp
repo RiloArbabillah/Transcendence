@@ -17,6 +17,7 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <CoreFoundation/CoreFoundation.h>
 #define SHGFP_TYPE_CURRENT 0
 #define CSIDL_LOCAL_APPDATA 28
 #define HRESULT long
@@ -621,6 +622,7 @@ ALERROR Kernel::fileGetVersionInfo (const CString &sFilename, SFileVersionInfo *
 //	we return information for the current module.)
 
 	{
+#ifdef _WIN32
 	CString sPath = sFilename;
 	if (sPath.IsBlank())
 		{
@@ -672,6 +674,70 @@ ALERROR Kernel::fileGetVersionInfo (const CString &sFilename, SFileVersionInfo *
 	retInfo->sProductVersion = GetVersionString(pData, pLangInfo, STR_PRODUCT_VERSION);
 
 	return NOERROR;
+#else
+	retInfo->dwFileVersion = 0;
+	retInfo->dwProductVersion = 0;
+
+	retInfo->sProductName = CONSTLIT("Transcendence");
+	retInfo->sCopyright = CONSTLIT("Copyright (c) Kronosaur Productions, LLC");
+	retInfo->sCompanyName = retInfo->sProductName;
+
+#ifdef GAME_VERSION
+	retInfo->sProductVersion = CString(GAME_VERSION);
+	int iMajor = 0, iMinor = 0, iPatch = 0;
+	const char *p = GAME_VERSION;
+	iMajor = strParseInt(p, 0, &p);
+	if (*p == '.') { p++; iMinor = strParseInt(p, 0, &p); }
+	if (*p == '.') { p++; iPatch = strParseInt(p, 0, &p); }
+	retInfo->dwProductVersion = ((ULONG64)iMajor << 48) | ((ULONG64)iMinor << 32) | ((ULONG64)iPatch << 16);
+	retInfo->dwFileVersion = retInfo->dwProductVersion;
+#else
+	retInfo->sProductVersion = CONSTLIT("1.0");
+	retInfo->dwProductVersion = ((ULONG64)1 << 48);
+	retInfo->dwFileVersion = retInfo->dwProductVersion;
+#endif
+
+	CFBundleRef hBundle = CFBundleGetMainBundle();
+	if (!hBundle)
+		return NOERROR;
+
+	CFStringRef hName = (CFStringRef)CFBundleGetValueForInfoDictionaryKey(hBundle, kCFBundleNameKey);
+	if (hName)
+		{
+		char szBuf[256];
+		if (CFStringGetCString(hName, szBuf, sizeof(szBuf), kCFStringEncodingUTF8))
+			retInfo->sProductName = CString(szBuf);
+		}
+
+	CFStringRef hVer = (CFStringRef)CFBundleGetValueForInfoDictionaryKey(hBundle, CFSTR("CFBundleShortVersionString"));
+	if (hVer)
+		{
+		char szBuf[256];
+		if (CFStringGetCString(hVer, szBuf, sizeof(szBuf), kCFStringEncodingUTF8))
+			{
+			retInfo->sProductVersion = CString(szBuf);
+			int iMajor = 0, iMinor = 0, iPatch = 0;
+			const char *p = szBuf;
+			iMajor = strParseInt(p, 0, &p);
+			if (*p == '.') { p++; iMinor = strParseInt(p, 0, &p); }
+			if (*p == '.') { p++; iPatch = strParseInt(p, 0, &p); }
+			retInfo->dwProductVersion = ((ULONG64)iMajor << 48) | ((ULONG64)iMinor << 32) | ((ULONG64)iPatch << 16);
+			retInfo->dwFileVersion = retInfo->dwProductVersion;
+			}
+		}
+
+	CFStringRef hCopyright = (CFStringRef)CFBundleGetValueForInfoDictionaryKey(hBundle, CFSTR("NSHumanReadableCopyright"));
+	if (hCopyright)
+		{
+		char szBuf[256];
+		if (CFStringGetCString(hCopyright, szBuf, sizeof(szBuf), kCFStringEncodingUTF8))
+			retInfo->sCopyright = CString(szBuf);
+		}
+
+	retInfo->sCompanyName = retInfo->sProductName;
+
+	return NOERROR;
+#endif
 	}
 
 bool Kernel::fileMove (const CString &sSourceFilespec, const CString &sDestFilespec)
