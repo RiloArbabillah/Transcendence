@@ -121,3 +121,43 @@ ALERROR dibLoadFromBlock (IReadBlock &Data, HBITMAP *rethDIB, EBitmapTypes *reti
 
 	return NOERROR;
 	}
+
+ALERROR dibCreate16bitDIB (int cxWidth, int cyHeight, HBITMAP *rethBitmap, WORD **retpPixel)
+	{
+	if (rethBitmap) *rethBitmap = NULL;
+	if (retpPixel) *retpPixel = NULL;
+	return ERR_FAIL;
+	}
+
+ALERROR dibCreate24bitDIB (int cxWidth, int cyHeight, DWORD dwFlags, HBITMAP *rethBitmap, BYTE **retpPixel)
+	{
+	if (rethBitmap) *rethBitmap = NULL;
+	if (retpPixel) *retpPixel = NULL;
+	return ERR_FAIL;
+	}
+
+ALERROR dibCreate32bitDIB (int cxWidth, int cyHeight, DWORD dwFlags, HBITMAP *rethBitmap, DWORD **retpPixel)
+	{
+	if (rethBitmap) *rethBitmap = NULL;
+	if (retpPixel) *retpPixel = NULL;
+	return ERR_FAIL;
+	}
+
+ALERROR dibConvertToDDB (HBITMAP hDIB, HPALETTE hPalette, HBITMAP *rethBitmap)
+	{
+	if (rethBitmap) *rethBitmap = NULL;
+	return ERR_FAIL;
+	}
+
+ALERROR dibCrop (HBITMAP hDIB, int x, int y, int cxWidth, int cyHeight, HBITMAP *rethBitmap)
+	{
+	if (rethBitmap) *rethBitmap = NULL;
+	return ERR_FAIL;
+	}
+
+ALERROR dibLoadFromResource (HINSTANCE hInst, char *szResource, HBITMAP *rethDIB, EBitmapTypes *retiType)
+	{
+	if (rethDIB) *rethDIB = NULL;
+	if (retiType) *retiType = bitmapNone;
+	return ERR_FAIL;
+	}

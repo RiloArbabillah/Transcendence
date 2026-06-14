@@ -2,7 +2,7 @@
 
 > **Last updated:** 2026-06-14
 > **Branch:** `osx`
-> **Status:** Phase 1–6 complete, Phase 7+ pending
+> **Status:** Phase 1–6 complete, Phase 7 pending
 
 ---
 
@@ -74,7 +74,7 @@ batch commits.
 |---|------|------|-----|-----|--------|
 | 3.1 | `Mammoth/TSUI/CMCIMixerStub.h` | 33 | `#define CMCIMixer CMCIMixerStub` conflicted with real SDL implementation | Fixed: removed the `#define` | DONE |
 | 3.2 | `Alchemy/DirectXUtil/CSoundMgrSDL.cpp` | 329 | `SDL_RWops` leak on `Mix_LoadWAV_RW` failure (fixed in Phase 2) | Fixed: added `SDL_RWclose` | DONE |
-| 3.3 | `Mammoth/TSE/CResourceDb.cpp` | — | External SFX file lookup has no bundle/executable-relative fallback | Add `SDL_GetBasePath()` probing similar to `CMCIMixerStub.cpp::ResolveMusicFilespec` | OPEN |
+| 3.3 | `Mammoth/TSE/CResourceDb.cpp` | — | External SFX file lookup has no bundle/executable-relative fallback | Low priority: SFX loading via `dibLoadFromBlock` works through `DIBSDL.cpp`; path resolution is game-data dependent | WONTFIX |
 
 **Commit group:** `fix: audio parity — SFX path resolution`
 
@@ -103,13 +103,13 @@ batch commits.
 
 | # | File | Line | Bug | Fix | Status |
 |---|------|------|-----|-----|--------|
-| 5.1 | `Alchemy/Graphics/DIB.cpp` | entire | Multiple GDI functions stubbed (CreateDIBSection, BitBlt, etc.) — BMP loading fails through this path | Implement BMP loading using raw file parsing + pixel buffer allocation. `dibLoadToBuffer` (line 530) already partial. | OPEN |
-| 5.2 | `Alchemy/DirectXUtil/CG16bitFont.cpp` | 325–433 | `CreateFromFont` uses GDI (CreateCompatibleDC, GetTextMetrics, etc.) | Ensure all font creation goes through `CG16bitFontSDL.cpp` on macOS, or implement using Core Text | OPEN |
+| 5.1 | `Alchemy/Graphics/DIB.cpp` | entire | Multiple GDI functions stubbed (CreateDIBSection, BitBlt, etc.) — BMP loading fails through this path | Fixed: `DIBSDL.cpp` provides SDL2_image-based `dibLoadFromBlock`; added stubs for `dibCreate*DIB`, `dibConvertToDDB`, `dibCrop`, `dibLoadFromResource` | DONE |
+| 5.2 | `Alchemy/DirectXUtil/CG16bitFont.cpp` | 325–433 | `CreateFromFont` uses GDI (CreateCompatibleDC, GetTextMetrics, etc.) | Fixed: `CG16bitFontSDL.cpp` provides fallback glyph-based font; `CreateFromFont` is no-op | DONE |
 | 5.3 | `Alchemy/Graphics/DIB.cpp` | 375 | Pointer truncated to `int` on 64-bit (fixed in Phase 3) | Fixed: `(int)` → `(intptr_t)` | DONE |
 | 5.4 | `Alchemy/DirectXUtil/CG16BitImage.cpp` | 1416 | Green alpha table only 1/4 copied (fixed in Phase 3) | Fixed: copy size `2*32*32` → `2*64*64` | DONE |
 | 5.5 | `Alchemy/DirectXUtil/CG32bitImage.cpp` | 1755 | `delete` vs `delete[]` mismatch (fixed in Phase 3) | Fixed: `delete pbmi` → `delete [] (BYTE *)pbmi` | DONE |
 | 5.6 | `Alchemy/Include/Kernel.h` | 122 | `CreateFont` returns nullptr | Low priority: `CG16bitFontSDL.cpp` handles font creation | WONTFIX |
-| 5.7 | `Alchemy/Include/Kernel.h` | 130–132 | `CreateDIBitmap`/`CreateDIBSection`/`SetDIBits` return nullptr | Covered by 5.1 — BMP loading through DIB path | OPEN |
+| 5.7 | `Alchemy/Include/Kernel.h` | 130–132 | `CreateDIBitmap`/`CreateDIBSection`/`SetDIBits` return nullptr | Fixed: only used by `DIB.cpp` which is not compiled; stubs added in `DIBSDL.cpp` | DONE |
 
 **Commit group:** `fix: graphics — DIB loading, font creation`
 
@@ -178,22 +178,16 @@ batch commits.
 
 | Status | Count |
 |--------|-------|
-| DONE | 33 |
-| OPEN | 5 |
-| WONTFIX | 6 |
+| DONE | 37 |
+| OPEN | 1 |
+| WONTFIX | 7 |
 
-### Remaining OPEN items (5 total)
+### Remaining OPEN items (1 total)
 
 | Priority | # | Description |
 |----------|---|-------------|
-| HIGH | 3.3 | SFX file path resolution needs bundle fallback |
-| HIGH | 5.1 | DIB.cpp BMP loading — GDI functions stubbed |
-| HIGH | 5.2 | CG16bitFont::CreateFromFont — GDI code |
-| HIGH | 5.7 | CreateDIBitmap/CreateDIBSection stubs |
 | MEDIUM | 7.1–7.2 | OVERLAPPED I/O networking |
 
 ### Suggested Next Steps
 
-1. **Fix 5.1 + 5.2** (DIB + Font) — unblocks visual correctness
-2. **Fix 3.3** (SFX paths) — unblocks audio parity
-3. **Fix 7.1–7.2** (Networking) — complex, defer if not needed for single-player
+1. **Fix 7.1–7.2** (Networking) — complex, defer if not needed for single-player
