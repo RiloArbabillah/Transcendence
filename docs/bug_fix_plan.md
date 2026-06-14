@@ -21,7 +21,7 @@ batch commits.
 
 | # | File | Line | Bug | Fix | Status |
 |---|------|------|-----|-----|--------|
-| 1.1 | `Transcendence/Transcendence/CDockScreen.cpp` | 871 | `CVisualPalette` cannot convert to `CDockScreenVisuals` — blocks full executable build | Investigate type mismatch, likely need adapter or cast | OPEN |
+| 1.1 | `Transcendence/Transcendence/CDockScreen.cpp` | 871 | `CVisualPalette` cannot convert to `CDockScreenVisuals` — blocks full executable build | Fixed: use `CDockScreenVisuals::GetDefault(GetUniverse())` fallback | DONE |
 | 1.2 | `Mammoth/TSE/CPlayerGameStats.cpp` | 1828 | `break` not in loop — already changed to `return` but needs review | Verify the intent was early-return, not break-from-switch | DONE |
 
 **Commit group:** `fix: resolve build blockers on macOS`

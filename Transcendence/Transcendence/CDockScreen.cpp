@@ -868,7 +868,7 @@ const CDockScreenVisuals &CDockScreen::GetDockScreenVisuals (void) const
 	{
 	ASSERT(m_pPlayer);
 	if (m_pPlayer == NULL || m_pPlayer->GetShip() == NULL || m_pPlayer->GetShip()->GetClass() == NULL || m_pPlayer->GetShip()->GetClass()->GetPlayerSettings() == NULL)
-		return CVisualPalette();
+		return CDockScreenVisuals::GetDefault(GetUniverse());
 	return m_pPlayer->GetShip()->GetClass()->GetPlayerSettings()->GetDockScreenVisuals(GetUniverse());
 	}
 
