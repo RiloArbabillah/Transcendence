@@ -231,6 +231,12 @@ static void log_va(const char* fmt, ...) {
 }
 
 SAppState g_AppState;
+
+int g_PlatformMouseX = 0;
+int g_PlatformMouseY = 0;
+int g_PlatformWindowWidth = 1024;
+int g_PlatformWindowHeight = 768;
+
 static std::mutex g_MessageQueueCS;
 static std::mutex g_TimerCS;
 static std::map<unsigned int, SDL_TimerID> g_Timers;
@@ -272,6 +278,45 @@ static DWORD SDLMouseStateToMKFlags(Uint32 dwButtons)
     return dwFlags;
 }
 
+SHORT PlatformGetAsyncKeyState(int vk)
+{
+    SDL_Keymod mod = SDL_GetModState();
+    switch (vk)
+    {
+        case VK_SHIFT:
+            return (mod & KMOD_SHIFT) ? (SHORT)0x8000 : 0;
+        case VK_CONTROL:
+            return (mod & KMOD_CTRL) ? (SHORT)0x8000 : 0;
+        case VK_MENU:
+            return (mod & KMOD_ALT) ? (SHORT)0x8000 : 0;
+        case VK_NUMLOCK:
+            return (mod & KMOD_NUM) ? (SHORT)0x8000 : 0;
+    }
+
+    const Uint8* keyState = SDL_GetKeyboardState(nullptr);
+    SDL_Scancode sc = SDL_SCANCODE_UNKNOWN;
+    if (vk >= 'A' && vk <= 'Z') sc = (SDL_Scancode)(SDL_SCANCODE_A + (vk - 'A'));
+    else if (vk == '0') sc = SDL_SCANCODE_0;
+    else if (vk >= '1' && vk <= '9') sc = (SDL_Scancode)(SDL_SCANCODE_1 + (vk - '1'));
+    else if (vk == VK_DOWN) sc = SDL_SCANCODE_DOWN;
+    else if (vk == VK_UP) sc = SDL_SCANCODE_UP;
+    else if (vk == VK_NEXT) sc = SDL_SCANCODE_PAGEDOWN;
+    else if (vk == VK_PRIOR) sc = SDL_SCANCODE_PAGEUP;
+    else if (vk == VK_END) sc = SDL_SCANCODE_END;
+    if (sc != SDL_SCANCODE_UNKNOWN && keyState[sc])
+        return (SHORT)0x8000;
+    return 0;
+}
+
+SHORT PlatformGetKeyState(int vk)
+{
+    SDL_Keymod mod = SDL_GetModState();
+    SHORT result = PlatformGetAsyncKeyState(vk);
+    if (vk == VK_NUMLOCK && (mod & KMOD_NUM))
+        result |= 0x0001;
+    return result;
+}
+
 static DWORD SDLMouseButtonEventToMKFlags(const SDL_MouseButtonEvent &Event, bool bIncludeCurrentButton)
 {
     Uint32 dwButtons = SDL_GetMouseState(nullptr, nullptr);
@@ -288,6 +333,9 @@ static void RecreateFrameBuffer(int cxWidth, int cyHeight)
 {
     if (cxWidth <= 0 || cyHeight <= 0)
         return;
+
+    g_PlatformWindowWidth = cxWidth;
+    g_PlatformWindowHeight = cyHeight;
 
     if (g_AppState.pTexture)
         {
@@ -590,6 +638,8 @@ int App_PumpEvents(void)
                 PlatformPostMessage(WM_CHAR, *p, nullptr);
             break;
         case SDL_MOUSEMOTION:
+            g_PlatformMouseX = event.motion.x;
+            g_PlatformMouseY = event.motion.y;
             PlatformPostMessage(WM_MOUSEMOVE,
                 (int)SDLMouseStateToMKFlags(event.motion.state),
                 (void*)(uintptr_t)MAKELONG(event.motion.x, event.motion.y));
@@ -601,6 +651,8 @@ int App_PumpEvents(void)
                 else if (event.button.button == SDL_BUTTON_MIDDLE) msg = WM_MBUTTONDOWN;
                 int x = event.button.x;
                 int y = event.button.y;
+                g_PlatformMouseX = x;
+                g_PlatformMouseY = y;
                 PlatformPostMessage(msg,
                     (int)SDLMouseButtonEventToMKFlags(event.button, true),
                     (void*)(uintptr_t)MAKELONG(x, y));
@@ -613,6 +665,8 @@ int App_PumpEvents(void)
                 else if (event.button.button == SDL_BUTTON_MIDDLE) msg = WM_MBUTTONUP;
                 int x = event.button.x;
                 int y = event.button.y;
+                g_PlatformMouseX = x;
+                g_PlatformMouseY = y;
                 PlatformPostMessage(msg,
                     (int)SDLMouseButtonEventToMKFlags(event.button, false),
                     (void*)(uintptr_t)MAKELONG(x, y));

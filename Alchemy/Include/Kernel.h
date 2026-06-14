@@ -820,7 +820,9 @@ inline bool PostQuitMessage(int nExitCode) { return true; }
 inline HDC BeginPaint(HWND hWnd, void* pPaintStruct) { return nullptr; }
 inline bool EndPaint(HWND hWnd, const void* pPaintStruct) { return true; }
 inline bool InvalidateRect(HWND hWnd, const RECT* pRect, bool bErase) { return true; }
-inline bool GetClientRect(HWND hWnd, RECT* pRect) { if (pRect) { pRect->left = pRect->top = 0; pRect->right = 1024; pRect->bottom = 768; } return true; }
+extern int g_PlatformWindowWidth;
+extern int g_PlatformWindowHeight;
+inline bool GetClientRect(HWND hWnd, RECT* pRect) { if (pRect) { pRect->left = pRect->top = 0; pRect->right = g_PlatformWindowWidth; pRect->bottom = g_PlatformWindowHeight; } return true; }
 unsigned int PlatformSetTimerCompat(void* hWnd, unsigned int timerID, unsigned int elapse, void* callback);
 int PlatformKillTimerCompat(void* hWnd, unsigned int timerID);
 #define SetTimer(hwnd, id, elapse, callback) PlatformSetTimerCompat((void*)(hwnd), (unsigned int)(id), (unsigned int)(elapse), (void*)(callback))
@@ -837,15 +839,18 @@ typedef tagMSG MSG;
 #define PM_REMOVE 0x0001
 #define PM_NOYIELD 0x0002
 
-inline int MessageBox(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) { if (lpCaption) fprintf(stderr, "[%s] ", lpCaption); if (lpText) fprintf(stderr, "%s\n", lpText); return IDOK; }
-#define MB_OK 0x00000000
-#define MB_YESNO 0x00000004
 #define IDOK 1
 #define IDYES 6
 #define IDNO 7
+#define MB_OK 0x00000000
+#define MB_YESNO 0x00000004
 
-inline bool GetCursorPos(POINT* pPoint) { if (pPoint) { pPoint->x = 0; pPoint->y = 0; } return true; }
-inline void SetCursorPos(int x, int y) { }
+inline int MessageBox(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) { if (lpCaption) fprintf(stderr, "[%s] ", lpCaption); if (lpText) fprintf(stderr, "%s\n", lpText); return IDOK; }
+
+extern int g_PlatformMouseX;
+extern int g_PlatformMouseY;
+inline bool GetCursorPos(POINT* pPoint) { if (pPoint) { pPoint->x = g_PlatformMouseX; pPoint->y = g_PlatformMouseY; } return true; }
+inline void SetCursorPos(int x, int y) { g_PlatformMouseX = x; g_PlatformMouseY = y; }
 
 #define VK_DOWN 0x28
 #define VK_UP 0x26
@@ -1156,9 +1161,11 @@ typedef VS_FIXEDFILEINFO* LPVSFIXEDFILEINFO;
 #define MAPVK_VK_TO_CHAR 2
 
 inline void DebugBreak (void) { __builtin_debugtrap(); }
-inline int GetAsyncKeyState (int) { return 0; }
+extern SHORT PlatformGetAsyncKeyState(int vk);
+extern SHORT PlatformGetKeyState(int vk);
+inline int GetAsyncKeyState (int vk) { return PlatformGetAsyncKeyState(vk); }
 inline DWORD GetCurrentThreadId (void) { return (DWORD)(uintptr_t)pthread_self(); }
-inline SHORT GetKeyState (int) { return 0; }
+inline SHORT GetKeyState (int vk) { return PlatformGetKeyState(vk); }
 inline BOOL IsCharAlpha (char chChar) { return (((chChar >= 'a' && chChar <= 'z') || (chChar >= 'A' && chChar <= 'Z')) ? TRUE : FALSE); }
 inline BOOL IsCharAlphaNumeric (char chChar) { return (((chChar >= 'a' && chChar <= 'z') || (chChar >= 'A' && chChar <= 'Z') || (chChar >= '0' && chChar <= '9')) ? TRUE : FALSE); }
 inline UINT MapVirtualKey (UINT, UINT) { return 0; }
@@ -1225,19 +1232,21 @@ inline DWORD WaitForMultipleObjects(DWORD nCount, const HANDLE* pHandles, BOOL b
 
 inline DWORD GetTickCount (void)
 {
-    struct mach_timebase_info timebase;
-    mach_timebase_info(&timebase);
+    static mach_timebase_info_data_t sTimebase = {0, 0};
+    if (sTimebase.denom == 0)
+        mach_timebase_info(&sTimebase);
     uint64_t time = mach_absolute_time();
-    return (DWORD)((time * timebase.numer) / timebase.denom / 1000000);
+    return (DWORD)((time * sTimebase.numer) / sTimebase.denom / 1000000);
 }
 
 #ifndef QueryPerformanceCounter
 inline void QueryPerformanceCounter(LARGE_INTEGER *lpPerformanceCount)
 {
-    mach_timebase_info_data_t timebase;
-    mach_timebase_info(&timebase);
+    static mach_timebase_info_data_t sTimebase = {0, 0};
+    if (sTimebase.denom == 0)
+        mach_timebase_info(&sTimebase);
     uint64_t time = mach_absolute_time();
-    lpPerformanceCount->QuadPart = (LONGLONG)((time * timebase.numer) / timebase.denom);
+    lpPerformanceCount->QuadPart = (LONGLONG)((time * sTimebase.numer) / sTimebase.denom);
 }
 #endif
 
