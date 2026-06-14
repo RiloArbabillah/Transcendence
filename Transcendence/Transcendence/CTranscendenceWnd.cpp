@@ -38,11 +38,34 @@ CTranscendenceWnd::CTranscendenceWnd (HWND hWnd, CTranscendenceController *pTC) 
 		m_pMenuObj(NULL),
 		m_chKeyDown('\0'),
 		m_bDockKeyDown(false),
-		m_bPaused(false)
+		m_bPaused(false),
+		m_bPausedStep(false),
+		m_iCountdown(0),
+		m_pIntroSession(NULL),
+		m_iIntroCounter(0),
+		m_iLastShipCreated(0),
+		m_bSavedGame(false),
+		m_rcIntroTop({0, 0, 0, 0}),
+		m_rcIntroMain({0, 0, 0, 0}),
+		m_rcIntroBottom({0, 0, 0, 0}),
+		m_dwCreditsPerformance(0),
+		m_dwTitlesPerformance(0),
+		m_dwPlayerBarPerformance(0),
+		m_bGameCreated(false),
+		m_bHelpInvalid(false),
+		m_iHelpPage(0),
+		m_OldState(gsNone),
+		m_pSRSSnow(NULL),
+		m_iFrameCount(0),
+		m_iStartAnimation(0)
 
 //	CTranscendence constructor
 
 	{
+	memset(m_iFrameTime, 0, sizeof(m_iFrameTime));
+	memset(m_iPaintTime, 0, sizeof(m_iPaintTime));
+	memset(m_iUpdateTime, 0, sizeof(m_iUpdateTime));
+	memset(m_iBltTime, 0, sizeof(m_iBltTime));
 	ClearDebugLines();
 	}
 

@@ -1825,7 +1825,7 @@ void CPlayerGameStats::OnObjDestroyedByPlayer (const SDestroyCtx &Ctx, CSpaceObj
 				|| Ctx.Obj.HasAttribute(CONSTLIT("score")))
 			{
 			if (Ctx.Obj.GetType() == NULL)
-				break;
+				return;
 			SStationTypeStats *pStats = GetStationStats(Ctx.Obj.GetType()->GetUNID());
 
 			pStats->iDestroyed++;

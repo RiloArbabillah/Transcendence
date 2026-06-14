@@ -559,12 +559,11 @@ void CUniverse::DebugOutput (const char *pszLine, ...)
 
 	{
 #ifdef DEBUG
-	char *pArgs;
+	va_list args;
+	va_start(args, pszLine);
 	char szBuffer[1024];
-	int iLen;
-
-	pArgs = (char *)&pszLine + sizeof(pszLine);
-	iLen = wvsprintf(szBuffer, pszLine, pArgs);
+	vsnprintf(szBuffer, sizeof(szBuffer), pszLine, args);
+	va_end(args);
 
 	m_pHost->DebugOutput(CString(szBuffer));
 #endif

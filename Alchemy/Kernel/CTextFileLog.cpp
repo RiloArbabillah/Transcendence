@@ -157,7 +157,11 @@ void CTextFileLog::Print (const CString &sLine) const
 
 	DWORD dwWritten;
 	WriteFile(m_hFile, sLine.GetASCIIZPointer(), sLine.GetLength(), &dwWritten, NULL);
+#ifdef _WIN32
 	WriteFile(m_hFile, "\r\n", 2, &dwWritten, NULL);
+#else
+	WriteFile(m_hFile, "\n", 1, &dwWritten, NULL);
+#endif
 
 	//	Flush now because we don't want to lose any info if we crash
 
