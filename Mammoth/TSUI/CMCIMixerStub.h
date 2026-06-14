@@ -29,5 +29,5 @@ class CMCIMixerStub : public CMCIMixer
 		void TogglePausePlay(void) { }
 	};
 
-//	Use the stub on non-Windows platforms
-#define CMCIMixer CMCIMixerStub
+//	CMCIMixerStub.cpp provides the real SDL-based CMCIMixer implementation on macOS.
+//	No #define needed — the stub class is available for testing but does not replace CMCIMixer.
