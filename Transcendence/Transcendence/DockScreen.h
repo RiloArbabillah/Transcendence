@@ -621,6 +621,7 @@ class CDockScreen : public IScreenController,
 		//	Runtime
 		SDockScreenBackgroundDesc m_DeferredBackground;
 		TSortMap<CString, CString> m_DeferredDisplayText;
+		bool m_bDeferredCleanUp = false;
 	};
 
 #include "DockScreenDisplayImpl.h"
