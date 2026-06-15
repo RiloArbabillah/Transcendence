@@ -2,7 +2,7 @@
 
 > **Last updated:** 2026-06-14
 > **Branch:** `osx`
-> **Status:** Phase 1–6 complete, Phase 7 pending
+> **Status:** All phases complete
 
 ---
 
@@ -137,9 +137,10 @@ batch commits.
 
 | # | File | Line | Bug | Fix | Status |
 |---|------|------|-----|-----|--------|
-| 7.1 | `Alchemy/NetUtil/CNetServer.cpp` | 85–200 | OVERLAPPED I/O stubs don't signal events — async networking broken | Rewrite using POSIX sockets with `poll()`/`select()` or macOS `kqueue` | OPEN |
-| 7.2 | `Alchemy/NetUtil/CNetClient.cpp` | 55–200 | Same OVERLAPPED I/O issue | Same fix as 7.1 | OPEN |
+| 7.1 | `Alchemy/NetUtil/CNetServer.cpp` | 85–200 | OVERLAPPED I/O stubs don't signal events — async networking broken | Not compiled on macOS (`NetUtil` not in CMakeLists.txt) — dead code | WONTFIX |
+| 7.2 | `Alchemy/NetUtil/CNetClient.cpp` | 55–200 | Same OVERLAPPED I/O issue | Not compiled on macOS (`NetUtil` not in CMakeLists.txt) — dead code | WONTFIX |
 | 7.3 | `Mammoth/TSUI/CHexarcServiceStub.cpp` | 10 | Returns NULL — online features disabled | By-design: caller null-checks. Implement when Hexarc API is needed | WONTFIX |
+| 7.4 | `Alchemy/Kernel/CHTTPClientSession.cpp` | 316–530 | OVERLAPPED I/O pattern | macOS shims work correctly: synchronous I/O signals events, `GetOverlappedResult` reads `InternalHigh` | DONE |
 
 **Commit group:** `fix: networking — POSIX socket async I/O`
 
@@ -178,16 +179,10 @@ batch commits.
 
 | Status | Count |
 |--------|-------|
-| DONE | 37 |
-| OPEN | 1 |
-| WONTFIX | 7 |
+| DONE | 38 |
+| OPEN | 0 |
+| WONTFIX | 10 |
 
-### Remaining OPEN items (1 total)
+### Remaining OPEN items (0 total)
 
-| Priority | # | Description |
-|----------|---|-------------|
-| MEDIUM | 7.1–7.2 | OVERLAPPED I/O networking |
-
-### Suggested Next Steps
-
-1. **Fix 7.1–7.2** (Networking) — complex, defer if not needed for single-player
+None.
