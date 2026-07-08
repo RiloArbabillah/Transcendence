@@ -326,7 +326,7 @@ uintptr_t GetPointerValue (const ICCItem *pItem)
 	if (pItem->IsDouble())
 		return (uintptr_t)pItem->GetDoubleValue();
 	else if (pItem->IsInteger())
-		return (uintptr_t)(DWORDLONG)(DWORD)pItem->GetIntegerValue();
+		return (uintptr_t)(DWORD)pItem->GetIntegerValue();
 	else
 		return 0;
 	}
@@ -385,7 +385,7 @@ CSpaceObject *CreateObjFromItem (const ICCItem *pItem, DWORD dwFlags)
 	CSpaceObject *pObj = NULL;
 
 #ifdef TARGET_64BIT
-	if (dwObj != 0 && dwObj > (uintptr_t)DWORD_MAX)
+	if (dwObj != 0 && dwObj > (uintptr_t)UINT32_MAX)
 #else
 	if (dwObj != 0)
 #endif

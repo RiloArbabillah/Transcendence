@@ -22,6 +22,7 @@ set(CMAKE_OBJCXX_STANDARD 20)
 set(CMAKE_OBJCXX_STANDARD_REQUIRED ON)
 # add_compile_options(-Wno-non-pod-varargs)  # Re-enable after fixing warnings
 add_compile_definitions(TARGET_PLATFORM_MACOS)
+add_compile_definitions(TARGET_64BIT)
 add_compile_definitions(GAME_VERSION="1.0")
 
 option(TRANSCENDENCE_M1_MENU_ONLY "Limit the build graph to the milestone-1 menu path." ON)
