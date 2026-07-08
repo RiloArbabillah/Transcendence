@@ -173,6 +173,15 @@ ALERROR CXMLElement::ParseXML (IReadBlock &Stream, const SParseOptions &Options,
 		return error;
 		}
 
+	//	Check for empty stream
+
+	if (Stream.GetLength() == 0)
+		{
+		Stream.Close();
+		if (retsError) *retsError = CONSTLIT("empty XML document");
+		return ERR_FAIL;
+		}
+
 	//	Initialize context
 
 	ParserCtx Ctx(&Stream, Options.pController);
