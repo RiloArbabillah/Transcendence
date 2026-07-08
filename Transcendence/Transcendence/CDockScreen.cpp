@@ -75,15 +75,6 @@ CDockScreen::~CDockScreen (void)
 
 	{
 	CleanUpScreen();
-
-	//	In case the pane cleanup was deferred (e.g., if the object is destroyed
-	//	while an action is still executing), force the pane cleanup now.
-
-	if (m_bDeferredCleanUp)
-		{
-		m_bDeferredCleanUp = false;
-		m_CurrentPane.CleanUp();
-		}
 	}
 
 void CDockScreen::Action (DWORD dwTag, DWORD dwData)
@@ -377,6 +368,8 @@ void CDockScreen::CleanUpScreen (void)
 	{
 	DEBUG_TRY
 
+	kernelDebugLogPattern("CDockScreen::CleanUpScreen: m_pScreen=%p, InExecuteAction=%d", m_pScreen, (int)m_CurrentPane.InExecuteAction());
+
 	if (m_pScreen)
 		{
 		delete m_pScreen;
@@ -396,24 +389,14 @@ void CDockScreen::CleanUpScreen (void)
 	m_pData = NULL;
 	m_pTabs = NULL;
 
-	//	If we're inside an action execution (e.g., button press handler), we
-	//	must defer the pane cleanup because m_Actions.pCode might still be in
-	//	use by RunLambdaCode. Cleaning up the pane would discard the ICCItem
-	//	while the script is still running, causing a use-after-free crash.
-	//
 	//	NOTE: We delete m_pScreen above even though AGScreen::LButtonUp might
 	//	be on the stack. This is technically UB, but AGScreen::LButtonUp does
 	//	not access its this pointer after the recursive call (it saves
 	//	m_pMouseCapture to a local before calling LButtonUp). The original
 	//	code comment in AGScreen::LButtonUp acknowledges this design.
 
-	if (m_CurrentPane.InExecuteAction())
-		m_bDeferredCleanUp = true;
-	else
-		{
-		m_CurrentPane.CleanUp();
-		m_CurrentPane.ClearDescriptionError();
-		}
+	m_CurrentPane.CleanUp();
+	m_CurrentPane.ClearDescriptionError();
 
 	m_pOnScreenUpdate = NULL;
 	m_pLocation = NULL;
@@ -1664,17 +1647,6 @@ void CDockScreen::OnExecuteActionDone (void)
 
 	{
 	DEBUG_TRY
-
-	//	If CleanUpScreen was called during action execution, the pane cleanup
-	//	was deferred because m_Actions.pCode was still in use by RunLambdaCode.
-	//	Now that the action has returned, we can safely clean up.
-
-	if (m_bDeferredCleanUp)
-		{
-		m_bDeferredCleanUp = false;
-		m_CurrentPane.CleanUp();
-		m_CurrentPane.ClearDescriptionError();
-		}
 
 	m_Session.OnExecuteActionDone();
 
