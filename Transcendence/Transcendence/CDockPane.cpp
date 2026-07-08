@@ -359,6 +359,17 @@ void CDockPane::ExecuteAction (int iAction)
 	m_bInExecuteAction = true;
 	m_sDeferredShowPane = NULL_STR;
 
+	//	Remember the current dock frame so we can detect whether the action
+	//	navigated to a different screen/pane. If it did, the new frame's pane was
+	//	already initialized by the navigation; honoring a deferred ShowPane
+	//	afterward would re-run <OnPaneInit> a second time. (Deferred ShowPanes
+	//	originate from CDockScreen::OnModifyItemComplete / OnObjDestroyed, which
+	//	defer while we're inside an action.)
+
+	const SDockFrame &FrameBefore = g_pUniverse->GetDockSession().GetCurrentFrame();
+	CString sScreenBefore = FrameBefore.sScreen;
+	CString sPaneBefore = FrameBefore.sPane;
+
 	//	Execute
 
 	m_Actions.Execute(iAction, &m_DockScreen);
@@ -371,12 +382,26 @@ void CDockPane::ExecuteAction (int iAction)
 	m_DockScreen.OnExecuteActionDone();
 
 	//	If inside the action we changed the object (e.g., deleted an item) then
-	//	we might need to reload the pane. If so, we do it now.
+	//	we might need to reload the pane. If so, we do it now. But if the action
+	//	navigated to a different frame, that frame's pane is already current and
+	//	correctly initialized, so reloading it would double-execute <OnPaneInit>.
 
 	if (!m_sDeferredShowPane.IsBlank())
 		{
-		m_Actions.ExecuteShowPane(m_sDeferredShowPane);
-		m_sDeferredShowPane = NULL_STR;
+		const SDockFrame &FrameAfter = g_pUniverse->GetDockSession().GetCurrentFrame();
+		if (FrameAfter.sScreen == sScreenBefore && FrameAfter.sPane == sPaneBefore)
+			{
+			m_Actions.ExecuteShowPane(m_sDeferredShowPane);
+			m_sDeferredShowPane = NULL_STR;
+			}
+		else
+			{
+			kernelDebugLogPattern("CDockPane::ExecuteAction: skipping deferred ShowPane '%s'; action navigated (screen %s->%s, pane %s->%s)",
+					(const char *)m_sDeferredShowPane,
+					(const char *)sScreenBefore, (const char *)FrameAfter.sScreen,
+					(const char *)sPaneBefore, (const char *)FrameAfter.sPane);
+			m_sDeferredShowPane = NULL_STR;
+			}
 		}
 
 	DEBUG_CATCH
