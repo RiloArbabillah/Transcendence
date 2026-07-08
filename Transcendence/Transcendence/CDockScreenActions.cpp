@@ -335,7 +335,20 @@ void CDockScreenActions::Execute (int iAction, CDockScreen *pScreen)
 	{
 	DEBUG_TRY
 
+	if (iAction < 0 || iAction >= m_Actions.GetCount())
+		{
+		kernelDebugLogPattern("CDockScreenActions::Execute: ignoring invalid iAction=%d count=%d", iAction, m_Actions.GetCount());
+		return;
+		}
+
 	SActionDesc *pAction = &m_Actions[iAction];
+
+	kernelDebugLogPattern("CDockScreenActions::Execute: iAction=%d, sID=%s, pCmd=%p, pCode=%p, sCode=%s",
+			iAction,
+			(const char *)pAction->sID,
+			pAction->pCmd,
+			pAction->pCode,
+			pAction->sCode.IsBlank() ? "(none)" : (const char *)pAction->sCode);
 
 	//	Ignore the action if disabled or invisible
 
@@ -405,7 +418,13 @@ void CDockScreenActions::ExecuteCode (CDockScreen *pScreen, const CString &sID, 
 	Ctx.DefineString(CONSTLIT("aActionID"), sID);
 	Ctx.SetDockScreenList(pScreen->GetListData());
 
-	ICCItemPtr pResult = Ctx.RunLambdaCode(pCode);
+	kernelDebugLogPattern("CDockScreenActions::ExecuteCode: sID=%s, pCode=%p (refCount=%d)", (const char *)sID, pCode, pCode->GetRefCount());
+
+	ICCItemPtr pKeepAlive(pCode->Reference());
+	ICCItemPtr pResult = Ctx.RunLambdaCode(pKeepAlive);
+
+	kernelDebugLogPattern("CDockScreenActions::ExecuteCode: RunLambdaCode returned, pCode=%p, pResult=%p, isError=%d", pCode, (ICCItem *)pResult, (int)pResult->IsError());
+
 	if (pResult->IsError())
 		{
 		CString sError = pResult->GetStringValue();
@@ -422,6 +441,7 @@ void CDockScreenActions::ExecuteExitScreen (bool bForceUndock)
 //	Exits the current screen
 
 	{
+	kernelDebugLogPattern("CDockScreenActions::ExecuteExitScreen: bForceUndock=%d", (int)bForceUndock);
 	g_pTrans->GetModel().ExitScreenSession(bForceUndock);
 	}
 
@@ -734,7 +754,7 @@ int CDockScreenActions::Justify (CDesignType *pRoot, int cxJustify)
 		//	If we've got a quoted label, then make it longer
 
 		char *pPos = pAction->sLabelTmp.GetASCIIZPointer();
-		if (*pPos == '\"' || *pPos == '“')
+		if (*pPos == '\"' || *pPos == (char)0x93 || *pPos == (char)0x94)
 			m_bLongButtons = true;
 
 		//	If we have a description, set that

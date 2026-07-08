@@ -349,6 +349,13 @@ void CDockPane::ExecuteAction (int iAction)
 
 	//	Set up some context so we deal with re-entrancy issues.
 
+	kernelDebugLogPattern("CDockPane::ExecuteAction: iAction=%d", iAction);
+	if (iAction < 0 || iAction >= m_Actions.GetCount())
+		{
+		kernelDebugLogPattern("CDockPane::ExecuteAction: ignoring invalid iAction=%d count=%d", iAction, m_Actions.GetCount());
+		return;
+		}
+
 	m_bInExecuteAction = true;
 	m_sDeferredShowPane = NULL_STR;
 
