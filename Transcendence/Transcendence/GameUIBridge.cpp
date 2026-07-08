@@ -30,30 +30,9 @@ static void log_va(const char* fmt, ...) {
     log_msg(buf);
 }
 
-static void sigsegv_handler(int sig) {
-    (void)sig;
-    const char* msg = "!!! SIGSEGV received !!!\nA crash occurred. The save file may be incompatible.\nPlease start a new game.\n";
-    write(STDOUT_FILENO, msg, strlen(msg));
-    void *frames[64];
-    int frameCount = backtrace(frames, 64);
-    backtrace_symbols_fd(frames, frameCount, STDOUT_FILENO);
-    _exit(1);
-}
-
-static void sigabrt_handler(int sig) {
-    (void)sig;
-    write(STDOUT_FILENO, "!!! SIGABRT received !!!\n", 24);
-    void *frames[64];
-    int frameCount = backtrace(frames, 64);
-    backtrace_symbols_fd(frames, frameCount, STDOUT_FILENO);
-    _exit(1);
-}
 
 void InitGameUI(SAppState& state, const char *pszCommandLine)
 {
-    signal(SIGSEGV, sigsegv_handler);
-    signal(SIGABRT, sigabrt_handler);
-
     g_pController = new CTranscendenceController();
     g_pHI->SetController(g_pController);
 

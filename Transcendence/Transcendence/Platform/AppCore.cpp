@@ -14,6 +14,11 @@
 #include <queue>
 #include <map>
 #include <mutex>
+#include <signal.h>
+#include <execinfo.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <time.h>
 #include <sys/stat.h>
 
 #ifndef MAKELONG
@@ -840,8 +845,168 @@ int PlatformKillTimerCompat(void* hWnd, unsigned int timerID)
     return 1;
 }
 
+// ============================================================================
+// Global crash handler — writes crash log to Crash.log
+// ============================================================================
+
+static const char CRASH_LOG_FILE[] = "Crash.log";
+
+static void sigWrite(int fd, const char *s)
+	{
+	if (!s) return;
+	const char *p = s;
+	while (*p) p++;
+	write(fd, s, (size_t)(p - s));
+	}
+
+static void sigWriteHex(int fd, unsigned long long val)
+	{
+	if (val == 0)
+		{
+		write(fd, "0x0", 3);
+		return;
+		}
+
+	char buf[20];
+	int pos = 0;
+	unsigned long long tmp = val;
+	while (tmp > 0 && pos < 19)
+		{
+		int digit = (int)(tmp % 16);
+		buf[pos++] = (digit < 10) ? ('0' + digit) : ('a' + digit - 10);
+		tmp /= 16;
+		}
+
+	write(fd, "0x", 2);
+	for (int i = pos - 1; i >= 0; i--)
+		write(fd, &buf[i], 1);
+	}
+
+static void sigWriteDec(int fd, int val)
+	{
+	if (val == 0)
+		{
+		write(fd, "0", 1);
+		return;
+		}
+
+	char buf[12];
+	int pos = 0;
+	int tmp = val;
+	bool neg = false;
+	if (tmp < 0) { neg = true; tmp = -tmp; }
+	while (tmp > 0 && pos < 11)
+		{
+		buf[pos++] = '0' + (tmp % 10);
+		tmp /= 10;
+		}
+
+	if (neg) write(fd, "-", 1);
+	for (int i = pos - 1; i >= 0; i--)
+		write(fd, &buf[i], 1);
+	}
+
+static void crashHandler(int sig)
+	{
+	int fd = open(CRASH_LOG_FILE, O_WRONLY | O_CREAT | O_APPEND, 0644);
+	if (fd < 0)
+		{
+		// Last resort: try stderr
+		const char msg[] = "CRASH: signal handler failed to open Crash.log\n";
+		write(STDERR_FILENO, msg, sizeof(msg) - 1);
+		_exit(128 + sig);
+		}
+
+	// Header
+	sigWrite(fd, "=== CRASH ===\n");
+
+	// Timestamp
+	time_t now = time(NULL);
+	struct tm tm_result;
+	localtime_r(&now, &tm_result);
+	char timeBuf[64];
+	strftime(timeBuf, sizeof(timeBuf), "%Y-%m-%d %H:%M:%S", &tm_result);
+	sigWrite(fd, "Time: ");
+	sigWrite(fd, timeBuf);
+	sigWrite(fd, "\n");
+
+	// Signal info
+	sigWrite(fd, "Signal: ");
+	sigWriteDec(fd, sig);
+	sigWrite(fd, " (");
+	switch (sig)
+		{
+		case SIGSEGV: sigWrite(fd, "SIGSEGV"); break;
+		case SIGABRT: sigWrite(fd, "SIGABRT"); break;
+		case SIGBUS:  sigWrite(fd, "SIGBUS");  break;
+		case SIGFPE:  sigWrite(fd, "SIGFPE");  break;
+		case SIGILL:  sigWrite(fd, "SIGILL");  break;
+		case SIGTRAP: sigWrite(fd, "SIGTRAP"); break;
+		default:      sigWrite(fd, "unknown"); break;
+		}
+	sigWrite(fd, ")\n");
+
+	// Backtrace
+	void *frames[64];
+	int nFrames = backtrace(frames, 64);
+	sigWrite(fd, "Backtrace (");
+	sigWriteDec(fd, nFrames);
+	sigWrite(fd, " frames):\n");
+	backtrace_symbols_fd(frames, nFrames, fd);
+
+	sigWrite(fd, "\n");
+
+	close(fd);
+
+	// Re-raise to get core dump
+	_exit(128 + sig);
+	}
+
+// ============================================================================
+// Crash recovery via setjmp/longjmp — allows script crashes to be caught
+// ============================================================================
+
+#include <setjmp.h>
+
+static jmp_buf g_CrashRecoveryJmp;
+static volatile sig_atomic_t g_CrashRecoveryActive = 0;
+
+bool crashRecoveryBegin()
+	{
+	g_CrashRecoveryActive = 1;
+	return setjmp(g_CrashRecoveryJmp) == 0;
+	}
+
+void crashRecoveryEnd()
+	{
+	g_CrashRecoveryActive = 0;
+	}
+
+static void crashHandlerWithRecovery(int sig)
+	{
+	if (g_CrashRecoveryActive)
+		{
+		g_CrashRecoveryActive = 0;
+		signal(sig, crashHandlerWithRecovery);
+		siglongjmp(g_CrashRecoveryJmp, sig);
+		return;
+		}
+	crashHandler(sig);
+	}
+
+static void installCrashHandler()
+	{
+	signal(SIGSEGV, crashHandlerWithRecovery);
+	signal(SIGABRT, crashHandlerWithRecovery);
+	signal(SIGBUS,  crashHandlerWithRecovery);
+	signal(SIGFPE,  crashHandlerWithRecovery);
+	signal(SIGILL,  crashHandlerWithRecovery);
+	signal(SIGTRAP, crashHandlerWithRecovery);
+	}
+
 int App_Run(const char *pszCommandLine)
 {
+    installCrashHandler();
     log_msg("App_Run: start");
 
     if (!App_Init())

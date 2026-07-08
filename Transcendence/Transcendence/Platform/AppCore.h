@@ -91,3 +91,8 @@ struct SAppState& GetAppState(void);
 
 void InitGameUI(SAppState& state, const char *pszCommandLine = nullptr);
 void UpdateGameUI(SAppState& state);
+
+// Crash recovery — wrap code that may crash (e.g., corrupt save file scripts).
+// Usage: if (crashRecoveryBegin()) { ... crashable code ... crashRecoveryEnd(); } else { ... handle crash ... }
+bool crashRecoveryBegin();
+void crashRecoveryEnd();

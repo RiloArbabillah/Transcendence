@@ -102,6 +102,7 @@
 
 #include "PreComp.h"
 #include "Transcendence.h"
+#include "Platform/AppCore.h"
 
 #define CMD_GAME_ENTER_FINAL_STARGATE			CONSTLIT("gameEnterFinalStargate")
 #define CMD_GAME_ENTER_STARGATE					CONSTLIT("gameEnterStargate")
@@ -883,6 +884,7 @@ void CTranscendenceModel::ExitScreenSession (bool bForceUndock)
 	{
 	DEBUG_TRY
 
+	kernelDebugLogPattern("CTranscendenceModel::ExitScreenSession: bForceUndock=%d", (int)bForceUndock);
 	CGameSession *pSession = GetPlayer()->GetGameSession();
 	if (pSession == NULL)
 		return;
@@ -2587,7 +2589,16 @@ ALERROR CTranscendenceModel::StartGame (bool bNewGame)
 
 	//	Tell the universe to start the game
 
+	if (!crashRecoveryBegin())
+		{
+		//	Crash occurred during script execution (likely corrupt save file)
+		kernelDebugLogString(CONSTLIT("CRASH RECOVERED: Script crashed during FireOnGlobalUniverseLoad. Save file may be corrupt."));
+		return ERR_FAIL;
+		}
+
 	m_Universe.StartGame(m_iState == stateCreatingNewGame);
+
+	crashRecoveryEnd();
 
 	//	Update stats
 
