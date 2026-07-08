@@ -380,6 +380,9 @@ class CDockPane
 		bool m_bInShowPane = false;			//	Keep track of re-entrancy
 		bool m_bInExecuteAction = false;	//	Inside m_Actions.Execute
 		bool m_bDescError = false;			//	Main description is an error.
+		int m_iInitEpoch = 0;				//	Bumped on CleanUp so a nested
+											//	InitPane (from <OnPaneInit> navigating)
+											//	can be detected by the outer InitPane.
 		CString m_sDeferredShowPane;
 	};
 

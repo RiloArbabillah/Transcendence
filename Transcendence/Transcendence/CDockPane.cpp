@@ -104,6 +104,11 @@ void CDockPane::CleanUp (AGScreen *pScreen)
 	m_pContainer = NULL;
 	m_bInShowPane = false;
 	m_sDeferredShowPane = NULL_STR;
+
+	//	Bump the epoch so an outer InitPane can detect that we re-initialized
+	//	the pane (e.g. a nested <OnPaneInit> navigation). See InitPane.
+
+	m_iInitEpoch++;
 	}
 
 void CDockPane::CreateControl (EControlTypes iType, const CString &sID, const CXMLElement &ControlDesc, RECT rcPane)
@@ -370,6 +375,12 @@ void CDockPane::ExecuteAction (int iAction)
 	CString sScreenBefore = FrameBefore.sScreen;
 	CString sPaneBefore = FrameBefore.sPane;
 
+	//	Compare the current frame object identity (not just its screen/pane
+	//	names): a navigation to a different nested frame that reuses the same
+	//	names would otherwise be missed.
+
+	const SDockFrame *pFrameBefore = &FrameBefore;
+
 	//	Execute
 
 	m_Actions.Execute(iAction, &m_DockScreen);
@@ -389,7 +400,7 @@ void CDockPane::ExecuteAction (int iAction)
 	if (!m_sDeferredShowPane.IsBlank())
 		{
 		const SDockFrame &FrameAfter = g_pUniverse->GetDockSession().GetCurrentFrame();
-		if (FrameAfter.sScreen == sScreenBefore && FrameAfter.sPane == sPaneBefore)
+		if (&FrameAfter == pFrameBefore)
 			{
 			m_Actions.ExecuteShowPane(m_sDeferredShowPane);
 			m_sDeferredShowPane = NULL_STR;
@@ -1001,6 +1012,13 @@ ALERROR CDockPane::InitPane (CDockSession &DockSession, CDockScreen &DockScreen,
 	//	This gives the frame a chance to initialize any dynamic
 	//	action buttons before we actually create the buttons.
 
+	//	Capture the init epoch so we can detect whether <OnPaneInit> navigated
+	//	to a different pane. If it did, CleanUp (called during the nested
+	//	InitPane) increments the epoch and re-initializes everything; we must
+	//	NOT continue working on our now-stale pane descriptor.
+
+	int iEpoch = m_iInitEpoch;
+
 	CXMLElement *pInit = m_pPaneDesc->GetContentElementByTag(ON_PANE_INIT_TAG);
 	if (pInit == NULL)
 		pInit = m_pPaneDesc->GetContentElementByTag(INITIALIZE_TAG);
@@ -1013,9 +1031,10 @@ ALERROR CDockPane::InitPane (CDockSession &DockSession, CDockScreen &DockScreen,
 			ReportError(strPatternSubst(CONSTLIT("Error evaluating <OnPaneInit>: %s"), sError));
 		}
 
-	//	We might have called exit inside OnPaneInit. If so, we exit
+	//	If <OnPaneInit> navigated away (or exited), abandon this InitPane: the
+	//	nested call already set up the new pane.
 
-	if (m_DockScreen.GetScreen() == NULL)
+	if (m_iInitEpoch != iEpoch || m_DockScreen.GetScreen() == NULL)
 		return NOERROR;
 
 	//	Allow other design types to override the pane
