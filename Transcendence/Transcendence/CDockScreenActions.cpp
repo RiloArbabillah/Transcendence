@@ -751,10 +751,16 @@ int CDockScreenActions::Justify (CDesignType *pRoot, int cxJustify)
 			//	change it here.
 			}
 
-		//	If we've got a quoted label, then make it longer
+		//	If we've got a quoted label, then make it longer. On macOS labels are
+		//	UTF-8, so a smart quote is the 3-byte sequence E2 80 9C (left) /
+		//	E2 80 9D (right). The old Windows-1252 single-byte 0x93/0x94 never
+		//	match UTF-8 text and would leave such buttons too narrow.
 
-		char *pPos = pAction->sLabelTmp.GetASCIIZPointer();
-		if (*pPos == '\"' || *pPos == (char)0x93 || *pPos == (char)0x94)
+		const unsigned char *pPos = (const unsigned char *)pAction->sLabelTmp.GetASCIIZPointer();
+		bool bQuoted = (*pPos == '\"')
+				|| (pPos[0] == 0xE2 && pPos[1] == 0x80
+					&& (pPos[2] == 0x9C || pPos[2] == 0x9D));
+		if (bQuoted)
 			m_bLongButtons = true;
 
 		//	If we have a description, set that
