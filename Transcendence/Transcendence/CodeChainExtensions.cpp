@@ -1122,7 +1122,7 @@ ICCItem *fnPlyGet (CEvalContext *pEvalCtx, ICCItem *pArgs, DWORD dwData)
 			if (pEcon == NULL)
 				return pCC->CreateError(CONSTLIT("Invalid economy type"), pArgs->GetElement(1));
 
-			pResult = pCC->CreateInteger((int)pPlayer->GetCredits(pEcon->GetUNID()));
+			pResult = CTLispConvert::CreateCurrencyValue(pPlayer->GetCredits(pEcon->GetUNID()));
 			break;
 			}
 
@@ -1363,7 +1363,7 @@ ICCItem *fnPlySet (CEvalContext *pEvalCtx, ICCItem *pArgs, DWORD dwData)
 			int iCharge = (pArgs->GetCount() > 2 ? pArgs->GetElement(2)->GetIntegerValue() : pArgs->GetElement(1)->GetIntegerValue());
 
 			CurrencyValue iNewValue = pPlayer->Charge(pEcon->GetUNID(), iCharge);
-			pResult = pCC->CreateInteger((int)iNewValue);
+			pResult = CTLispConvert::CreateCurrencyValue(iNewValue);
 			break;
 			}
 
@@ -1376,7 +1376,7 @@ ICCItem *fnPlySet (CEvalContext *pEvalCtx, ICCItem *pArgs, DWORD dwData)
 			int iValue = (pArgs->GetCount() > 2 ? pArgs->GetElement(2)->GetIntegerValue() : pArgs->GetElement(1)->GetIntegerValue());
 
 			pPlayer->Payment(pEcon->GetUNID(), iValue);
-			pResult = pCC->CreateInteger((int)pPlayer->GetCredits(pEcon->GetUNID()));
+			pResult = CTLispConvert::CreateCurrencyValue(pPlayer->GetCredits(pEcon->GetUNID()));
 			break;
 			}
 

@@ -3213,7 +3213,7 @@ ICCItem *CWeaponClass::FindAmmoItemProperty (CItemCtx &Ctx, const CItem &Ammo, c
 		Metric rCostDelta = -rBalance / BALANCE_COST_RATIO;
 		Metric rCostCredits = (Metric)Stats.Cost + (Stats.Cost * rCostDelta / 100.0);
 
-		return CC.CreateInteger((int)GetItemType()->GetCurrencyType()->Exchange(NULL, (CurrencyValue)rCostCredits));
+		return CTLispConvert::CreateCurrencyValue(GetItemType()->GetCurrencyType()->Exchange(NULL, (CurrencyValue)rCostCredits));
 		}
 	else if (strEquals(sProperty, PROPERTY_BALANCE_EXCLUDE_COST))
 		{
