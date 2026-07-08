@@ -851,6 +851,11 @@ int PlatformKillTimerCompat(void* hWnd, unsigned int timerID)
 
 static const char CRASH_LOG_FILE[] = "Crash.log";
 
+// Re-entrancy guard: prevents a second (different) signal, delivered while we
+// are already writing the crash log, from corrupting the log or nesting into a
+// backtrace from a (possibly blown) signal-handler stack frame.
+static volatile sig_atomic_t g_InHandler = 0;
+
 static void sigWrite(int fd, const char *s)
 	{
 	if (!s) return;
@@ -908,58 +913,64 @@ static void sigWriteDec(int fd, int val)
 
 static void crashHandler(int sig)
 	{
+	// Re-entrancy guard: a different signal arriving while we're already
+	// handling a crash means we're in an unstable state — just terminate.
+	if (g_InHandler)
+		_exit(128 + sig);
+	g_InHandler = 1;
+
 	int fd = open(CRASH_LOG_FILE, O_WRONLY | O_CREAT | O_APPEND, 0644);
 	if (fd < 0)
 		{
-		// Last resort: try stderr
 		const char msg[] = "CRASH: signal handler failed to open Crash.log\n";
 		write(STDERR_FILENO, msg, sizeof(msg) - 1);
-		_exit(128 + sig);
 		}
-
-	// Header
-	sigWrite(fd, "=== CRASH ===\n");
-
-	// Timestamp
-	time_t now = time(NULL);
-	struct tm tm_result;
-	localtime_r(&now, &tm_result);
-	char timeBuf[64];
-	strftime(timeBuf, sizeof(timeBuf), "%Y-%m-%d %H:%M:%S", &tm_result);
-	sigWrite(fd, "Time: ");
-	sigWrite(fd, timeBuf);
-	sigWrite(fd, "\n");
-
-	// Signal info
-	sigWrite(fd, "Signal: ");
-	sigWriteDec(fd, sig);
-	sigWrite(fd, " (");
-	switch (sig)
+	else
 		{
-		case SIGSEGV: sigWrite(fd, "SIGSEGV"); break;
-		case SIGABRT: sigWrite(fd, "SIGABRT"); break;
-		case SIGBUS:  sigWrite(fd, "SIGBUS");  break;
-		case SIGFPE:  sigWrite(fd, "SIGFPE");  break;
-		case SIGILL:  sigWrite(fd, "SIGILL");  break;
-		case SIGTRAP: sigWrite(fd, "SIGTRAP"); break;
-		default:      sigWrite(fd, "unknown"); break;
+		// Header
+		sigWrite(fd, "=== CRASH ===\n");
+
+		// Signal info
+		sigWrite(fd, "Signal: ");
+		sigWriteDec(fd, sig);
+		sigWrite(fd, " (");
+		switch (sig)
+			{
+			case SIGSEGV: sigWrite(fd, "SIGSEGV"); break;
+			case SIGABRT: sigWrite(fd, "SIGABRT"); break;
+			case SIGBUS:  sigWrite(fd, "SIGBUS");  break;
+			case SIGFPE:  sigWrite(fd, "SIGFPE");  break;
+			case SIGILL:  sigWrite(fd, "SIGILL");  break;
+			case SIGTRAP: sigWrite(fd, "SIGTRAP"); break;
+			default:      sigWrite(fd, "unknown"); break;
+			}
+		sigWrite(fd, ")\n");
+
+		// Backtrace (called last; backtrace/backtrace_symbols_fd are not
+		// strictly async-signal-safe but are essential for diagnosis).
+		void *frames[64];
+		int nFrames = backtrace(frames, 64);
+		sigWrite(fd, "Backtrace (");
+		sigWriteDec(fd, nFrames);
+		sigWrite(fd, " frames):\n");
+		backtrace_symbols_fd(frames, nFrames, fd);
+
+		sigWrite(fd, "\n");
+		close(fd);
 		}
-	sigWrite(fd, ")\n");
 
-	// Backtrace
-	void *frames[64];
-	int nFrames = backtrace(frames, 64);
-	sigWrite(fd, "Backtrace (");
-	sigWriteDec(fd, nFrames);
-	sigWrite(fd, " frames):\n");
-	backtrace_symbols_fd(frames, nFrames, fd);
-
-	sigWrite(fd, "\n");
-
-	close(fd);
-
-	// Re-raise to get core dump
-	_exit(128 + sig);
+	// Restore the default disposition, then RETURN. The original (still-pending)
+	// signal is re-delivered with SIG_DFL once the handler's signal mask is
+	// restored on return, producing a core dump. (Calling raise() inside the
+	// handler would re-queue onto the signal that is blocked during handler
+	// execution and never fire; the old code used _exit, which silently
+	// swallowed the crash.)
+	struct sigaction sa;
+	sa.sa_handler = SIG_DFL;
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = 0;
+	sigaction(sig, &sa, NULL);
+	return;
 	}
 
 // ============================================================================
@@ -968,13 +979,16 @@ static void crashHandler(int sig)
 
 #include <setjmp.h>
 
-static jmp_buf g_CrashRecoveryJmp;
+static sigjmp_buf g_CrashRecoveryJmp;
 static volatile sig_atomic_t g_CrashRecoveryActive = 0;
 
 bool crashRecoveryBegin()
 	{
 	g_CrashRecoveryActive = 1;
-	return setjmp(g_CrashRecoveryJmp) == 0;
+	// sigsetjmp(..., 1) saves the signal mask so siglongjmp restores it. Using
+	// plain setjmp/jmp_buf left the crashing signal permanently blocked after a
+	// recovery, silently swallowing any later real crash.
+	return sigsetjmp(g_CrashRecoveryJmp, 1) == 0;
 	}
 
 void crashRecoveryEnd()
@@ -987,21 +1001,23 @@ static void crashHandlerWithRecovery(int sig)
 	if (g_CrashRecoveryActive)
 		{
 		g_CrashRecoveryActive = 0;
-		signal(sig, crashHandlerWithRecovery);
 		siglongjmp(g_CrashRecoveryJmp, sig);
-		return;
 		}
 	crashHandler(sig);
 	}
 
 static void installCrashHandler()
 	{
-	signal(SIGSEGV, crashHandlerWithRecovery);
-	signal(SIGABRT, crashHandlerWithRecovery);
-	signal(SIGBUS,  crashHandlerWithRecovery);
-	signal(SIGFPE,  crashHandlerWithRecovery);
-	signal(SIGILL,  crashHandlerWithRecovery);
-	signal(SIGTRAP, crashHandlerWithRecovery);
+	struct sigaction sa;
+	sa.sa_handler = crashHandlerWithRecovery;
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = 0;
+	sigaction(SIGSEGV, &sa, NULL);
+	sigaction(SIGABRT, &sa, NULL);
+	sigaction(SIGBUS,  &sa, NULL);
+	sigaction(SIGFPE,  &sa, NULL);
+	sigaction(SIGILL,  &sa, NULL);
+	sigaction(SIGTRAP, &sa, NULL);
 	}
 
 int App_Run(const char *pszCommandLine)
