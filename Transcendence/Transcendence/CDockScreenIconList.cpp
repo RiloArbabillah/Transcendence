@@ -263,6 +263,20 @@ IDockScreenDisplay::EResults CDockScreenIconList::OnResetList (CSpaceObject *pLo
 		return resultNone;
 	}
 
+IDockScreenDisplay::EResults CDockScreenIconList::OnObjDestroyedNotify (const SDestroyCtx &Ctx)
+
+//	OnObjDestroyedNotify
+//
+//	Clear our cached source if it is the object that was destroyed, so we don't
+//	keep a dangling pointer (OnResetList would otherwise compare against it).
+
+	{
+	if (Ctx.Obj == m_pSource)
+		m_pSource = NULL;
+
+	return resultNone;
+	}
+
 void CDockScreenIconList::OnShowItem (void)
 
 //	OnShowItem

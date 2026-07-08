@@ -439,6 +439,15 @@ ICCItem *CreateObjPointer (CCodeChain &CC, CSpaceObject *pObj)
 	if (pObj == NULL)
 		return CC.CreateNil();
 
+	//	Avoid handing a dangling pointer to CodeChain if the object has already
+	//	been destroyed (e.g. a station blown up while a dock screen referencing
+	//	it is still open). Return Nil so scripts see a missing object instead of
+	//	an invalid live reference (use-after-free). This is the single root-cause
+	//	fix for object-pointer lifetime bugs handed through CodeChain.
+
+	if (pObj->IsDestroyed())
+		return CC.CreateNil();
+
 	//	Create a true live object reference in a 64-bit-safe scalar form.
 	//	This is the canonical runtime representation for object arguments passed
 	//	through CodeChain (gSource/gPlayerShip/effect ctx/etc.). Legacy callers

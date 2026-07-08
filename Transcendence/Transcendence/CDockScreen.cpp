@@ -1081,7 +1081,11 @@ CString CDockScreen::GetScreenName (CDockSession &DockSession, CXMLElement *pDes
 	//	Otherwise, ask the location
 
 	else
-		return m_pLocation->GetNounPhrase(nounTitleCapitalize);
+		{
+		if (m_pLocation && !m_pLocation->IsDestroyed())
+			return m_pLocation->GetNounPhrase(nounTitleCapitalize);
+		return NULL_STR;
+		}
 	}
 
 void CDockScreen::HandleChar (char chChar)
@@ -1700,6 +1704,14 @@ void CDockScreen::OnObjDestroyed (const SDestroyCtx &Ctx)
 //	An object was destroyed.
 
 	{
+	//	If the destroyed object is our location, the location pointer is now
+	//	dangling. Null it so we don't hand a destroyed object to CodeChain or
+	//	dereference it elsewhere. (CreateObjPointer also guards destroyed
+	//	pointers, but we keep m_pLocation consistent for the C++ paths.)
+
+	if (m_pLocation && m_pLocation->IsDestroyed())
+		m_pLocation = NULL;
+
 	//	If we have an event to handle this, invoke it now.
 
 	if (CDockScreenType *pRootDockScreen = CDockScreenType::AsType(m_pRoot))
@@ -1733,6 +1745,12 @@ void CDockScreen::OnObjDestroyed (const SDestroyCtx &Ctx)
 			&& m_pDisplay->OnObjDestroyed(Ctx) == IDockScreenDisplay::resultShowPane)
 		{
 		const SDockFrame &CurFrame = g_pUniverse->GetDockSession().GetCurrentFrame();
+
+		//	Save the control value in the dock session frame. Otherwise, we
+		//	might overwrite something the player typed. (Mirrors
+		//	OnModifyItemComplete, which already did this.)
+
+		m_CurrentPane.SaveControlValue(g_pUniverse->GetDockSession());
 
 		//	NOTE: We defer the actual recalc of the pane until after any action
 		//	is done. We need to do this because we don't want to execute
@@ -1954,15 +1972,18 @@ void CDockScreen::SetBackground (const SDockScreenBackgroundDesc &Desc)
 		{
 		SDockScreenBackgroundDesc DefaultDesc;
 
-		if (DefaultDesc.dwImageID = m_pLocation->GetDefaultBkgnd())
-			DefaultDesc.iType = EDockScreenBackground::image;
-		else
+		if (m_pLocation && !m_pLocation->IsDestroyed())
 			{
-			DefaultDesc.pObj = m_pLocation;
-			if (m_pLocation->IsPlayer())
-				DefaultDesc.iType = EDockScreenBackground::objSchematicImage;
+			if (DefaultDesc.dwImageID = m_pLocation->GetDefaultBkgnd())
+				DefaultDesc.iType = EDockScreenBackground::image;
 			else
-				DefaultDesc.iType = EDockScreenBackground::objHeroImage;
+				{
+				DefaultDesc.pObj = m_pLocation;
+				if (m_pLocation->IsPlayer())
+					DefaultDesc.iType = EDockScreenBackground::objSchematicImage;
+				else
+					DefaultDesc.iType = EDockScreenBackground::objHeroImage;
+				}
 			}
 
 		CreateBackgroundImage(DefaultDesc, m_Layout.GetFrameImageRect(), m_Layout.GetContentRect().left - m_Layout.GetFrameImageRect().left);
@@ -2130,9 +2151,12 @@ void CDockScreen::ShowPane (CDockSession &DockSession, const CString &sName)
 
 	//	Update the source list before we initialize
 
-	CSpaceObject *pLocation = m_pDisplay->GetSource();
-	if (pLocation)
-		pLocation->UpdateArmorItems();
+	if (m_pDisplay)
+		{
+		CSpaceObject *pLocation = m_pDisplay->GetSource();
+		if (pLocation)
+			pLocation->UpdateArmorItems();
+		}
 
 	//	Initialize the pane based on the pane descriptor
 
@@ -2142,7 +2166,8 @@ void CDockScreen::ShowPane (CDockSession &DockSession, const CString &sName)
 	//	Show the currently selected item
 
 	m_bNoListNavigation = pNewPane->GetAttributeBool(NO_LIST_NAVIGATION_ATTRIB);
-	m_pDisplay->ShowPane(m_bNoListNavigation);
+	if (m_pDisplay)
+		m_pDisplay->ShowPane(m_bNoListNavigation);
 	if (m_pTabs)
 		m_pTabs->SetNoNavigation(m_bNoListNavigation);
 
@@ -2260,6 +2285,12 @@ void CDockScreen::UpdateCredits (void)
 //	Updates the display of credits
 
 	{
+	//	If the location is gone (e.g. destroyed while the screen is open) there
+	//	is nothing to display.
+
+	if (m_pLocation == NULL || m_pLocation->IsDestroyed())
+		return;
+
 	//	Money
 
 	const CEconomyType *pEconomy = m_pLocation->GetDefaultEconomy();

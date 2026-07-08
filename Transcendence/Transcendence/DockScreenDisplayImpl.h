@@ -191,6 +191,7 @@ class CDockScreenIconList : public IDockScreenDisplay
 		virtual EResults OnHandleKeyDown (int iVirtKey) override;
 		virtual ALERROR OnInit (SInitCtx &Ctx, const SDisplayOptions &Options, CString *retsError) override;
 		virtual EResults OnResetList (CSpaceObject *pLocation) override;
+		virtual EResults OnObjDestroyedNotify (const SDestroyCtx &Ctx) override;
 		virtual void OnShowItem (void) override;
 		virtual void OnShowPane (bool bNoListNavigation) override;
 
