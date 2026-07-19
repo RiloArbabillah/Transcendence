@@ -20,70 +20,6 @@ const int Y_COPYRIGHT_TEXT =					392;
 
 const CG32bitPixel RGB_IMAGE_BACKGROUND =		CG32bitPixel(0, 0, 0);
 
-static void ApplyAlphaMask (CG32bitImage &Dest, const SBMPImageLoad &Mask)
-	{
-	int cxWidth = Min(Dest.GetWidth(), Mask.cxWidth);
-	int cyHeight = Min(Dest.GetHeight(), Mask.cyHeight);
-
-	for (int y = 0; y < cyHeight; y++)
-		{
-		CG32bitPixel *pDest = Dest.GetPixelPos(0, y);
-		const CG32bitPixel *pMask = (const CG32bitPixel *)(Mask.Pixels.GetPointer() + (y * Mask.iPitch));
-
-		for (int x = 0; x < cxWidth; x++)
-			{
-			BYTE byAlpha;
-			if (Mask.iType == bitmapMonochrome)
-				byAlpha = (pMask->GetGreen() ? 0xff : 0x00);
-			else
-				byAlpha = (pMask->GetGreen() >= 0x80 ? 0xff : 0x00);
-
-			if (byAlpha == 0x00)
-				*pDest = CG32bitPixel(0, 0, 0, 0);
-
-			pDest->SetAlpha(byAlpha);
-			pDest++;
-			pMask++;
-			}
-		}
-
-	Dest.SetAlphaType(CG32bitImage::alpha1);
-	}
-
-static void BltAlpha1Frame (CG32bitImage &Dest, int xDest, int yDest, const CG32bitImage &Source, int xSrc, int ySrc, int cxWidth, int cyHeight, const CG32bitImage &Background)
-	{
-	if (xDest < 0 || yDest < 0 || xSrc < 0 || ySrc < 0)
-		return;
-
-	if ((xDest + cxWidth) > Dest.GetWidth() || (yDest + cyHeight) > Dest.GetHeight())
-		return;
-
-	if ((xSrc + cxWidth) > Source.GetWidth() || (ySrc + cyHeight) > Source.GetHeight())
-		return;
-
-	if (Background.GetWidth() != cxWidth || Background.GetHeight() != cyHeight)
-		return;
-
-	for (int y = 0; y < cyHeight; y++)
-		{
-		CG32bitPixel *pDest = Dest.GetPixelPos(xDest, yDest + y);
-		const CG32bitPixel *pSrc = Source.GetPixelPos(xSrc, ySrc + y);
-		const CG32bitPixel *pBackground = Background.GetPixelPos(0, y);
-
-		for (int x = 0; x < cxWidth; x++)
-			{
-			if (pSrc->GetAlpha() != 0x00)
-				*pDest = *pSrc;
-			else
-				*pDest = *pBackground;
-
-			pDest++;
-			pSrc++;
-			pBackground++;
-			}
-		}
-	}
-
 ALERROR CLoadingSession::OnInit (CString *retsError)
 
 //	OnInit
@@ -119,26 +55,19 @@ ALERROR CLoadingSession::OnInit (CString *retsError)
 		return ERR_FAIL;
 	loading_log("CLoadingSession::OnInit found stargate resource");
 
-	if (error = JPEGLoadToRGBAFromFile(sStargateFilespec, &Image))
-		return error;
-	loading_log("CLoadingSession::OnInit loaded stargate image");
-
-	bSuccess = m_StargateImage.CreateFromRaw(Image.Pixels.GetPointer(), Image.cxWidth, Image.cyHeight, Image.iPitch, CG32bitImage::alphaNone);
-	if (!bSuccess)
-		return ERR_FAIL;
-
 	CString sMaskFilespec;
 	if (!CResourcePathResolver::FindBitmapResource(CONSTLIT("IDR_STARGATE_MASK"), &sMaskFilespec))
 		return ERR_FAIL;
 	loading_log("CLoadingSession::OnInit found stargate mask");
 
-	SBMPImageLoad Mask;
-	if (error = dibLoadToBufferFromFile(sMaskFilespec, &Mask))
-		return error;
+	if (!m_StargateImage.CreateFromFile(sStargateFilespec, sMaskFilespec))
+		return ERR_FAIL;
+	loading_log("CLoadingSession::OnInit loaded stargate image");
 	loading_log("CLoadingSession::OnInit loaded stargate mask");
 
-	ApplyAlphaMask(m_StargateImage, Mask);
-	if (m_StargateImage.IsEmpty())
+	if (m_StargateImage.IsEmpty()
+			|| m_StargateImage.GetWidth() < (STARGATE_WIDTH * 48)
+			|| m_StargateImage.GetHeight() < STARGATE_HEIGHT)
 		return ERR_FAIL;
 
 	//	Figure out position of copyright text.
@@ -209,25 +138,14 @@ void CLoadingSession::OnPaint (CG32bitImage &Screen, const RECT &rcInvalid)
 
 	//	Paint the stargate
 
-	CG32bitImage StargateBackground;
-	StargateBackground.Create(STARGATE_WIDTH, STARGATE_HEIGHT, CG32bitImage::alphaNone);
-	StargateBackground.Copy(0,
-			0,
-			STARGATE_WIDTH,
-			STARGATE_HEIGHT,
-			Screen,
-			m_rcStargate.left,
-			m_rcStargate.top);
-
-	BltAlpha1Frame(Screen,
-			m_rcStargate.left,
-			m_rcStargate.top,
-			m_StargateImage,
+	Screen.Blt(
 			STARGATE_WIDTH * (m_iTick % 48),
 			0,
 			STARGATE_WIDTH,
 			STARGATE_HEIGHT,
-			StargateBackground);
+			m_StargateImage,
+			m_rcStargate.left,
+			m_rcStargate.top);
 	}
 
 void CLoadingSession::OnReportHardCrash (CString *retsMessage)

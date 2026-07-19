@@ -69,6 +69,7 @@ void App_SetRunning(int bRunning);
 void App_SetTitle(const char* pTitle);
 void App_GetWindowSize(int* pcxWidth, int* pcyHeight);
 int App_PumpEvents(void);
+const char* PlatformGetGameResourceRoot(void);
 
 typedef void (*TimerCallback)(int timerID, void* userData);
 int PlatformAddTimer(int dwMilliseconds, TimerCallback callback, void* userData);
@@ -89,8 +90,10 @@ int App_GetFrameBufferHeight(void);
 
 struct SAppState& GetAppState(void);
 
-void InitGameUI(SAppState& state, const char *pszCommandLine = nullptr);
+bool InitGameUI(SAppState& state, const char *pszCommandLine = nullptr);
 void UpdateGameUI(SAppState& state);
+bool RequestGameClose(void);
+void CleanUpGameUI(void);
 
 // Crash recovery — wrap code that may crash (e.g., corrupt save file scripts).
 // Usage: if (crashRecoveryBegin()) { ... crashable code ... crashRecoveryEnd(); } else { ... handle crash ... }

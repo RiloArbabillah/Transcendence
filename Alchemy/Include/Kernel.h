@@ -987,16 +987,16 @@ inline int wsprintf(char* buf, const char* format, ...) {
 }
 
 inline char* CharLower(char* s) {
-    if (s) { while (*s) { *s = tolower(*s); s++; } }
-    return s;
+	if (s) { while (*s) { *s = (char)tolower((unsigned char)*s); s++; } }
+	return s;
 }
-inline char* CharLower(DWORD_PTR p) { static char buf[2]; buf[0] = tolower((char)p); buf[1] = '\0'; return buf; }
 inline char* CharUpper(char* s) {
-    if (s) { while (*s) { *s = toupper(*s); s++; } }
-    return s;
+	if (s) { while (*s) { *s = (char)toupper((unsigned char)*s); s++; } }
+	return s;
 }
-inline char* CharUpper(DWORD_PTR p) { static char buf[2]; buf[0] = toupper((char)p); buf[1] = '\0'; return buf; }
-inline DWORD CharUpperBuff(char* s, DWORD n) { for (DWORD i = 0; i < n && s[i]; i++) s[i] = toupper(s[i]); return n; }
+inline char strToLowerASCII(char ch) { return (char)tolower((unsigned char)ch); }
+inline char strToUpperASCII(char ch) { return (char)toupper((unsigned char)ch); }
+inline DWORD CharUpperBuff(char* s, DWORD n) { for (DWORD i = 0; i < n && s[i]; i++) s[i] = strToUpperASCII(s[i]); return n; }
 
 #define _CVTBUFSIZE 309
 inline int _gcvt_s(char* buf, int len, double value, int digits) { snprintf(buf, len, "%.*g", digits, value); return 0; }

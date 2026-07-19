@@ -64,6 +64,20 @@ bool CHumanInterface::WMCreate (HWND hWnd, CString *retsError)
 	return true;
 	}
 
+LONG CHumanInterface::WMClose (void)
+
+//	WMClose
+//
+//	Runs the same controller close contract as the Win32 host.
+
+	{
+	if (m_pController && !m_pController->HIClose())
+		return 0;
+
+	Shutdown(HIShutdownByUser);
+	return 0;
+	}
+
 LONG CHumanInterface::OnTimer (DWORD dwID)
 
 //	OnTimer

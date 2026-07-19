@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.27)
 
-project(TranscendenceMacOS LANGUAGES C CXX)
+project(TranscendenceMacOS VERSION 1.0.0 LANGUAGES C CXX)
+
+include(CTest)
 
 if(NOT APPLE)
     message(FATAL_ERROR "This scaffold is currently intended for macOS only.")
@@ -18,6 +20,7 @@ include_directories(${SDL2_INCLUDE_DIRS} ${SDL2_IMAGE_INCLUDE_DIRS} ${SDL2_MIXER
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_OSX_DEPLOYMENT_TARGET "13.0" CACHE STRING "Minimum supported macOS version")
 set(CMAKE_OBJCXX_STANDARD 20)
 set(CMAKE_OBJCXX_STANDARD_REQUIRED ON)
 # add_compile_options(-Wno-non-pod-varargs)  # Re-enable after fixing warnings
@@ -25,7 +28,6 @@ add_compile_definitions(TARGET_PLATFORM_MACOS)
 add_compile_definitions(TARGET_64BIT)
 add_compile_definitions(GAME_VERSION="1.0")
 
-option(TRANSCENDENCE_M1_MENU_ONLY "Limit the build graph to the milestone-1 menu path." ON)
 option(TRANSCENDENCE_ENABLE_PLATFORM_MACOS "Enable macOS-specific platform target placeholder." OFF)
 option(TRANSCENDENCE_ENABLE_AUDIO_BACKEND "Enable audio backend placeholder target." OFF)
 
@@ -388,6 +390,17 @@ set(MAMMOTH_TSUI_SOURCES
     "Transcendence/Transcendence/PlayerControllerProperties.cpp"
     "Transcendence/Transcendence/Utilities.cpp"
 )
+
+# The original macOS scaffold appended the application sources to the TSUI
+# library. Keep the audited manifest, but restore the ownership boundary so
+# command-line tools do not pull in the SDL application shell.
+set(TRANSCENDENCE_APP_SOURCES ${MAMMOTH_TSUI_SOURCES})
+list(FILTER TRANSCENDENCE_APP_SOURCES INCLUDE REGEX "^Transcendence/Transcendence/")
+list(REMOVE_ITEM TRANSCENDENCE_APP_SOURCES
+    "Transcendence/Transcendence/GameUIBridge.cpp"
+    "Transcendence/Transcendence/Main.cpp"
+)
+list(FILTER MAMMOTH_TSUI_SOURCES EXCLUDE REGEX "^Transcendence/Transcendence/")
 
 add_library(alchemy_kernel STATIC ${ALCHEMY_KERNEL_SOURCES})
 target_include_directories(alchemy_kernel PUBLIC
@@ -876,11 +889,30 @@ target_include_directories(mammoth_tsui PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/Alchemy/Include"
     "${CMAKE_CURRENT_SOURCE_DIR}/Mammoth/Include"
 )
+target_include_directories(mammoth_tsui PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/Transcendence/Transcendence/Platform"
+)
 target_link_libraries(mammoth_tsui PUBLIC
     mammoth_tse
     alchemy_kernel
     alchemy_graphics
-    platform_sdl
+)
+
+add_library(transcendence_game STATIC ${TRANSCENDENCE_APP_SOURCES})
+target_include_directories(transcendence_game PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/Alchemy/Include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Mammoth/Include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Transcendence/Transcendence"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Transcendence/Transcendence/Platform"
+)
+target_link_libraries(transcendence_game PUBLIC
+    mammoth_tsui
+    mammoth_tse
+    alchemy_kernel
+    alchemy_codechain
+    alchemy_xmlutil
+    alchemy_graphics
+    alchemy_jpeg
 )
 
 # mammoth_tsui_core requires mammoth_tse
@@ -931,8 +963,26 @@ if(TRANSCENDENCE_ENABLE_AUDIO_BACKEND)
     target_link_libraries(audio_backend INTERFACE platform_common)
 endif()
 
-add_executable(transcendence_app
+file(GLOB TRANSCENDENCE_UI_RESOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/Transcendence/Transcendence/Resources/*"
+)
+set(TRANSCENDENCE_GAME_RESOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/Transcendence/Game/Transcendence.tdb"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Transcendence/Game/TranscendenceIntro.mp3"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Transcendence/Game/DefaultHighScores.xml"
+)
+set_source_files_properties(${TRANSCENDENCE_UI_RESOURCES} PROPERTIES
+    MACOSX_PACKAGE_LOCATION "Resources"
+)
+set_source_files_properties(${TRANSCENDENCE_GAME_RESOURCES} PROPERTIES
+    MACOSX_PACKAGE_LOCATION "Resources/Game"
+)
+
+add_executable(transcendence_app MACOSX_BUNDLE
     "Transcendence/Transcendence/main.cpp"
+    "Transcendence/Transcendence/GameUIBridge.cpp"
+    ${TRANSCENDENCE_UI_RESOURCES}
+    ${TRANSCENDENCE_GAME_RESOURCES}
 )
 
 target_include_directories(transcendence_app PRIVATE
@@ -950,6 +1000,7 @@ target_link_libraries(transcendence_app PRIVATE
     alchemy_jpeg
     mammoth_tse
     mammoth_tsui
+    transcendence_game
     platform_common
     platform_sdl
     render_common
@@ -962,10 +1013,24 @@ target_link_libraries(transcendence_app PRIVATE
 
 set_target_properties(transcendence_app PROPERTIES
     OUTPUT_NAME "Transcendence"
+    MACOSX_BUNDLE_BUNDLE_NAME "Transcendence"
+    MACOSX_BUNDLE_GUI_IDENTIFIER "com.kronosaur.transcendence"
+    MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/Transcendence/Transcendence/Platform/Info.plist.in"
+    BUILD_RPATH "@executable_path/../Frameworks"
+    INSTALL_RPATH "@executable_path/../Frameworks"
+)
+
+add_custom_command(TARGET transcendence_app POST_BUILD
+    COMMAND "${CMAKE_COMMAND}"
+        "-DAPP_BUNDLE=$<TARGET_BUNDLE_DIR:transcendence_app>"
+        "-DAPP_EXECUTABLE=$<TARGET_FILE:transcendence_app>"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/BundleDependencies.cmake"
+    VERBATIM
 )
 
 add_executable(asset_validation_tool
     "Transcendence/Tools/AssetValidationMain.cpp"
+    "Transcendence/Tools/PlatformToolStubs.cpp"
 )
 
 target_include_directories(asset_validation_tool PRIVATE
@@ -980,7 +1045,6 @@ target_link_libraries(asset_validation_tool PRIVATE
     alchemy_graphics
     alchemy_jpeg
     mammoth_tse
-    mammoth_tsui
     SDL2_mixer::SDL2_mixer
     SDL2::SDL2
     "-framework CoreGraphics"
@@ -996,6 +1060,7 @@ set_target_properties(asset_validation_tool PROPERTIES
 add_executable(transcompiler_tool
     "Transcendence/TransCompiler/CTDBCompiler.cpp"
     "Transcendence/TransCompiler/main.cpp"
+    "Transcendence/Tools/PlatformToolStubs.cpp"
 )
 
 target_include_directories(transcompiler_tool PRIVATE
@@ -1011,7 +1076,6 @@ target_link_libraries(transcompiler_tool PRIVATE
     alchemy_graphics
     alchemy_jpeg
     mammoth_tse
-    mammoth_tsui
     SDL2_mixer::SDL2_mixer
     SDL2::SDL2
     "-framework CoreGraphics"
@@ -1024,5 +1088,28 @@ set_target_properties(transcompiler_tool PROPERTIES
     OUTPUT_NAME "trans-compiler"
 )
 
-message(STATUS "Configured bounded milestone-1 macOS scaffold.")
-message(STATUS "Targets are placeholders for the audited menu-path graph and are not yet full source manifests.")
+if(BUILD_TESTING)
+    add_executable(mac_portability_tests
+        "Transcendence/Tests/MacPortabilityTests.cpp"
+        "Transcendence/Tools/PlatformToolStubs.cpp"
+    )
+    target_include_directories(mac_portability_tests PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/Alchemy/Include"
+    )
+    target_compile_definitions(mac_portability_tests PRIVATE
+        TRANSCENDENCE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+    )
+    target_link_libraries(mac_portability_tests PRIVATE
+        alchemy_kernel
+        alchemy_codechain
+        alchemy_xmlutil
+        alchemy_graphics
+        alchemy_jpeg
+        SDL2::SDL2
+        "-framework CoreGraphics"
+        "-framework ImageIO"
+    )
+    add_test(NAME mac-portability COMMAND mac_portability_tests)
+endif()
+
+message(STATUS "Configured native macOS application and tool targets.")

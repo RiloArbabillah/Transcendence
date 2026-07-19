@@ -13,7 +13,6 @@
       "binaryDir": "${sourceDir}/build/${presetName}",
       "cacheVariables": {
         "CMAKE_OSX_ARCHITECTURES": "arm64",
-        "TRANSCENDENCE_M1_MENU_ONLY": "ON",
         "TRANSCENDENCE_ENABLE_PLATFORM_MACOS": "OFF",
         "TRANSCENDENCE_ENABLE_AUDIO_BACKEND": "OFF"
       }

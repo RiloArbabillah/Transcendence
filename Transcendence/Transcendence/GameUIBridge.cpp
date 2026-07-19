@@ -31,8 +31,14 @@ static void log_va(const char* fmt, ...) {
 }
 
 
-void InitGameUI(SAppState& state, const char *pszCommandLine)
+bool InitGameUI(SAppState& state, const char *pszCommandLine)
 {
+	if (!CHumanInterface::Create())
+		{
+		log_msg("InitGameUI error: unable to create human interface");
+		return false;
+		}
+
     g_pController = new CTranscendenceController();
     g_pHI->SetController(g_pController);
 
@@ -53,7 +59,14 @@ void InitGameUI(SAppState& state, const char *pszCommandLine)
         error = g_pController->OnInit(&sError);
 
     if (error != NOERROR)
+		{
         log_va("InitGameUI error: %d (%s)", error, sError.GetASCIIZPointer());
+		CHumanInterface::Destroy();
+		g_pController = nullptr;
+		return false;
+		}
+
+	return true;
 }
 
 void UpdateGameUI(SAppState& state)
@@ -137,4 +150,19 @@ void UpdateGameUI(SAppState& state)
     if (g_pHI) {
         g_pHI->OnAnimate();
     }
+}
+
+bool RequestGameClose(void)
+{
+	if (!g_pHI)
+		return true;
+
+	g_pHI->Exit();
+	return !App_IsRunning();
+}
+
+void CleanUpGameUI(void)
+{
+	CHumanInterface::Destroy();
+	g_pController = nullptr;
 }

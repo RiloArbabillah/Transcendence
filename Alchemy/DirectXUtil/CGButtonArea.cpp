@@ -317,7 +317,7 @@ void CGButtonArea::SetLabelAccelerator (const CString &sKey, int iKeyOffset)
 
 		while (*pPos != '\0')
 			{
-			if (bFirstLetter && CharLower((LPTSTR)(BYTE)(*pKey)) == CharLower((LPTSTR)(BYTE)(*pPos)))
+			if (bFirstLetter && strToLowerASCII(*pKey) == strToLowerASCII(*pPos))
 				{
 				m_iAccelerator = pPos - pStart;
 				return;

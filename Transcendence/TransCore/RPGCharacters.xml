@@ -1101,8 +1101,8 @@
 				;
 				;	The order in the list is randomized.
 
-				(shuffle
-					(apply append
+				(block (
+					(typeLists
 						(map (typFind criteria) 'excludeNil theType
 							(block (
 								(characterTable (typGetStaticData theType 'CharacterTable))
@@ -1118,6 +1118,13 @@
 									(list (list theType Nil))
 									)
 								)
+							)
+						)
+					)
+					(shuffle
+						(if typeLists
+							(apply append typeLists)
+							(list)
 							)
 						)
 					)
@@ -1145,21 +1152,25 @@
 
 						;	Otherwise, look up from the table
 
-						(block (
-							(theType (@ characterID 0))
-							(theID (@ characterID 1))
+						(and (= (typeof characterID) 'list) (geq (count characterID) 2))
+							(block (
+								(theType (@ characterID 0))
+								(theID (@ characterID 1))
 
-							(characterTable (or (typGetProperty theType 'rpg.characterTable) (typGetStaticData theType 'CharacterTable)))
-							)
-							(switch
-								(@ characterTable theID)
-									(struct (@ characterTable theID) { sourceType:theType })
-
-								defaultType
-									(struct (@ (typGetStaticData defaultType 'CharacterTable) 'default) { sourceType:defaultType })
+								(characterTable (or (typGetProperty theType 'rpg.characterTable) (typGetStaticData theType 'CharacterTable)))
 								)
+								(switch
+									(@ characterTable theID)
+										(struct (@ characterTable theID) { sourceType:theType })
+
+									defaultType
+										(struct (@ (typGetStaticData defaultType 'CharacterTable) 'default) { sourceType:defaultType })
+									)
+								)
+
+						defaultType
+							(struct (@ (typGetStaticData defaultType 'CharacterTable) 'default) { sourceType:defaultType })
 							)
-						)
 					)
 				))
 
@@ -1199,11 +1210,15 @@
 					;	Pick a random character (the list has been shuffled, so we 
 					;	just pick the next character on the list).
 
-					(setq characterID (@ characterList (mod next (count characterList))))
+					(if (gr (count characterList) 0)
+						(block ()
+							(setq characterID (@ characterList (mod (or next 0) (count characterList))))
 
 					;	Next character
 
-					(typIncData type nextVar)
+							(typIncData type nextVar)
+							)
+						)
 
 					;	Done
 

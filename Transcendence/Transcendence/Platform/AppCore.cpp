@@ -14,6 +14,7 @@
 #include <queue>
 #include <map>
 #include <mutex>
+#include <string>
 #include <signal.h>
 #include <execinfo.h>
 #include <fcntl.h>
@@ -620,8 +621,9 @@ int App_PumpEvents(void)
     {
         if (event.type == SDL_QUIT) {
             log_msg("App_PumpEvents: received SDL_QUIT");
-            g_AppState.bRunning = false;
-            return 0;
+			if (RequestGameClose())
+				return 0;
+			continue;
         }
 
         switch (event.type)
@@ -703,7 +705,8 @@ int App_PumpEvents(void)
             else if (event.window.event == SDL_WINDOWEVENT_CLOSE)
                 {
                 log_msg("App_PumpEvents: SDL_WINDOWEVENT_CLOSE");
-                PlatformSendMessage((HWND)g_AppState.pWindow, WM_CLOSE, 0, 0);
+				if (RequestGameClose())
+					return 0;
                 }
             else if (event.window.event == SDL_WINDOWEVENT_FOCUS_LOST)
                 {
@@ -725,6 +728,28 @@ int App_PumpEvents(void)
         }
     }
     return 1;
+}
+
+const char* PlatformGetGameResourceRoot(void)
+{
+	static std::string sResourceRoot;
+	if (!sResourceRoot.empty())
+		return sResourceRoot.c_str();
+
+	char *pBasePath = SDL_GetBasePath();
+	if (pBasePath)
+		{
+		const std::string sBase(pBasePath);
+		SDL_free(pBasePath);
+
+		const std::string sBundleGame = sBase + "../Resources/Game";
+		sResourceRoot = (access(sBundleGame.c_str(), R_OK) == 0 ? sBundleGame : sBase);
+		}
+
+	if (sResourceRoot.empty())
+		sResourceRoot = ".";
+
+	return sResourceRoot.c_str();
 }
 
 void App_PresentFrameBuffer(void)
@@ -1033,7 +1058,12 @@ int App_Run(const char *pszCommandLine)
     }
 
 	log_msg("App_Run: App_Init OK, calling InitGameUI");
-	InitGameUI(g_AppState, pszCommandLine);
+	if (!InitGameUI(g_AppState, pszCommandLine))
+		{
+		log_msg("App_Run: InitGameUI failed");
+		App_Shutdown();
+		return 1;
+		}
 
 	log_msg("App_Run: entering main loop");
 	while (g_AppState.bRunning)
@@ -1045,8 +1075,9 @@ int App_Run(const char *pszCommandLine)
 		UpdateGameUI(g_AppState);
 	}
 
-    log_va("App_Run: exit main loop (bRunning=%d)", (g_AppState.bRunning ? 1 : 0));
-    App_Shutdown();
+	    log_va("App_Run: exit main loop (bRunning=%d)", (g_AppState.bRunning ? 1 : 0));
+	CleanUpGameUI();
+	    App_Shutdown();
     return 0;
 }
 

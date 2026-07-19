@@ -186,6 +186,52 @@ namespace
         return true;
         }
 
+    bool ValidateLoadingStargate(const fs::path &RepoRoot, SValidationStats &Stats)
+        {
+        const fs::path ImagePath = RepoRoot / "Transcendence/Transcendence/Resources/Stargate.jpg";
+        const fs::path MaskPath = RepoRoot / "Transcendence/Transcendence/Resources/StargateMask.BMP";
+        CG32bitImage Image;
+
+        if (!Image.CreateFromFile(ToCString(ImagePath), ToCString(MaskPath)))
+            {
+            AddFailureLiteral(Stats, "loading-sprite", ImagePath.string(), "Unable to load the stargate image and mask.");
+            return false;
+            }
+
+        constexpr int FRAME_WIDTH = 128;
+        constexpr int FRAME_HEIGHT = 128;
+        constexpr int FRAME_COUNT = 48;
+        if (Image.GetWidth() < (FRAME_WIDTH * FRAME_COUNT) || Image.GetHeight() < FRAME_HEIGHT)
+            {
+            AddFailureLiteral(Stats, "loading-sprite", ImagePath.string(), "Unexpected stargate sprite-sheet dimensions.");
+            return false;
+            }
+
+        int iTransparent = 0;
+        int iOpaque = 0;
+        for (int y = 0; y < FRAME_HEIGHT; y++)
+            for (int x = 0; x < FRAME_WIDTH; x++)
+                {
+                if (Image.GetPixel(x, y).GetAlpha() == 0)
+                    iTransparent++;
+                else
+                    iOpaque++;
+                }
+
+        if (Image.GetPixel(0, 0).GetAlpha() != 0
+                || Image.GetPixel(FRAME_WIDTH - 1, 0).GetAlpha() != 0
+                || Image.GetPixel(0, FRAME_HEIGHT - 1).GetAlpha() != 0
+                || Image.GetPixel(FRAME_WIDTH - 1, FRAME_HEIGHT - 1).GetAlpha() != 0
+                || iTransparent == 0
+                || iOpaque == 0)
+            {
+            AddFailureLiteral(Stats, "loading-sprite", ImagePath.string(), "Stargate mask does not produce a transparent frame background.");
+            return false;
+            }
+
+        return true;
+        }
+
     bool ValidateMusicTrack(const fs::path &Path, SValidationStats &Stats)
         {
         CSoundMgr SoundMgr;
@@ -277,6 +323,9 @@ int main(int argc, char *argv[])
 
     SValidationStats Stats;
     int iResult = 0;
+
+    if (!ValidateLoadingStargate(RepoRoot, Stats))
+        iResult = 1;
 
     {
         CString sError;

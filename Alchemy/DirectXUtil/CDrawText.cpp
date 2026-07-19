@@ -12,6 +12,12 @@ void CDrawText::WithAccelerator (CG32bitImage &Dest, int x, int y, const CString
 //	Draws a line of text with a character highlighted.
 
 	{
+	if (iAcceleratorPos < 0 || iAcceleratorPos >= sText.GetLength())
+		{
+		Dest.DrawText(x, y, Font, rgbTextColor, sText);
+		return;
+		}
+
 	const char *pPos = sText.GetASCIIZPointer();
 
 	if (iAcceleratorPos > 0)

@@ -21,6 +21,8 @@
 #define FILE_TYPE_TDB							CONSTLIT("tdb")
 #define RESOURCES_FOLDER						CONSTLIT("Resources")
 
+static CString NormalizeDbResourcePath (const CString &sFilespec);
+
 CResourceDb::CResourceDb (const CString &sFilespec, bool bExtension) : 
 		m_sFilespec(sFilespec),
 		m_iVersion(TDB_VERSION),
@@ -264,7 +266,7 @@ bool CResourceDb::ImageExists (const CString &sFolder, const CString &sFilename)
 
 		//	Look-up the resource in the map
 
-		SResourceEntry *pEntry = m_ResourceMap.GetAt(sFilespec);
+		SResourceEntry *pEntry = m_ResourceMap.GetAt(NormalizeDbResourcePath(sFilespec));
 		return (pEntry != NULL);
 		}
 	else
@@ -1082,7 +1084,7 @@ ALERROR CResourceDb::ReadEntry (const CString &sFilespec, CString *retsData, CSt
 
 	//	Look-up the resource in the map
 
-	SResourceEntry *pEntry = m_ResourceMap.GetAt(sFilespec);
+	SResourceEntry *pEntry = m_ResourceMap.GetAt(NormalizeDbResourcePath(sFilespec));
 	if (pEntry == NULL)
 		{
 		if (retsError) *retsError = strPatternSubst(CONSTLIT("Unable to find TDB resource: %s"), sFilespec);
@@ -1298,4 +1300,22 @@ void CResourceDb::SetEntities (IXMLParserController *pEntities, bool bFree)
 
 	m_pEntities = pEntities;
 	m_bFreeEntities = bFree;
+	}
+static CString NormalizeDbResourcePath (const CString &sFilespec)
+
+//	NormalizeDbResourcePath
+//
+//	TDB entry names use Windows separators on every host platform.
+
+	{
+	CString sResult = sFilespec;
+	char *pPos = sResult.GetASCIIZPointer();
+	while (*pPos)
+		{
+		if (*pPos == '/')
+			*pPos = '\\';
+		pPos++;
+		}
+
+	return sResult;
 	}

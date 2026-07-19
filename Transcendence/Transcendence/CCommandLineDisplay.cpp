@@ -197,7 +197,7 @@ void CCommandLineDisplay::AutoCompleteSearch (void)
 				int i;
 				for (i = 0; i < iLen; i++)
 					{
-					if (CharLower((LPTSTR)(BYTE)(*pPos1)) != CharLower((LPTSTR)(BYTE)(*pPos2)))
+						if (strToLowerASCII(*pPos1) != strToLowerASCII(*pPos2))
 						break;
 					pPos1++;
 					pPos2++;

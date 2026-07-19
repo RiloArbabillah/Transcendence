@@ -497,7 +497,7 @@ void CString::Capitalize (CapitalizeOptions iOption)
 			{
 			//	Capitalize first letter
 
-			*pPos = (char)(DWORD)(uintptr_t)::CharUpper((LPTSTR)(uintptr_t)*pPos);
+			*pPos = strToUpperASCII(*pPos);
 			break;
 			}
 
@@ -1000,9 +1000,9 @@ int Kernel::strCompare (const CString &sString1, const CString &sString2)
 
 	for (i = 0; i < iLen; i++)
 		{
-		if (CharLower((LPTSTR)(BYTE)(*pPos1)) > CharLower((LPTSTR)(BYTE)(*pPos2)))
+		if (strToLowerASCII(*pPos1) > strToLowerASCII(*pPos2))
 			return 1;
-		else if (CharLower((LPTSTR)(BYTE)(*pPos1)) < CharLower((LPTSTR)(BYTE)(*pPos2)))
+		else if (strToLowerASCII(*pPos1) < strToLowerASCII(*pPos2))
 			return -1;
 
 		pPos1++;
@@ -2023,7 +2023,7 @@ CString Kernel::strConvertToToken (const CString &sString, bool bLowercase)
 		if (strIsAlphaNumeric(pSrc))
 			{
 			if (bLowercase)
-				*pDest++ = (char)(uintptr_t)CharLower((LPTSTR)(uintptr_t)(BYTE)(*pSrc++));
+					*pDest++ = strToLowerASCII(*pSrc++);
 			else
 				*pDest++ = *pSrc++;
 			}
@@ -2055,7 +2055,7 @@ bool Kernel::strEndsWithOld (const CString &sString, const CString &sStringToFin
 
 	while (pPos < pEndPos)
 		{
-		if (CharLower((LPTSTR)(BYTE)(*pPos++)) != CharLower((LPTSTR)(BYTE)(*pTarget++)))
+		if (strToLowerASCII(*pPos++) != strToLowerASCII(*pTarget++))
 			return false;
 		}
 
@@ -2795,7 +2795,7 @@ bool Kernel::strStartsWithOld (const CString &sString, const CString &sStringToF
 
 	while (pPos < pEndPos)
 		{
-		if (CharLower((LPTSTR)(BYTE)(*pPos++)) != CharLower((LPTSTR)(BYTE)(*pTarget++)))
+		if (strToLowerASCII(*pPos++) != strToLowerASCII(*pTarget++))
 			return false;
 		}
 

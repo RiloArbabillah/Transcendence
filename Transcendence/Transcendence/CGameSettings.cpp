@@ -168,6 +168,15 @@ ALERROR CGameSettings::Load (const CString &sFilespec, CString *retsError)
 	//	not, then look in AppData. We remember the place where we found a valid
 	//	file as our AppData root (and we base other directories off that).
 
+	#ifdef TARGET_PLATFORM_MACOS
+	m_sAppData = pathAddComponent(pathGetSpecialFolder(folderAppData), TRANSCENDENCE_APP_DATA);
+	if (!pathCreate(m_sAppData)
+			|| !pathIsWritable(m_sAppData))
+		{
+		*retsError = strPatternSubst(CONSTLIT("Unable to write to Application Support folder: %s"), m_sAppData);
+		return ERR_FAIL;
+		}
+	#else
 	if (pathIsWritable(sFilespec))
 		{
 		//	AppData is current directory
@@ -183,6 +192,7 @@ ALERROR CGameSettings::Load (const CString &sFilespec, CString *retsError)
 			return ERR_FAIL;
 			}
 		}
+	#endif
 
 	//	Settings file
 

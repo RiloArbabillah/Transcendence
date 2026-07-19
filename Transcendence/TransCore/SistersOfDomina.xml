@@ -68,20 +68,27 @@
 			</GetGlobalAchievements>
 
 			<OnGlobalUpdate>
-				(switch
-					(!= (mod (divide (unvGetTick) 30) (typ@ gType 'periodInSeconds)) 0)
-						Nil
+				(block (
+					(interval (typ@ &svSistersOfDomina; 'periodInSeconds))
+					)
+					(switch
+						(or (not interval) (leq interval 0))
+							Nil
 
-					(gr (typ@ gType 'balance) 1000000)
-						Nil
+						(!= (mod (divide (unvGetTick) 30) interval) 0)
+							Nil
 
-					(block (
-						(balance (typ@ gType 'balance))
-						(rate (typ@ gType 'gainPerPeriod))
-						(gain (round (* balance rate)))
-						)
-						(typInc@ gType 'investmentGain gain)
-						(typInc@ gType 'balance gain)
+						(gr (typ@ &svSistersOfDomina; 'balance) 1000000)
+							Nil
+
+						(block (
+							(balance (typ@ &svSistersOfDomina; 'balance))
+							(rate (typ@ &svSistersOfDomina; 'gainPerPeriod))
+							(gain (round (* balance rate)))
+							)
+							(typInc@ &svSistersOfDomina; 'investmentGain gain)
+							(typInc@ &svSistersOfDomina; 'balance gain)
+							)
 						)
 					)
 			</OnGlobalUpdate>

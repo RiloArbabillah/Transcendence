@@ -313,7 +313,11 @@ void CHumanInterface::Exit (void)
 //	Exit the game
 
 	{
+	#ifdef TARGET_PLATFORM_MACOS
+	WMClose();
+	#else
 	::SendMessage(GetHWND(), WM_CLOSE, 0, 0);
+	#endif
 	}
 
 bool CHumanInterface::GetMousePos (int *retx, int *rety) const
@@ -714,4 +718,3 @@ int CHumanInterface::SetSoundVolume (int iVolume)
 
 	return m_Options.m_iSoundVolume;
 	}
-

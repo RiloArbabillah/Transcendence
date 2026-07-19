@@ -46,6 +46,9 @@
 #include "PreComp.h"
 #include "Zip.h"
 #include "Transcendence.h"
+#ifdef TARGET_PLATFORM_MACOS
+#include "Platform/AppCore.h"
+#endif
 
 #ifdef STEAM_BUILD
 #include "SteamUtil.h"
@@ -515,7 +518,11 @@ ALERROR CTranscendenceController::OnBoot (char *pszCommandLine, SHIOptions *retO
 
 	//	Set our default directory
 
+	#ifdef TARGET_PLATFORM_MACOS
+	CString sCurDir(PlatformGetGameResourceRoot());
+	#else
 	CString sCurDir = pathGetExecutablePath(NULL);
+	#endif
 	::SetCurrentDirectory(sCurDir.GetASCIIZPointer());
 
 	//	Add the services that we want (we need to do this before we load settings
