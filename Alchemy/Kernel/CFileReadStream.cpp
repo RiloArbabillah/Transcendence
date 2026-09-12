@@ -63,7 +63,17 @@ ALERROR CFileReadStream::Close (void)
 
 	//	Close the file
 
-	UnmapViewOfFile(m_pFile);
+	if (m_pFile)
+		{
+#ifdef TARGET_PLATFORM_MACOS
+		if (m_hFileMap == NULL)
+			munmap(m_pFile, m_dwFileSize);
+		else
+			UnmapViewOfFile(m_pFile);
+#else
+		UnmapViewOfFile(m_pFile);
+#endif
+		}
 	CloseHandle(m_hFileMap);
 	CloseHandle(m_hFile);
 	m_hFile = NULL;
@@ -92,6 +102,45 @@ ALERROR CFileReadStream::Open (void)
 		m_hFile = NULL;
 		return ERR_FAIL;
 		}
+
+	m_dwFileSize = ::GetFileSize(m_hFile, NULL);
+
+#ifdef TARGET_PLATFORM_MACOS
+	if (m_dwFileSize == 0 || m_dwFileSize == INVALID_SET_FILE_POINTER)
+		{
+		if (m_dwFileSize == INVALID_SET_FILE_POINTER)
+			{
+			CloseHandle(m_hFile);
+			m_hFile = NULL;
+			return ERR_FAIL;
+			}
+
+		//	Empty file: close the file handle and set m_pFile to a safe
+		//	non-NULL address so that GetPointer() doesn't return NULL + offset.
+		m_pFile = (char *)"";
+		CloseHandle(m_hFile);
+		m_hFile = NULL;
+		return NOERROR;
+		}
+
+	m_pFile = (char *)mmap(NULL,
+			m_dwFileSize,
+			PROT_READ,
+			MAP_PRIVATE,
+			(int)(intptr_t)m_hFile,
+			0);
+	if (m_pFile == MAP_FAILED)
+		{
+		CloseHandle(m_hFile);
+		m_pFile = NULL;
+		m_hFile = NULL;
+		return ERR_FAIL;
+		}
+
+	m_pPos = m_pFile;
+	m_hFileMap = NULL;
+	return NOERROR;
+#endif
 
 	//	Open a file mapping
 
@@ -167,4 +216,3 @@ ALERROR CFileReadStream::Read (char *pData, int iLength, int *retiBytesRead)
 	else
 		return NOERROR;
 	}
-

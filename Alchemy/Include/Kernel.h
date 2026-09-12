@@ -32,6 +32,7 @@
 #include <cstdarg>
 #include <cstdio>
 #include <mutex>
+#include <map>
 #include <sys/time.h>
 #include <sys/mman.h>
 #include <unistd.h>
@@ -44,6 +45,7 @@
 #include <netdb.h>
 #include <errno.h>
 #include <pthread.h>
+#include <pwd.h>
 #include <mach/mach_time.h>
 #include <dirent.h>
 #include <strings.h>
@@ -52,6 +54,7 @@
 #include <thread>
 #include <chrono>
 #include <atomic>
+#include <sys/wait.h>
 
 #undef htons
 inline unsigned short htons(unsigned short x) { return (unsigned short)__builtin_bswap16(x); }
@@ -653,10 +656,12 @@ inline BOOL DeleteFile(const char* pFilename) {
 #endif
 
 #ifndef CreateFileMapping
-struct SFileMappingHandle { int fd; size_t size; int prot; };
+struct SFileMappingHandle { DWORD dwMagic; int fd; size_t size; int prot; };
+#define FILE_MAPPING_MAGIC 0x4D415048
 inline HANDLE CreateFileMapping(HANDLE hFile, void* pAttr, DWORD flProtect, DWORD dwMaxSizeHigh, DWORD dwMaxSizeLow, const char* pName) {
     (void)pAttr; (void)pName;
     SFileMappingHandle* pH = new SFileMappingHandle;
+    pH->dwMagic = FILE_MAPPING_MAGIC;
     pH->fd = (int)(intptr_t)hFile;
     pH->size = ((size_t)dwMaxSizeHigh << 32) | dwMaxSizeLow;
     pH->prot = (flProtect == PAGE_READONLY) ? PROT_READ : PROT_READ | PROT_WRITE;
@@ -665,23 +670,69 @@ inline HANDLE CreateFileMapping(HANDLE hFile, void* pAttr, DWORD flProtect, DWOR
 #endif
 
 #ifndef MapViewOfFile
+namespace KernelMappingRegistry {
+inline std::map<void*, size_t>& GetMap (void)
+	{
+	static std::map<void*, size_t> sMap;
+	return sMap;
+	}
+inline std::mutex& GetMutex (void)
+	{
+	static std::mutex sMutex;
+	return sMutex;
+	}
+}
+
 inline void* MapViewOfFile(HANDLE hFileMapping, DWORD dwAccess, DWORD dwOffsetHigh, DWORD dwOffsetLow, SIZE_T dwNumBytes) {
     SFileMappingHandle* pH = (SFileMappingHandle*)hFileMapping;
     int prot = (dwAccess == FILE_MAP_READ) ? PROT_READ : PROT_READ | PROT_WRITE;
     off_t offset = ((off_t)dwOffsetHigh << 32) | dwOffsetLow;
-    void* pResult = mmap(NULL, dwNumBytes, prot, MAP_SHARED, pH->fd, offset);
+
+    size_t mapLen = dwNumBytes;
+    if (mapLen == 0)
+        {
+        // On Windows a zero-byte mapping maps the entire file. Infer the size
+        // from the underlying fd so callers with Windows-style semantics work.
+        if (pH->size == 0)
+            {
+            struct stat st;
+            if (fstat(pH->fd, &st) == 0)
+                pH->size = (size_t)st.st_size;
+            }
+        mapLen = pH->size;
+        }
+
+    void* pResult = mmap(NULL, mapLen, prot, MAP_SHARED, pH->fd, offset);
     if (pResult == MAP_FAILED) return NULL;
+
+    if (mapLen != 0)
+        {
+        std::lock_guard<std::mutex> lock(KernelMappingRegistry::GetMutex());
+        KernelMappingRegistry::GetMap()[pResult] = mapLen;
+        }
     return pResult;
 }
 #endif
 
 #ifndef UnmapViewOfFile
 inline BOOL UnmapViewOfFile(void* pBase) {
-    // Note: munmap requires the exact mapped size. The caller should use
-    // UnmapViewOfFileEx or call munmap directly with the correct size.
-    // This fallback uses page size as a conservative estimate.
+    size_t mapLen = 0;
+    {
+    std::lock_guard<std::mutex> lock(KernelMappingRegistry::GetMutex());
+    auto& rMap = KernelMappingRegistry::GetMap();
+    auto it = rMap.find(pBase);
+    if (it != rMap.end())
+        {
+        mapLen = it->second;
+        rMap.erase(it);
+        }
+    }
+
+    // If the mapping was created outside this shim, fall back to the old
+    // page-size estimate instead of passing 0 to munmap (which fails on macOS).
     long pageSize = sysconf(_SC_PAGESIZE);
-    return munmap(pBase, (pageSize > 0 ? pageSize : 4096)) == 0;
+    size_t len = mapLen != 0 ? mapLen : (pageSize > 0 ? (size_t)pageSize : 4096);
+    return munmap(pBase, len) == 0;
 }
 #endif
 
@@ -728,15 +779,30 @@ inline BOOL SetWindowPos(HWND hWnd, HWND hWndInsertAfter, int X, int Y, int cx, 
 inline BOOL GetWindowRect(HWND hWnd, RECT* pRect) { if (pRect) { pRect->left = pRect->top = pRect->right = pRect->bottom = 0; } return TRUE; }
 inline BOOL IsWindow(HWND hWnd) { return hWnd != nullptr; }
 inline BOOL DestroyWindow(HWND hWnd) { return PlatformDestroyWindow(hWnd) ? TRUE : FALSE; }
-inline int GetSystemMetrics(int nIndex) { if (nIndex == 0) return 1920; if (nIndex == 1) return 1080; return 0; }
+int PlatformGetSystemMetrics(int nIndex);
+bool PlatformGetWorkArea(RECT* pRect);
+inline int GetSystemMetrics(int nIndex) { return PlatformGetSystemMetrics(nIndex); }
 
 inline HICON LoadIcon(HINSTANCE hInstance, LPCSTR lpIconName) { return nullptr; }
 inline int SetCurrentDirectory(LPCSTR lpPathName) { return (lpPathName && *lpPathName ? chdir(lpPathName) : 1); }
-inline BOOL SystemParametersInfo(UINT uiAction, UINT uiParam, LPVOID pvParam, UINT fWinIni) { return TRUE; }
 #define SPI_GETWORKAREA 48
+inline BOOL SystemParametersInfo(UINT uiAction, UINT uiParam, LPVOID pvParam, UINT fWinIni)
+	{
+	if (uiAction == SPI_GETWORKAREA)
+		return PlatformGetWorkArea((RECT*)pvParam) ? TRUE : FALSE;
+
+	return FALSE;
+	}
 #define WS_OVERLAPPEDWINDOW 0x00CF0000
 inline BOOL AdjustWindowRect(RECT* lpRect, DWORD dwStyle, BOOL bMenu) { return TRUE; }
 #define MB_ICONSTOP 0x10
+
+#ifndef SM_CXSCREEN
+#define SM_CXSCREEN 0
+#define SM_CYSCREEN 1
+#endif
+#define SM_CXVIRTUALSCREEN 78
+#define SM_CYVIRTUALSCREEN 79
 
 #define MCIWndGetLength(h) (0)
 #define MCIWndGetPosition(h) (0)
@@ -870,8 +936,6 @@ typedef void* HBRUSH;
 struct WNDCLASSEXA { UINT cbSize; UINT style; void* lpfnWndProc; int cbClsExtra; int cbWndExtra; HINSTANCE hInstance; HICON hIcon; HCURSOR hCursor; HBRUSH hbrBackground; LPCSTR lpszMenuName; LPCSTR lpszClassName; HICON hIconSm; };
 struct WNDCLASSEX { UINT cbSize; UINT style; void* lpfnWndProc; int cbClsExtra; int cbWndExtra; HINSTANCE hInstance; HICON hIcon; HCURSOR hCursor; HBRUSH hbrBackground; LPCSTR lpszMenuName; LPCSTR lpszClassName; HICON hIconSm; };
 #define WS_POPUP 0x80000000
-#define SM_CXSCREEN 0
-#define SM_CYSCREEN 1
 
 #define WM_ACTIVATEAPP 0x001C
 #define WM_DISPLAYCHANGE 0x007E
@@ -944,6 +1008,13 @@ inline void CloseHandle(HANDLE h)
 	intptr_t iHandle = (intptr_t)h;
 	if (iHandle > 1024)
 		{
+		SFileMappingHandle *pMap = (SFileMappingHandle *)h;
+		if (pMap->dwMagic == FILE_MAPPING_MAGIC)
+			{
+			delete pMap;
+			return;
+			}
+
 		SEventHandle *pEvent = (SEventHandle *)h;
 		if (pEvent->dwMagic == EVENT_MAGIC)
 			{
@@ -1105,6 +1176,14 @@ inline void GetSystemInfo(SYSTEM_INFO* pInfo) { memset(pInfo, 0, sizeof(SYSTEM_I
 #define SW_SHOWNORMAL 1
 inline BOOL GetUserNameA(char* pName, DWORD* pSize) {
     const char* pLogin = getlogin();
+    // getlogin() can return NULL for non-login/GUI contexts (e.g. launched from
+    // Finder or launchd). Fall back to getpwuid before failing.
+    if (!pLogin)
+        {
+        const struct passwd* pPw = getpwuid(getuid());
+        if (pPw && pPw->pw_name)
+            pLogin = pPw->pw_name;
+        }
     if (!pLogin || !pName || !pSize) return FALSE;
     DWORD dwLen = (DWORD)strlen(pLogin);
     if (dwLen >= *pSize) return FALSE;
@@ -1146,10 +1225,22 @@ inline DWORD GetModuleFileName(HMODULE hModule, char* pFilename, DWORD nSize) { 
 inline BOOL MoveFile(const char* pSrc, const char* pDst) { return rename(pSrc, pDst) == 0; }
 inline void* ShellExecute(void* hwnd, const char* pOp, const char* pFile, const char* pParams, const char* pDir, int nShow) {
     if (!pFile) return nullptr;
-    char cmd[1024];
-    snprintf(cmd, sizeof(cmd), "open \"%s\" &", pFile);
-    int ret = system(cmd);
-    return (ret == 0) ? (void*)33 : nullptr;
+    (void)hwnd; (void)pOp; (void)pParams; (void)pDir; (void)nShow;
+    pid_t pid = fork();
+    if (pid < 0)
+        return nullptr;
+    if (pid == 0)
+        {
+        // Use exec directly so filenames/URLs are not interpreted by a shell.
+        execlp("open", "open", pFile, (char*)nullptr);
+        _exit(127);
+        }
+
+    int status = 0;
+    while (waitpid(pid, &status, 0) < 0 && errno == EINTR)
+        {}
+
+    return (status == 0) ? (void*)33 : nullptr;
 }
 inline DWORD GetFileVersionInfoSize(const char* pFilename, void* pHandle) { return 0; }
 inline BOOL GetFileVersionInfo(const char* pFilename, DWORD handle, DWORD len, void* pData) { return FALSE; }

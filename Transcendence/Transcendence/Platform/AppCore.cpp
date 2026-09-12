@@ -1096,3 +1096,64 @@ void App_GetWindowSize(int* pcxWidth, int* pcyHeight)
         if (pcyHeight) *pcyHeight = g_AppState.cyHeight;
         }
 }
+
+int PlatformGetSystemMetrics(int nIndex)
+{
+    int cx = g_AppState.cxWidth;
+    int cy = g_AppState.cyHeight;
+
+    SDL_DisplayMode dm;
+    if (g_AppState.pWindow && SDL_GetWindowDisplayMode(g_AppState.pWindow, &dm) == 0)
+        {
+        cx = dm.w;
+        cy = dm.h;
+        }
+    else if (SDL_GetCurrentDisplayMode(0, &dm) == 0)
+        {
+        cx = dm.w;
+        cy = dm.h;
+        }
+
+    switch (nIndex)
+        {
+        case SM_CXSCREEN:
+        case SM_CXVIRTUALSCREEN:
+            return cx;
+        case SM_CYSCREEN:
+        case SM_CYVIRTUALSCREEN:
+            return cy;
+        default:
+            return 0;
+        }
+}
+
+bool PlatformGetWorkArea(RECT* pRect)
+{
+    if (!pRect)
+        return false;
+
+    SDL_Rect rc;
+    if (SDL_GetDisplayUsableBounds(0, &rc) == 0)
+        {
+        pRect->left = rc.x;
+        pRect->top = rc.y;
+        pRect->right = rc.x + rc.w;
+        pRect->bottom = rc.y + rc.h;
+        return true;
+        }
+
+    if (SDL_GetDisplayBounds(0, &rc) == 0)
+        {
+        pRect->left = rc.x;
+        pRect->top = rc.y;
+        pRect->right = rc.x + rc.w;
+        pRect->bottom = rc.y + rc.h;
+        return true;
+        }
+
+    pRect->left = 0;
+    pRect->top = 0;
+    pRect->right = g_PlatformWindowWidth;
+    pRect->bottom = g_PlatformWindowHeight;
+    return true;
+}
