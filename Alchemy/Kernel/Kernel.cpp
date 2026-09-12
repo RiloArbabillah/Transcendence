@@ -263,27 +263,22 @@ ALERROR Kernel::kernelSetDebugLog (CTextFileLog *pLog, bool bAppend, bool bFreeL
 	return NOERROR;
 	}
 
-void Kernel::kernelDebugLogPattern (const char *pszLine, ...)
+void Kernel::kernelDebugLogPatternFallback (const char *pszLine)
 
-//	kernelDebugLogPattern
+//	kernelDebugLogPatternFallback
 //
-//	Log debug output
+//	Logs a plain format string (no substitution). This is the implementation
+//	backing the zero-arg kernelDebugLogPattern overload declared in Kernel.h.
+//	The variadic C-style version was removed because it passed CString objects
+//	through va_list, which is undefined behaviour on ARM64/AAPCS. Callers now
+//	route through the variadic template overload that delegates to the typed
+//	strPatternSubst overloads.
 
 	{
 	EnterCriticalSection(&g_csKernel);
 
 	if (g_pDebugLog)
-		{
-		char szBuffer[4096];
-
-		va_list args;
-		va_start(args, pszLine);
-		vsnprintf(szBuffer, sizeof(szBuffer), pszLine, args);
-		szBuffer[sizeof(szBuffer) - 1] = '\0';
-		va_end(args);
-
-		g_pDebugLog->LogOutput(ILOG_FLAG_TIMEDATE, CString(szBuffer));
-		}
+		g_pDebugLog->LogOutput(ILOG_FLAG_TIMEDATE, CString(pszLine, -1, TRUE));
 
 	LeaveCriticalSection(&g_csKernel);
 	}

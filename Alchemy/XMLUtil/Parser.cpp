@@ -86,35 +86,40 @@ struct ParserCtx
 		TokenTypes iAttribQuote;
 
 		CString sError;
+
+		//	Recursion depth guard for nested elements
+		int iElementDepth;
 	};
 
 ParserCtx::ParserCtx (IReadBlock *pStream, IXMLParserController *pController) : 
-		m_pController(pController),
-		m_pParentCtx(NULL),
-		m_bParseRootElement(false),
-		m_bParseRootTag(false),
-		m_bNoTagCharCheck(false)
-	{
-	pPos = pStream->GetPointer(0, pStream->GetLength());
-	pEndPos = pPos + pStream->GetLength();
-	pElement = NULL;
-	iToken = tkEOF;
-	iLine = 1;
-	}
+	m_pController(pController),
+	m_pParentCtx(NULL),
+	m_bParseRootElement(false),
+	m_bParseRootTag(false),
+	m_bNoTagCharCheck(false),
+	iElementDepth(0)
+{
+pPos = pStream->GetPointer(0, pStream->GetLength());
+pEndPos = pPos + pStream->GetLength();
+pElement = NULL;
+iToken = tkEOF;
+iLine = 1;
+}
 
 ParserCtx::ParserCtx (ParserCtx *pParentCtx, const CString &sString) : 
-		m_pController(pParentCtx->m_pController),
-		m_pParentCtx(pParentCtx),
-		m_bParseRootElement(false),
-		m_bParseRootTag(false),
-		m_bNoTagCharCheck(false)
-	{
-	pPos = sString.GetPointer();
-	pEndPos = pPos + sString.GetLength();
-	pElement = NULL;
-	iToken = tkEOF;
-	iLine = 1;
-	}
+	m_pController(pParentCtx->m_pController),
+	m_pParentCtx(pParentCtx),
+	m_bParseRootElement(false),
+	m_bParseRootTag(false),
+	m_bNoTagCharCheck(false),
+	iElementDepth(0)
+{
+pPos = sString.GetPointer();
+pEndPos = pPos + sString.GetLength();
+pElement = NULL;
+iToken = tkEOF;
+iLine = 1;
+}
 
 void ParserCtx::DefineEntity (const CString &sName, const CString &sValue)
 	{
@@ -302,7 +307,7 @@ ALERROR ParseDTD (ParserCtx *pCtx)
 	return NOERROR;
 	}
 
-ALERROR ParseElement (ParserCtx *pCtx, CXMLElement **retpElement)
+	ALERROR ParseElement (ParserCtx *pCtx, CXMLElement **retpElement)
 
 //	ParseElement
 //
@@ -314,6 +319,15 @@ ALERROR ParseElement (ParserCtx *pCtx, CXMLElement **retpElement)
 	CXMLElement *pElement;
 
 	ASSERT(pCtx->iToken == tkTagOpen);
+
+	//	Guard against deeply nested (or self-referential) XML that could
+	//	blow the stack via unbounded recursion.
+
+	if (pCtx->iElementDepth >= 256)
+		{
+		pCtx->sError = strPatternSubst(LITERAL("Line(%d): Maximum XML nesting depth exceeded"), pCtx->iLine);
+		return ERR_FAIL;
+		}
 
 	//	Parse the tag name
 
@@ -473,12 +487,15 @@ ALERROR ParseElement (ParserCtx *pCtx, CXMLElement **retpElement)
 				{
 				CXMLElement *pSubElement;
 
+				pCtx->iElementDepth++;
 				if (error = ParseElement(pCtx, &pSubElement))
 					{
+					pCtx->iElementDepth--;
 					pCtx->pElement = pParentElement;
 					delete pElement;
 					return error;
 					}
+				pCtx->iElementDepth--;
 
 				if (error = pElement->AppendSubElement(pSubElement))
 					{

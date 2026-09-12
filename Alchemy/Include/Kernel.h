@@ -2639,20 +2639,11 @@ class CThreadPool
 
 void kernelCleanUp (void);
 void kernelClearDebugLog (void);
-void kernelDebugLogPattern (const char *pszLine, ...);
 void kernelDebugLogString (const CString &sLine);
-inline void kernelDebugLogPattern (const char *pszLine, const CString &s1) { kernelDebugLogString(strPatternSubst(CString(pszLine, -1, TRUE), s1)); }
-inline void kernelDebugLogPattern (const char *pszLine, const CString &s1, const CString &s2) { kernelDebugLogString(strPatternSubst(CString(pszLine, -1, TRUE), s1, s2)); }
-inline void kernelDebugLogPattern (const char *pszLine, const CString &s1, int i2) { kernelDebugLogString(strPatternSubst(CString(pszLine, -1, TRUE), s1, i2)); }
-inline void kernelDebugLogPattern (const char *pszLine, const CString &s1, int i2, const CString &s3) { kernelDebugLogString(strPatternSubst(CString(pszLine, -1, TRUE), s1, i2, s3)); }
-inline void kernelDebugLogPattern (const char *pszLine, const CString &s1, int i2, const CString &s3, int i4) { kernelDebugLogString(strPatternSubst(CString(pszLine, -1, TRUE), s1, i2, s3, i4)); }
-inline void kernelDebugLogPattern (const char *pszLine, const CString &s1, int i2, const CString &s3, int i4, const CString &s5) { kernelDebugLogString(strPatternSubst(CString(pszLine, -1, TRUE), s1, i2, s3, i4, s5)); }
-inline void kernelDebugLogPattern (const char *pszLine, int i1, const CString &s2) { kernelDebugLogString(strPatternSubst(CString(pszLine, -1, TRUE), i1, s2)); }
-inline void kernelDebugLogPattern (const char *pszLine, const CString &s1, const CString &s2, int i3) { kernelDebugLogString(strPatternSubst(CString(pszLine, -1, TRUE), s1, s2, i3)); }
-inline void kernelDebugLogPattern (const char *pszLine, const CString &s1, int i2, int i3) { kernelDebugLogString(strPatternSubst(CString(pszLine, -1, TRUE), s1, i2, i3)); }
-inline void kernelDebugLogPattern (const char *pszLine, const CString &s1, const CString &s2, const CString &s3) { kernelDebugLogString(strPatternSubst(CString(pszLine, -1, TRUE), s1, s2, s3)); }
-inline void kernelDebugLogPattern (const char *pszLine, const CString &s1, const CString &s2, int i3, const CString &s4) { kernelDebugLogString(strPatternSubst(CString(pszLine, -1, TRUE), s1, s2, i3, s4)); }
-inline void kernelDebugLogPattern (const char *pszLine, const CString &s1, int i2, const CString &s3, const CString &s4) { kernelDebugLogString(strPatternSubst(CString(pszLine, -1, TRUE), s1, i2, s3, s4)); }
+void kernelDebugLogPatternFallback (const char *pszLine);
+template <typename... ARGS>
+inline void kernelDebugLogPattern (const char *pszLine, const ARGS &... Args) { kernelDebugLogString(strPatternSubst(CString(pszLine, -1, TRUE), Args...)); }
+inline void kernelDebugLogPattern (const char *pszLine) { kernelDebugLogPatternFallback(pszLine); }
 CString kernelGetSessionDebugLog (void);
 
 #define KERNEL_FLAG_INTERNETS					0x00000001
