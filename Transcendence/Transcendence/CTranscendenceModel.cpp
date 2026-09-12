@@ -2545,10 +2545,10 @@ ALERROR CTranscendenceModel::StartGame (bool bNewGame)
 		return ERR_FAIL;
 		}
 
-	::kernelDebugLogPattern("CTranscendenceModel::StartGame: player=%p ship=%p system=%p state=%d newGame=%d.",
-			m_pPlayer,
-			pPlayerShip,
-			pPlayerShip->GetSystem(),
+	::kernelDebugLogPattern("CTranscendenceModel::StartGame: player=%08x ship=%08x system=%08x state=%d newGame=%d.",
+			(DWORD)(uintptr_t)m_pPlayer,
+			(DWORD)(uintptr_t)pPlayerShip,
+			(DWORD)(uintptr_t)pPlayerShip->GetSystem(),
 			(int)m_iState,
 			(bNewGame ? 1 : 0));
 
@@ -2783,7 +2783,7 @@ ALERROR CTranscendenceModel::StartNewGameBackground (const SNewGameSettings &New
 	::kernelDebugLogPattern("StartNewGameBackground: calling CreateAllSystems node=%s.", sStartNode);
 	if (error = CreateAllSystems(sStartNode, &pStartingSystem, retsError))
 		return error;
-	::kernelDebugLogPattern("StartNewGameBackground: CreateAllSystems complete system=%p.", pStartingSystem);
+	::kernelDebugLogPattern("StartNewGameBackground: CreateAllSystems complete system=%08x.", (DWORD)(uintptr_t)pStartingSystem);
 
 	//	Set the current system because we need it to be set when we create the
 	//	player ship.
@@ -2799,7 +2799,7 @@ ALERROR CTranscendenceModel::StartNewGameBackground (const SNewGameSettings &New
 		vStartPos = pStart->GetPos();
 	else if (!sStartPos.IsBlank())
 		::kernelDebugLogPattern("Warning: unable to resolve named start position '%s' in node %s; defaulting to origin.", sStartPos, sStartNode);
-	::kernelDebugLogPattern("StartNewGameBackground: start object=%p.", pStart);
+	::kernelDebugLogPattern("StartNewGameBackground: start object=%08x.", (DWORD)(uintptr_t)pStart);
 
 	//	Set some credits
 
@@ -2836,7 +2836,7 @@ ALERROR CTranscendenceModel::StartNewGameBackground (const SNewGameSettings &New
 		return error;
 		}
 
-	::kernelDebugLogPattern("StartNewGameBackground: CreateShip complete ship=%p.", pPlayerShip);
+	::kernelDebugLogPattern("StartNewGameBackground: CreateShip complete ship=%08x.", (DWORD)(uintptr_t)pPlayerShip);
 
 	//	Ship needs to track fuel and mass
 

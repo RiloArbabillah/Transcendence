@@ -343,11 +343,11 @@ void CDockScreenActions::Execute (int iAction, CDockScreen *pScreen)
 
 	SActionDesc *pAction = &m_Actions[iAction];
 
-	kernelDebugLogPattern("CDockScreenActions::Execute: iAction=%d, sID=%s, pCmd=%p, pCode=%p, sCode=%s",
+	kernelDebugLogPattern("CDockScreenActions::Execute: iAction=%d, sID=%s, pCmd=%08x, pCode=%08x, sCode=%s",
 			iAction,
 			(const char *)pAction->sID,
-			pAction->pCmd,
-			pAction->pCode,
+			(DWORD)(uintptr_t)pAction->pCmd,
+			(DWORD)(uintptr_t)pAction->pCode,
 			pAction->sCode.IsBlank() ? "(none)" : (const char *)pAction->sCode);
 
 	//	Ignore the action if disabled or invisible
@@ -418,12 +418,12 @@ void CDockScreenActions::ExecuteCode (CDockScreen *pScreen, const CString &sID, 
 	Ctx.DefineString(CONSTLIT("aActionID"), sID);
 	Ctx.SetDockScreenList(pScreen->GetListData());
 
-	kernelDebugLogPattern("CDockScreenActions::ExecuteCode: sID=%s, pCode=%p (refCount=%d)", (const char *)sID, pCode, pCode->GetRefCount());
+	kernelDebugLogPattern("CDockScreenActions::ExecuteCode: sID=%s, pCode=%08x (refCount=%d)", (const char *)sID, (DWORD)(uintptr_t)pCode, pCode->GetRefCount());
 
 	ICCItemPtr pKeepAlive(pCode->Reference());
 	ICCItemPtr pResult = Ctx.RunLambdaCode(pKeepAlive);
 
-	kernelDebugLogPattern("CDockScreenActions::ExecuteCode: RunLambdaCode returned, pCode=%p, pResult=%p, isError=%d", pCode, (ICCItem *)pResult, (int)pResult->IsError());
+	kernelDebugLogPattern("CDockScreenActions::ExecuteCode: RunLambdaCode returned, pCode=%08x, pResult=%08x, isError=%d", (DWORD)(uintptr_t)pCode, (DWORD)(uintptr_t)(ICCItem *)pResult, (int)pResult->IsError());
 
 	if (pResult->IsError())
 		{

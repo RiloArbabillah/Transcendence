@@ -368,7 +368,7 @@ void CDockScreen::CleanUpScreen (void)
 	{
 	DEBUG_TRY
 
-	kernelDebugLogPattern("CDockScreen::CleanUpScreen: m_pScreen=%p, InExecuteAction=%d", m_pScreen, (int)m_CurrentPane.InExecuteAction());
+	kernelDebugLogPattern("CDockScreen::CleanUpScreen: m_pScreen=%08x, InExecuteAction=%d", (DWORD)(uintptr_t)m_pScreen, (int)m_CurrentPane.InExecuteAction());
 
 	if (m_pScreen)
 		{

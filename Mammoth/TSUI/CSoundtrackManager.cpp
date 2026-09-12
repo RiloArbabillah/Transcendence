@@ -438,7 +438,7 @@ bool CSoundtrackManager::Init (SOptions &Options)
 
 	{
 	m_pUniverse = &Options.Universe;
-	::kernelDebugLogPattern("CSoundtrackManager::Init universe=%p enabled=%d volume=%d debug=%d initialState=%d.", m_pUniverse, (Options.bEnabled ? 1 : 0), Options.iVolume, (Options.bDebugMode ? 1 : 0), (int)Options.iInitialState);
+	::kernelDebugLogPattern("CSoundtrackManager::Init universe=%08x enabled=%d volume=%d debug=%d initialState=%d.", (DWORD)(uintptr_t)m_pUniverse, (Options.bEnabled ? 1 : 0), Options.iVolume, (Options.bDebugMode ? 1 : 0), (int)Options.iInitialState);
 	SetMusicEnabled(Options.bEnabled);
 	SetVolume(Options.iVolume);
 	SetDebugMode(Options.bDebugMode);
@@ -971,9 +971,9 @@ void CSoundtrackManager::Play (CMusicResource *pTrack)
 		{
 		CString sFilespec = pTrack->GetFilespec();
 		CString sFilename = pTrack->GetFilename();
-		::kernelDebugLogPattern("CSoundtrackManager::Play state=%d track=%p unid=%x filespec=%s filename=%s.",
+		::kernelDebugLogPattern("CSoundtrackManager::Play state=%d track=%08x unid=%x filespec=%s filename=%s.",
 				(int)m_iGameState,
-				pTrack,
+				(DWORD)(uintptr_t)pTrack,
 				pTrack->GetUNID(),
 				sFilespec.GetASCIIZPointer(),
 				sFilename.GetASCIIZPointer());
@@ -988,10 +988,10 @@ void CSoundtrackManager::Play (CMusicResource *pTrack)
 			::kernelDebugLogPattern("Unable to play soundtrack: %x", pTrack->GetUNID());
 		}
 	else
-		::kernelDebugLogPattern("CSoundtrackManager::Play skipped: enabled=%d track=%p nowPlaying=%p state=%d.",
+		::kernelDebugLogPattern("CSoundtrackManager::Play skipped: enabled=%d track=%08x nowPlaying=%08x state=%d.",
 				(m_bEnabled ? 1 : 0),
-				pTrack,
-				m_pNowPlaying,
+				(DWORD)(uintptr_t)pTrack,
+				(DWORD)(uintptr_t)m_pNowPlaying,
 				(int)m_iGameState);
 	}
 
@@ -1137,7 +1137,7 @@ void CSoundtrackManager::SetMusicEnabled (bool bEnabled)
 	if (m_bEnabled)
 		{
 		CMusicResource *pTrack = CalcTrackToPlay(m_pUniverse->GetCurrentTopologyNode(), m_iGameState);
-		::kernelDebugLogPattern("CSoundtrackManager::SetMusicEnabled play track=%p state=%d.", pTrack, (int)m_iGameState);
+		::kernelDebugLogPattern("CSoundtrackManager::SetMusicEnabled play track=%08x state=%d.", (DWORD)(uintptr_t)pTrack, (int)m_iGameState);
 		Play(pTrack);
 		}
 

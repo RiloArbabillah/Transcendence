@@ -1564,7 +1564,7 @@ void CPlayerShipController::OnStartGame (void)
 
 	if (m_pShip->GetSystem() == NULL)
 		{
-		::kernelDebugLogPattern("CPlayerShipController::OnStartGame: ship=%p has NULL system.", m_pShip);
+		::kernelDebugLogPattern("CPlayerShipController::OnStartGame: ship=%08x has NULL system.", (DWORD)(uintptr_t)m_pShip);
 		return;
 		}
 
