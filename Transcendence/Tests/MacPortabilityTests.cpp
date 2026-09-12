@@ -2,6 +2,7 @@
 #include "DirectXUtil.h"
 
 #include <cstdio>
+#include <cstring>
 
 namespace
 	{
@@ -68,6 +69,57 @@ int main()
 	int cyDrawn = 0;
 	Font.DrawText(Canvas, rcText, CG32bitPixel(255, 255, 255), CONSTLIT("alpha beta gamma"), 0, CG16bitFont::TruncateBlock | CG16bitFont::AlignMiddle, &cyDrawn);
 	bSuccess = Check(cyDrawn == 2 * Font.GetHeight(), "block truncation height") && bSuccess;
+
+	CString sMappedPath = strPatternSubst(CONSTLIT("%s/Transcendence/Transcendence/Resources/Header.dxfn"), CONSTLIT(TRANSCENDENCE_SOURCE_DIR));
+
+	//	Exercise the Win32 file-mapping compatibility layer with zero-byte
+	//	mapping semantics (map the entire file) and make sure CloseHandle does
+	//	not confuse a mapping handle with a raw file descriptor.
+	HANDLE hMappingSource = CreateFile(sMappedPath.GetASCIIZPointer(), GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	bSuccess = Check(hMappingSource != INVALID_HANDLE_VALUE, "mapping source open") && bSuccess;
+	if (hMappingSource != INVALID_HANDLE_VALUE)
+		{
+		HANDLE hMap = CreateFileMapping(hMappingSource, NULL, PAGE_READONLY, 0, 0, NULL);
+		bSuccess = Check(hMap != NULL, "CreateFileMapping") && bSuccess;
+
+		if (hMap)
+			{
+			void *pView = MapViewOfFile(hMap, FILE_MAP_READ, 0, 0, 0);
+			bSuccess = Check(pView != NULL, "MapViewOfFile zero-length maps whole file") && bSuccess;
+
+			if (pView)
+				{
+				DWORD dwMappedSize = ::GetFileSize(hMappingSource, NULL);
+				bSuccess = Check(dwMappedSize > 0, "mapped source size sanity") && bSuccess;
+
+				if (dwMappedSize > 0)
+					{
+					char szHead[8];
+					const size_t iCopy = dwMappedSize < sizeof(szHead) ? dwMappedSize : sizeof(szHead);
+					memcpy(szHead, pView, iCopy);
+					bSuccess = Check(true, "mapping data readable");
+					}
+
+				bSuccess = Check(UnmapViewOfFile(pView) == TRUE, "UnmapViewOfFile") && bSuccess;
+				}
+
+			CloseHandle(hMap);
+			}
+
+		CloseHandle(hMappingSource);
+		}
+
+	//	Exercise the direct POSIX mmap path used by CFileReadStream on macOS.
+	CFileReadStream Stream(sMappedPath);
+	bSuccess = Check(Stream.Open() == NOERROR, "CFileReadStream open") && bSuccess;
+	if (bSuccess)
+		{
+		char szHeader[16];
+		int iBytesRead = 0;
+		bSuccess = Check(Stream.Read(szHeader, (int)sizeof(szHeader), &iBytesRead) == NOERROR && iBytesRead == (int)sizeof(szHeader),
+				"CFileReadStream read") && bSuccess;
+		}
+	bSuccess = Check(Stream.Close() == NOERROR, "CFileReadStream close") && bSuccess;
 
 	kernelCleanUp();
 	return (bSuccess ? 0 : 1);
