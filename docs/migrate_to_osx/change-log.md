@@ -2,7 +2,7 @@
 
 ## Document Status
 
-- Version: v1.9
+- Version: v1.10
 - Last Updated: 2026-09-19
 - Scope: documentation-only changes for the macOS port planning set
 
@@ -33,6 +33,18 @@ Summary:
 ## Entries
 
 ### 2026-09-19
+
+- Document: `task-backlog.md`, `../macOS_port_status.md`, `change-log.md`
+- Change Type: updated
+- Summary: corrected the Epic N merge status after the port defect-register stack landed on
+  `osx`. `N-000`..`N-004` still said "PR open against `osx`; not merged" and the Epic N
+  summary still said "none are merged"; each delivery note now records the merged PR number
+  and merge commit (`#1` `9cebf152e`, `#2` `e69b6d893`, `#3` `136d7efc8`, `#4` `bdb227596`,
+  `#5` `40debd867`) and notes that the stacked phases were retargeted to `osx` as their
+  parent merged. `../macOS_port_status.md` dropped its "every phase is open as a stacked pull
+  request and none is merged" claim. The `N-000` deliverable line also now reads
+  `PDR-001`..`PDR-039`, matching the register (v1.3), which gained `PDR-039` during phase 4.
+  No source-code change.
 
 - Document: `hardening-utilities.md`, `index.md`, `port-defect-register.md`,
   `task-backlog.md`, `change-log.md`, `../macOS_port_status.md`

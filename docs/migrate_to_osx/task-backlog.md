@@ -669,7 +669,7 @@ branch and pull request from `osx`; no direct commit to `main`/`master`.
 - Goal: publish a single register of all static-audit port defects and wire it into the
   documentation set
 - Deliverable:
-  - `port-defect-register.md` with `PDR-001`..`PDR-038` grouped by fix phase
+  - `port-defect-register.md` with `PDR-001`..`PDR-039` grouped by fix phase
   - registration in `index.md`, `task-backlog.md`, `change-log.md`, `../bug_fix_plan.md`,
     `../macOS_port_status.md`
 - Depends on:
@@ -679,7 +679,7 @@ branch and pull request from `osx`; no direct commit to `main`/`master`.
     trigger condition, fix phase, verification gate, and work status
   - no source-code changes in this task
   - `git diff --check` is clean
-- Delivery note: branch `docs/port-defect-register`, PR #1 open against `osx`; not merged
+- Delivery note: branch `docs/port-defect-register`, PR #1 merged into `osx` as `9cebf152e`
 
 ### N-001 Phase 1 - input and memory safety (P0)
 
@@ -703,9 +703,10 @@ branch and pull request from `osx`; no direct commit to `main`/`master`.
   - new portability tests cover memory-stream growth/zero-fill/commit accounting, bitmap
     create/destroy lookup, and every VK used by `DefaultKeyMappings.h`
   - no Windows behavior change; changes are platform-neutral or guarded
-- Delivery note: branch `fix/macos-port-p0-input-memory`, PR open against `osx`; not merged.
-  Gate verified locally: `cmake --preset macos-debug`, `cmake --build --preset macos-debug`
-  (including `Transcendence.app`), and `ctest -R mac-portability` passed
+- Delivery note: branch `fix/macos-port-p0-input-memory`, PR #2 merged into `osx` as
+  `e69b6d893`. Gate verified locally: `cmake --preset macos-debug`,
+  `cmake --build --preset macos-debug` (including `Transcendence.app`), and
+  `ctest -R mac-portability` passed
 
 ### N-002 Phase 2 - functional and filesystem gaps (P1)
 
@@ -729,10 +730,11 @@ branch and pull request from `osx`; no direct commit to `main`/`master`.
     `SHGetFolderPath` matching the log root
   - DIB tests return `NOERROR` with valid output, or assert that callers were redirected
   - build and `mac-portability` gate pass; `git diff --check` is clean
-- Delivery note: branch `fix/macos-port-p1-functional-fs`, PR open against
-  `fix/macos-port-p0-input-memory` (stacked); not merged. Gate verified locally:
-  `cmake --preset macos-debug`, `cmake --build --preset macos-debug` (including
-  `Transcendence.app` and the tools), and `ctest -R mac-portability` passed.
+- Delivery note: branch `fix/macos-port-p1-functional-fs`, PR #3 merged into `osx` as
+  `136d7efc8` (opened stacked on `fix/macos-port-p0-input-memory`, retargeted to `osx` once
+  PR #2 merged). Gate verified locally: `cmake --preset macos-debug`,
+  `cmake --build --preset macos-debug` (including `Transcendence.app` and the tools), and
+  `ctest -R mac-portability` passed.
   `PDR-008` closed as an explicit video non-goal; `PDR-009` records the `CMCIMixer` parity
   inventory plus its remaining audio follow-ups in `functional-fs-utilities.md`.
 
@@ -759,11 +761,12 @@ branch and pull request from `osx`; no direct commit to `main`/`master`.
   - coordinate packing tests cover negative values and values above 32767
   - `PDR-025`/`PDR-026` keep an explicit, documented exit criterion if the cap remains
   - build and `mac-portability` gate pass; `git diff --check` is clean
-- Delivery note: branch `fix/macos-port-p2-platform-perf`, PR open against
-  `fix/macos-port-p1-functional-fs` (stacked); not merged. Gate verified locally:
-  `cmake --preset macos-debug`, `cmake --build --preset macos-debug` (including
-  `Transcendence.app` and the tools), `ctest -R mac-portability`, and `git diff --check`
-  passed. `PDR-025`/`PDR-026` keep the workarounds on by default but expose
+- Delivery note: branch `fix/macos-port-p2-platform-perf`, PR #4 merged into `osx` as
+  `bdb227596` (opened stacked on `fix/macos-port-p1-functional-fs`, retargeted to `osx` once
+  PR #3 merged). Gate verified locally: `cmake --preset macos-debug`,
+  `cmake --build --preset macos-debug` (including `Transcendence.app` and the tools),
+  `ctest -R mac-portability`, and `git diff --check` passed.
+  `PDR-025`/`PDR-026` keep the workarounds on by default but expose
   `TRANSCENDENCE_MT_BKRND_PAINT` / `TRANSCENDENCE_FORCE_ST_PAINT` with documented exit
   criteria in `platform-event-utilities.md`.
 
@@ -792,12 +795,13 @@ branch and pull request from `osx`; no direct commit to `main`/`master`.
   - `_fcvt_s` test proves no out-of-bounds read with a small buffer, and a `strFromDouble`
     regression test pins the CRT `dec`/`sign` order
   - build and `mac-portability` gate pass; `git diff --check` is clean
-- Delivery note: branch `fix/macos-port-p3-hardening`, PR open against
-  `fix/macos-port-p2-platform-perf` (stacked); not merged. Gate verified locally:
-  `cmake --preset macos-debug`, `cmake --build --preset macos-debug` (including
-  `Transcendence.app` and the tools), `ctest -R mac-portability`, and `git diff --check`
-  passed. The removed `-Wnon-pod-varargs` pragmas produced zero new warnings, so no call site
-  needed changing. Documented in `hardening-utilities.md`.
+- Delivery note: branch `fix/macos-port-p3-hardening`, PR #5 merged into `osx` as
+  `40debd867` (opened stacked on `fix/macos-port-p2-platform-perf`, retargeted to `osx` once
+  PR #4 merged). Gate verified locally: `cmake --preset macos-debug`,
+  `cmake --build --preset macos-debug` (including `Transcendence.app` and the tools),
+  `ctest -R mac-portability`, and `git diff --check` passed. The removed `-Wnon-pod-varargs`
+  pragmas produced zero new warnings, so no call site needed changing. Documented in
+  `hardening-utilities.md`.
 
 ### N-005 Phase 5 - cross-platform regressions (deferred)
 
@@ -845,7 +849,9 @@ These tasks turn the current static-library build success into an executable lin
 
 Defect-closure track added 2026-09-19: Epic N (`N-000`..`N-004`) executes the static-audit
 findings from `port-defect-register.md` in four code phases plus the docs phase, each on its
-own branch and pull request from `osx`. All four code phases are delivered and open as stacked
-pull requests; none are merged. Phase 5 (`PDR-037`, `PDR-038`) stays `deferred`. A defect found
-while executing a phase is registered as a new `PDR-` entry on that phase (`PDR-039` on
-phase 4) rather than folded silently into an existing entry.
+own branch and pull request from `osx`. All five pull requests are delivered and merged into
+`osx` (`#1`..`#5`, `9cebf152e`..`40debd867`); the code phases were opened as a stack and each
+one was retargeted to `osx` as its parent merged, so no phase was merged through another
+phase's branch. Phase 5 (`PDR-037`, `PDR-038`) stays `deferred`. A defect found while
+executing a phase is registered as a new `PDR-` entry on that phase (`PDR-039` on phase 4)
+rather than folded silently into an existing entry.
