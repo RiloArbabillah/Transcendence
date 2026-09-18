@@ -4,6 +4,16 @@
 
 This document records the current state of the native macOS Apple Silicon port and the audited path needed to finish it. The port strategy remains compatibility-first: keep existing engine/gameplay logic, keep software frame generation, replace Win32 shell/presentation/resource/audio boundaries with native macOS equivalents.
 
+## Defect Register
+
+The actionable defect list for the macOS path now lives in
+`docs/migrate_to_osx/port-defect-register.md` (`PDR-001`..`PDR-038`). It records every finding
+from the 2026-09-19 static code audit with priority, `file:line`, macOS impact, trigger
+condition, fix phase, verification gate, and work status. Fix phases are delivered one branch
+and pull request at a time from `osx`; the cross-platform findings (`PDR-037`, `PDR-038`) stay
+`deferred` because this plan is macOS-only. The older `docs/bug_fix_plan.md` is superseded and
+kept only as history.
+
 ## Build Status
 
 **Current State:** the macOS app target builds and launches from the CMake-generated build tree. The active runtime path uses the SDL shell, software frame generation, SDL event forwarding, and a compatibility SDL software renderer while the Metal callback crash is avoided.

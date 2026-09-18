@@ -2,8 +2,8 @@
 
 ## Document Status
 
-- Version: v1.4
-- Last Updated: 2026-05-04
+- Version: v1.5
+- Last Updated: 2026-09-19
 - Scope: documentation-only changes for the macOS port planning set
 
 ## Purpose
@@ -31,6 +31,17 @@ Summary:
 ```
 
 ## Entries
+
+### 2026-09-19
+
+- Document: `port-defect-register.md`, `index.md`, `task-backlog.md`, `../bug_fix_plan.md`, `../macOS_port_status.md`, `change-log.md`
+- Change Type: added
+- Summary: added a single port defect register (`PDR-001`..`PDR-038`) derived from a static
+  code audit, grouped into four code fix phases plus a `deferred` cross-platform phase; each
+  entry records finding status, priority, `file:line`, macOS impact, trigger condition, fix
+  phase, verification gate, and work status; registered the document in `index.md`, added
+  Epic N to `task-backlog.md`, marked `../bug_fix_plan.md` as superseded, and added a pointer
+  from `../macOS_port_status.md`
 
 ### 2026-05-18
 
