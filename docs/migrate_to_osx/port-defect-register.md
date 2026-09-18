@@ -2,7 +2,7 @@
 
 ## Document Status
 
-- Version: v1.0
+- Version: v1.1
 - Last Updated: 2026-09-19
 - Branch: `osx`
 - Derived From: audit kode statis
@@ -79,15 +79,15 @@ Gate tambahan per temuan dicantumkan pada field **Gate verifikasi** di entri ter
 | PDR-004 | `CloseHandle` heuristik pointer-vs-fd | P0 | `confirmed` | 1 | `done` |
 | PDR-005 | Event handle tanpa magic check | P0 | `confirmed` | 1 | `done` |
 | PDR-006 | `SDLBitmapDestroy` tidak menghapus entri map | P0 | `confirmed` | 1 | `done` |
-| PDR-007 | `dibCreate*`/`dibCrop`/`dibConvertToDDB`/`dibLoadFromResource` selalu `ERR_FAIL` | P1 | `confirmed` | 2 | `todo` |
-| PDR-008 | `MCIWnd*` no-op | P1 | `confirmed` | 2 | `todo` |
-| PDR-009 | `CMCIMixerStub.cpp` menggantikan `CMCIMixer.cpp` | P1 | `likely` | 2 | `todo` |
-| PDR-010 | `ShowCursor`/`SetCapture`/`ReleaseCapture`/`ScreenToClient`/`ClientToScreen` no-op | P1 | `confirmed` | 2 | `todo` |
-| PDR-011 | `GetCursorPos`/`SetCursorPos` memakai koordinat window global | P1 | `confirmed` | 2 | `todo` |
-| PDR-012 | `GetFileTime`/`FileTimeToSystemTime` return `TRUE` tanpa mengisi output | P1 | `confirmed` | 2 | `todo` |
-| PDR-013 | `WIN32_FIND_DATA::ftLastWriteTime` menyimpan epoch Unix | P1 | `confirmed` | 2 | `todo` |
-| PDR-014 | `CopyFile` mengabaikan `bFailIfExists` | P1 | `confirmed` | 2 | `todo` |
-| PDR-015 | `SHGetFolderPath` tanpa komponen `Kronosaur` | P1 | `confirmed` | 2 | `todo` |
+| PDR-007 | `dibCreate*`/`dibCrop`/`dibConvertToDDB`/`dibLoadFromResource` selalu `ERR_FAIL` | P1 | `confirmed` | 2 | `done` |
+| PDR-008 | `MCIWnd*` no-op | P1 | `confirmed` | 2 | `done` |
+| PDR-009 | `CMCIMixerStub.cpp` menggantikan `CMCIMixer.cpp` | P1 | `likely` | 2 | `done` |
+| PDR-010 | `ShowCursor`/`SetCapture`/`ReleaseCapture`/`ScreenToClient`/`ClientToScreen` no-op | P1 | `confirmed` | 2 | `done` |
+| PDR-011 | `GetCursorPos`/`SetCursorPos` memakai koordinat window global | P1 | `confirmed` | 2 | `done` |
+| PDR-012 | `GetFileTime`/`FileTimeToSystemTime` return `TRUE` tanpa mengisi output | P1 | `confirmed` | 2 | `done` |
+| PDR-013 | `WIN32_FIND_DATA::ftLastWriteTime` menyimpan epoch Unix | P1 | `confirmed` | 2 | `done` |
+| PDR-014 | `CopyFile` mengabaikan `bFailIfExists` | P1 | `confirmed` | 2 | `done` |
+| PDR-015 | `SHGetFolderPath` tanpa komponen `Kronosaur` | P1 | `confirmed` | 2 | `done` |
 | PDR-016 | `PlatformPostMessage` memotong `WPARAM` ke `int` | P2 | `confirmed` | 3 | `todo` |
 | PDR-017 | `PeekMessage` tidak mengisi `hwnd`/`time`/`pt` | P2 | `confirmed` | 3 | `todo` |
 | PDR-018 | `PlatformSendMessage` asinkron | P2 | `confirmed` | 3 | `todo` |
@@ -250,6 +250,13 @@ Status fase: `done` (branch `fix/macos-port-p0-input-memory`). Gate terverifikas
 Fokus: mengembalikan fitur inti yang saat ini gagal diam-diam (gambar, video, audio, kursor,
 waktu file, dan lokasi app-data).
 
+Status fase: `done` (branch `fix/macos-port-p1-functional-fs`). Gate terverifikasi:
+`cmake --preset macos-debug`, `cmake --build --preset macos-debug` (termasuk
+`Transcendence.app` dan tool), dan `ctest -R mac-portability` lulus; `git diff --check`
+bersih. Utilitas baru (`Kernel::pathGetAppDataRoot`, permukaan `PathCompat.h`, helper
+origin/kursor, `PlatformReportUnsupportedFeature`) dan keputusan cakupan video/audio
+didokumentasikan di `functional-fs-utilities.md`.
+
 ### PDR-007 — Pembuat DIB yang hilang selalu `ERR_FAIL`
 
 - **Status temuan:** `confirmed`
@@ -265,7 +272,14 @@ waktu file, dan lokasi app-data).
 - **Gate verifikasi:** Gate standar + unit test `dibCreate24bitDIB`/`dibCrop` mengembalikan
   `NOERROR` dengan output valid; atau test menegaskan seluruh pemanggil sudah dialihkan ke
   jalur `SDLBitmap`.
-- **Status kerja:** `todo`
+- **Perbaikan:** `Alchemy/Graphics/DIBSDL.cpp` — keenam fungsi diimplementasikan di atas
+  `SDL_Surface` (`RGB565`/`BGR24`/`BGRA32`), `dibCrop` menolak area di luar sumber, dan
+  `dibConvertToDDB` mengembalikan handle yang sama. `dibLoadFromResource` tetap `ERR_FAIL`
+  karena tidak ada resource Win32 di macOS, tetapi kini melaporkan dirinya sekali lewat
+  `PlatformReportUnsupportedFeature`. `SDLBitmapLookup` diekspor sebagai API publik
+  `SDLBitmap.h` untuk validasi handle. Catatan layout (top-down, stride dari `dibGetInfo`)
+  didokumentasikan di `functional-fs-utilities.md`.
+- **Status kerja:** `done`
 
 ### PDR-008 — `MCIWnd*` no-op
 
@@ -280,7 +294,11 @@ waktu file, dan lokasi app-data).
 - **Fase perbaikan:** Fase 2 — PR `fix/macos-port-p1-functional-fs`
 - **Gate verifikasi:** Gate standar + keputusan eksplisit: implementasi backend video, atau
   tandai video sebagai non-goal dengan log/`ASSERT` yang terdeteksi saat debug.
-- **Status kerja:** `todo`
+- **Perbaikan:** Keputusan: **non-goal eksplisit**. `MCIWndCreate` dan `MCIWndOpen` pada
+  `Alchemy/Include/Kernel.h` kini memanggil `PlatformReportUnsupportedFeature` (log `stderr`
+  satu kali per fitur) sebelum tetap mengembalikan `nullptr`/`0`; getter yang dipanggil dalam
+  polling loop sengaja tetap senyap. Tidak ada backend video baru.
+- **Status kerja:** `done`
 
 ### PDR-009 — `CMCIMixerStub.cpp` menggantikan `CMCIMixer.cpp`
 
@@ -298,7 +316,18 @@ waktu file, dan lokasi app-data).
 - **Fase perbaikan:** Fase 2 — PR `fix/macos-port-p1-functional-fs`
 - **Gate verifikasi:** Gate standar + inventaris fitur MCI asli vs stub (daftar fitur yang
   hilang/berbeda), dan keputusan eksplisit untuk setiap gap.
-- **Status kerja:** `todo`
+- **Perbaikan:** Inventaris lengkap dan keputusan per gap ditulis di
+  `functional-fs-utilities.md`. Stub terverifikasi **bukan** no-op (implementasi `SDL_mixer`
+  yang mengisi seluruh method `CMCIMixer`), dan `SetPlayPaused` sudah sesuai semantik asli
+  sehingga tidak diubah. Kebocoran `GetDebugInfo` (`retLines->Insert(*new CString(buf))`)
+  diperbaiki menjadi `retLines->Insert(CString(buf))`.
+- **Temuan lanjutan (belum ditutup, butuh validasi runtime audio):** `Boot()` tidak
+  memulai thread/antrean sehingga tidak ada kegagalan yang dapat dilaporkan; `FadeAtPos(iPos)`
+  mengabaikan `iPos` (fade tetap 500 ms vs `FADE_LENGTH = 2000` ms di versi asli);
+  `FadeNow()` memakai 1000 ms vs fade-out sampai `GetCurrentPlayPos() + FADE_LENGTH`;
+  `GetCurrentPlayPos(dwTimeout)` mengabaikan timeout; stub tidak pernah memposting
+  `cmdSoundtrackUpdatePlayPos`.
+- **Status kerja:** `done`
 
 ### PDR-010 — `ShowCursor`/`SetCapture`/`ReleaseCapture`/`ScreenToClient`/`ClientToScreen` no-op
 
@@ -319,7 +348,15 @@ waktu file, dan lokasi app-data).
 - **Gate verifikasi:** Gate standar + verifikasi konversi koordinat benar untuk window
   non-fullscreen (offset origin window), dan capture/cursor dipetakan ke `SDL_CaptureMouse`
   / `SDL_ShowCursor`.
-- **Status kerja:** `todo`
+- **Perbaikan:** `Alchemy/Include/Kernel.h` meneruskan shim ke entry point platform
+  (`PlatformShowCursor`, `PlatformSetCapture`, `PlatformReleaseCapture`,
+  `PlatformScreenToClient`, `PlatformClientToScreen`). `AppCore.cpp` memetakan
+  capture/cursor ke `SDL_CaptureMouse`/`SDL_ShowCursor`; `PlatformInput.cpp` menyediakan
+  aritmetika konversi berbasis origin window (`PlatformTranslateScreenToClient`/
+  `PlatformTranslateClientToScreen`), dan `CScreenMgrSDL::GlobalToLocal`/`LocalToGlobal`
+  memakai jalur yang sama. `Transcendence/Tools/PlatformToolStubs.cpp` menyediakan jawaban
+  no-op untuk tool yang tidak pernah membuat window.
+- **Status kerja:** `done`
 
 ### PDR-011 — `GetCursorPos`/`SetCursorPos` memakai koordinat window global
 
@@ -335,11 +372,18 @@ waktu file, dan lokasi app-data).
 - **Fase perbaikan:** Fase 2 — PR `fix/macos-port-p1-functional-fs`
 - **Gate verifikasi:** Gate standar + verifikasi round-trip `SetCursorPos`→`GetCursorPos`
   konsisten dengan offset window (`SDL_GetWindowPosition`).
-- **Status kerja:** `todo`
+- **Perbaikan:** `g_PlatformMouseX/Y` dihapus. Layer platform menyimpan posisi kursor dalam
+  koordinat **client** (`PlatformSetMouseClientPos`, diisi dari event mouse SDL) dan origin
+  window (`PlatformSetWindowOrigin`, diisi dari `SDL_GetWindowPosition` pada
+  `App_PumpEvents` dan setelah `SDL_CreateWindow`); `GetCursorPos`/`SetCursorPos` berbicara
+  koordinat **layar**. Payload `WM_MOUSEWHEEL` kini juga memakai koordinat layar seperti
+  Win32.
+- **Status kerja:** `done`
 
 ### PDR-012 — `GetFileTime`/`FileTimeToSystemTime` return `TRUE` tanpa mengisi output
 
-- **Status temuan:** `confirmed`
+- **Status temuan:** `latent` (fungsi permukaan port tanpa pemanggil macOS aktif; lihat
+  Kondisi pemicu)
 - **Prioritas:** `P1`
 - **Lokasi:** `Alchemy/Kernel/Path.cpp:263-264`
 - **Dampak di macOS:** Kedua fungsi langsung `return TRUE` tanpa menulis ke output. Pemanggil
@@ -349,7 +393,15 @@ waktu file, dan lokasi app-data).
 - **Fase perbaikan:** Fase 2 — PR `fix/macos-port-p1-functional-fs`
 - **Gate verifikasi:** Gate standar + unit test `GetFileTime`/`FileTimeToSystemTime` menghasilkan
   waktu non-nol dan konsisten dengan `stat()` file uji.
-- **Status kerja:** `todo`
+- **Perbaikan:** Kedua fungsi diimplementasikan pada `Alchemy/Kernel/Path.cpp`:
+  `GetFileTime` mengisi creation/access/write dari `fstat()` (creation dari `st_birthtime`,
+  access/write memakai helper `st_*timespec` khusus macOS), dan `FileTimeToSystemTime`
+  mengonversi 100-ns sejak 1601-01-01 UTC ke kalender UTC serta menolak nilai sebelum epoch
+  FILETIME. Keduanya dideklarasikan publik di `Alchemy/Include/PathCompat.h` agar dapat diuji.
+  Verifikasi pemanggil: pada macOS tidak ada pemanggil aktif — satu-satunya pemanggil
+  (`Kernel::fileGetModifiedTime`, `Alchemy/Kernel/Path.cpp:680-689`) berada di dalam
+  `#ifdef _WIN32`, sedangkan cabang macOS memakai `stat()`/`localtime()` langsung.
+- **Status kerja:** `done`
 
 ### PDR-013 — `WIN32_FIND_DATA::ftLastWriteTime` menyimpan epoch Unix
 
@@ -366,7 +418,13 @@ waktu file, dan lokasi app-data).
 - **Fase perbaikan:** Fase 2 — PR `fix/macos-port-p1-functional-fs`
 - **Gate verifikasi:** Gate standar + unit test konversi `ftLastWriteTime` → `SYSTEMTIME`
   menghasilkan tanggal yang sesuai file uji.
-- **Status kerja:** `todo`
+- **Perbaikan:** `PosixFindNext` memakai helper konversi yang sama dengan `GetFileTime`
+  (`PosixTimeToFileTime`, selisih epoch 11.644.473.600 detik, resolusi 100 ns), sehingga
+  `ftLastWriteTime` berisi FILETIME asli, bukan detik epoch Unix. Karena
+  `FindFirstFile`/`FindNextFile` bersifat `inline` di `Path.cpp`, gate pengujian dijalankan
+  lewat helper konversi bersama: test menegaskan timestamp Unix mentah ditolak
+  `FileTimeToSystemTime`, sedangkan FILETIME hasil `GetFileTime` menghasilkan UTC yang benar.
+- **Status kerja:** `done`
 
 ### PDR-014 — `CopyFile` mengabaikan `bFailIfExists`
 
@@ -381,7 +439,10 @@ waktu file, dan lokasi app-data).
 - **Fase perbaikan:** Fase 2 — PR `fix/macos-port-p1-functional-fs`
 - **Gate verifikasi:** Gate standar + unit test `CopyFile` gagal saat `bFailIfExists` dan tujuan
   sudah ada, serta sukses menimpa saat `bFailIfExists = FALSE`.
-- **Status kerja:** `todo`
+- **Perbaikan:** `CopyFile` di `Alchemy/Kernel/Path.cpp` kini menambahkan `COPYFILE_EXCL`
+  saat `bFailIfExists` (dan menolak argumen `NULL`). Deklarasinya dipindahkan ke
+  `Alchemy/Include/PathCompat.h` agar dapat dipanggil dari unit test.
+- **Status kerja:** `done`
 
 ### PDR-015 — `SHGetFolderPath` tanpa komponen `Kronosaur`
 
@@ -399,7 +460,14 @@ waktu file, dan lokasi app-data).
 - **Fase perbaikan:** Fase 2 — PR `fix/macos-port-p1-functional-fs`
 - **Gate verifikasi:** Gate standar + unit test `SHGetFolderPath(CSIDL_APPDATA)` mengembalikan
   root yang sama dengan direktori `GetAppLogPath()`.
-- **Status kerja:** `todo`
+- **Perbaikan:** Satu root `~/Library/Application Support/Kronosaur/Transcendence` dipakai
+  bersama oleh `SHGetFolderPath` (`CSIDL_APPDATA` **dan** `CSIDL_LOCAL_APPDATA`), fallback
+  `Kernel::pathGetSpecialFolder(folderAppData)`, dan `GetAppLogPath()` di
+  `Transcendence/Transcendence/Platform/AppCore.cpp`. Kontrak baru
+  `Kernel::pathGetAppDataRoot()` (`Alchemy/Include/Kernel.h`,
+  `Alchemy/Kernel/Path.cpp`) adalah satu-satunya sumber path tersebut; helper
+  `PosixMkDirP` membuat seluruh komponen direktori.
+- **Status kerja:** `done`
 
 ---
 

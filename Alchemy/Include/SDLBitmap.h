@@ -28,6 +28,11 @@ extern std::map<void*, SDLBitmap*>& GetSDLBitmapMap();
 SDLBitmap* SDLBitmapCreate(const char* pszFile, EBitmapTypes* retiType);
 SDLBitmap* SDLBitmapCreateFromSurface(SDL_Surface* pSurface, EBitmapTypes iType, bool bTakeOwnership = true);
 void SDLBitmapDestroy(SDLBitmap* pBitmap);
+
+//	Returns the SDLBitmap behind an HBITMAP-style handle, or NULL when the
+//	handle was not created by SDLBitmapCreate*/dibCreate*.
+
+SDLBitmap* SDLBitmapLookup(void* hBitmap);
 ALERROR SDLBitmapGetInfo(SDLBitmap* pBitmap, int* retcxWidth, int* retcyHeight, void** retpBase, int* retiStride, BITMAPINFOHEADER* retpBMIH, void** retpBits);
 
 ALERROR dibGetInfo(void* hDIB, int* retcxWidth, int* retcyHeight, void** retpBase, int* retiStride, BITMAPINFOHEADER* retpBMIH, void** retpBits);

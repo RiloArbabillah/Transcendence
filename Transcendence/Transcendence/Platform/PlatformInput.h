@@ -235,3 +235,37 @@ SHORT PlatformAsyncKeyStateForState(int vk, const Uint8 *pKeyState, Uint32 dwMou
 
 SHORT PlatformGetAsyncKeyState(int vk);
 SHORT PlatformGetKeyState(int vk);
+
+//	Window geometry and cursor position
+//
+//	Win32 speaks *screen* (desktop) coordinates in GetCursorPos/SetCursorPos
+//	and in ScreenToClient/ClientToScreen, while the mouse messages carry
+//	*client* coordinates. The macOS shell tracks the cursor in client
+//	coordinates, because that is what SDL delivers, and keeps the desktop
+//	position of the window client area in one place so that every conversion
+//	shares the same origin.
+//
+//	The origin lives here (and not in the SDL layer) so that the arithmetic
+//	can be unit tested without a window. The window is assumed to sit at the
+//	desktop origin until the shell reports otherwise, which is the same
+//	answer Win32 gives for a window at (0,0).
+
+void PlatformSetWindowOrigin (int xWindow, int yWindow);
+BOOL PlatformGetWindowOrigin (int *retx, int *rety);
+
+//	Records the cursor position in client coordinates. The shell calls this
+//	from its mouse-move handling.
+
+void PlatformSetMouseClientPos (int x, int y);
+
+//	Win32-compatible cursor entry points (see Kernel.h for the inline shims).
+
+BOOL PlatformGetCursorPos (POINT *pPoint);
+void PlatformSetCursorPos (int x, int y);
+BOOL PlatformScreenToClient (HWND hWnd, LPPOINT lpPoint);
+BOOL PlatformClientToScreen (HWND hWnd, LPPOINT lpPoint);
+
+//	Moves the OS cursor to the given client coordinate. Supplied by the layer
+//	that owns the SDL window; headless builds provide a no-op.
+
+void PlatformWarpMouseInWindow (int xClient, int yClient);

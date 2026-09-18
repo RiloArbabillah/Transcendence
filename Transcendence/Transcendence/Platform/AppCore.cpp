@@ -187,21 +187,13 @@ static const char* GetAppLogPath()
 
     if (!bInit)
     {
-        const char* pHome = getenv("HOME");
-        if (pHome && *pHome)
-        {
-            char basePath[1024];
-            snprintf(basePath, sizeof(basePath), "%s/Library/Application Support", pHome);
-            mkdir(basePath, 0755);
+        //	Use the same application-data root as the rest of the engine
+        //	(Kernel::pathGetAppDataRoot), so that the log lands next to the
+        //	game's settings instead of in a second, parallel tree.
 
-            snprintf(basePath, sizeof(basePath), "%s/Library/Application Support/Kronosaur", pHome);
-            mkdir(basePath, 0755);
-
-            snprintf(basePath, sizeof(basePath), "%s/Library/Application Support/Kronosaur/Transcendence", pHome);
-            mkdir(basePath, 0755);
-
-            snprintf(sPath, sizeof(sPath), "%s/trans_app.log", basePath);
-        }
+        Kernel::CString sRoot = Kernel::pathGetAppDataRoot();
+        if (!sRoot.IsBlank())
+            snprintf(sPath, sizeof(sPath), "%s/trans_app.log", sRoot.GetASCIIZPointer());
         else
             snprintf(sPath, sizeof(sPath), "%s", "/tmp/trans_app.log");
 
@@ -239,10 +231,60 @@ static void log_va(const char* fmt, ...) {
 
 SAppState g_AppState;
 
-int g_PlatformMouseX = 0;
-int g_PlatformMouseY = 0;
 int g_PlatformWindowWidth = 1024;
 int g_PlatformWindowHeight = 768;
+
+//	Window geometry, cursor and mouse-capture helpers.
+//
+//	The window origin, the cursor position and the screen/client conversions
+//	live in PlatformInput.cpp, where they can be exercised without a window.
+//	This file supplies the SDL-backed pieces: the current window position, the
+//	OS cursor warp, the cursor visibility and the mouse capture.
+//
+//	The cursor is tracked in *client* coordinates, because that is what the SDL
+//	mouse events (and therefore the WM_MOUSE* payloads) carry; GetCursorPos
+//	converts to *screen* coordinates on the way out.
+
+static void PlatformSyncWindowOrigin(void)
+	{
+	if (g_AppState.pWindow == nullptr)
+		{
+		PlatformSetWindowOrigin(0, 0);
+		return;
+		}
+
+	int xWindow = 0;
+	int yWindow = 0;
+	SDL_GetWindowPosition(g_AppState.pWindow, &xWindow, &yWindow);
+
+	PlatformSetWindowOrigin(xWindow, yWindow);
+	}
+
+void PlatformWarpMouseInWindow(int xClient, int yClient)
+	{
+	if (g_AppState.pWindow)
+		SDL_WarpMouseInWindow(g_AppState.pWindow, xClient, yClient);
+	}
+
+int PlatformShowCursor(BOOL bShow)
+	{
+	SDL_ShowCursor(bShow ? SDL_ENABLE : SDL_DISABLE);
+
+	//	Win32 returns the resulting display counter.
+
+	return (bShow ? 1 : 0);
+	}
+
+BOOL PlatformSetCapture(HWND hWnd)
+	{
+	(void)hWnd;
+	return (SDL_CaptureMouse(SDL_TRUE) == 0 ? TRUE : FALSE);
+	}
+
+BOOL PlatformReleaseCapture(void)
+	{
+	return (SDL_CaptureMouse(SDL_FALSE) == 0 ? TRUE : FALSE);
+	}
 
 static std::mutex g_MessageQueueCS;
 static std::mutex g_TimerCS;
@@ -386,6 +428,11 @@ int App_Init(void)
     }
 
     log_msg("App_Init: window created");
+
+    //	The window exists now, so screen/client conversions can be based on its
+    //	actual desktop position instead of the origin default.
+
+    PlatformSyncWindowOrigin();
 
     g_AppState.pRenderer = SDL_CreateRenderer(
         g_AppState.pWindow,
@@ -578,6 +625,12 @@ static DWORD SDLScancodeToKeyData(SDL_Scancode scanCode)
 
 int App_PumpEvents(void)
 {
+    //	Refresh the desktop position of the window before dispatching, so that
+    //	GetCursorPos/ScreenToClient/ClientToScreen agree with where the window
+    //	actually is (the user may have moved it since the last frame).
+
+    PlatformSyncWindowOrigin();
+
     SDL_Event event;
     while (SDL_PollEvent(&event))
     {
@@ -607,8 +660,7 @@ int App_PumpEvents(void)
                 PlatformPostMessage(WM_CHAR, *p, nullptr);
             break;
         case SDL_MOUSEMOTION:
-            g_PlatformMouseX = event.motion.x;
-            g_PlatformMouseY = event.motion.y;
+            PlatformSetMouseClientPos(event.motion.x, event.motion.y);
             PlatformPostMessage(WM_MOUSEMOVE,
                 (int)SDLMouseStateToMKFlags(event.motion.state),
                 (void*)(uintptr_t)MAKELONG(event.motion.x, event.motion.y));
@@ -620,8 +672,7 @@ int App_PumpEvents(void)
                 else if (event.button.button == SDL_BUTTON_MIDDLE) msg = WM_MBUTTONDOWN;
                 int x = event.button.x;
                 int y = event.button.y;
-                g_PlatformMouseX = x;
-                g_PlatformMouseY = y;
+                PlatformSetMouseClientPos(x, y);
                 PlatformPostMessage(msg,
                     (int)SDLMouseButtonEventToMKFlags(event.button, true),
                     (void*)(uintptr_t)MAKELONG(x, y));
@@ -634,8 +685,7 @@ int App_PumpEvents(void)
                 else if (event.button.button == SDL_BUTTON_MIDDLE) msg = WM_MBUTTONUP;
                 int x = event.button.x;
                 int y = event.button.y;
-                g_PlatformMouseX = x;
-                g_PlatformMouseY = y;
+                PlatformSetMouseClientPos(x, y);
                 PlatformPostMessage(msg,
                     (int)SDLMouseButtonEventToMKFlags(event.button, false),
                     (void*)(uintptr_t)MAKELONG(x, y));
@@ -647,10 +697,18 @@ int App_PumpEvents(void)
                 int y = 0;
                 SDL_GetMouseState(&x, &y);
 
+                //	Win32 puts the cursor position in the WM_MOUSEWHEEL payload
+                //	in *screen* coordinates (unlike WM_MOUSEMOVE, which uses
+                //	client coordinates), and GlobalToLocal expects that.
+
+                int xWindow = 0;
+                int yWindow = 0;
+                PlatformGetWindowOrigin(&xWindow, &yWindow);
+
                 const int iDelta = (event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -event.wheel.y : event.wheel.y);
                 PlatformPostMessage(WM_MOUSEWHEEL,
                     (int)(uintptr_t)MAKELONG(SDLMouseStateToMKFlags(SDL_GetMouseState(nullptr, nullptr)), (short)(iDelta * 120)),
-                    (void*)(uintptr_t)MAKELONG(x, y));
+                    (void*)(uintptr_t)MAKELONG(x + xWindow, y + yWindow));
             }
             break;
         case SDL_WINDOWEVENT:

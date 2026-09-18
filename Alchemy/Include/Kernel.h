@@ -812,13 +812,36 @@ static_assert(sizeof(POINT) == 8, "POINT must match the Windows 8-byte layout");
 static_assert(sizeof(RECT) == 16, "RECT must match the Windows 16-byte layout");
 
 #ifdef TARGET_PLATFORM_MACOS
+
+//	Reports a Win32 feature that the macOS port deliberately does not support.
+//	Returns true the first time a given feature is reported and false on every
+//	later call, so that a caller inside a polling loop cannot flood the log.
+//	The report goes to stderr, which is where the macOS shell already sends its
+//	diagnostics, so an unsupported path stays visible instead of failing
+//	silently.
+
+inline bool PlatformReportUnsupportedFeature (const char *pszFeature)
+	{
+	static std::set<std::string> sReported;
+
+	const std::string sFeature(pszFeature ? pszFeature : "");
+	if (!sReported.insert(sFeature).second)
+		return false;
+
+	fprintf(stderr, "[macOS] unsupported Win32 feature used: %s\n", sFeature.c_str());
+	return true;
+	}
+
 bool PlatformDestroyWindow(HWND hWnd);
 LRESULT PlatformSendMessage(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
 inline HDC GetDC(HWND hWnd) { return nullptr; }
 inline int ReleaseDC(HWND hWnd, HDC hDC) { return 0; }
-inline int ShowCursor(BOOL bShow) { return 0; }
-inline BOOL SetCapture(HWND hWnd) { return TRUE; }
-inline BOOL ReleaseCapture() { return TRUE; }
+int PlatformShowCursor(BOOL bShow);
+BOOL PlatformSetCapture(HWND hWnd);
+BOOL PlatformReleaseCapture(void);
+inline int ShowCursor(BOOL bShow) { return PlatformShowCursor(bShow); }
+inline BOOL SetCapture(HWND hWnd) { return PlatformSetCapture(hWnd); }
+inline BOOL ReleaseCapture() { return PlatformReleaseCapture(); }
 inline BOOL ShowWindow(HWND hWnd, int nCmdShow) { return TRUE; }
 inline BOOL UpdateWindow(HWND hWnd) { return TRUE; }
 inline HWND GetForegroundWindow() { return nullptr; }
@@ -852,9 +875,15 @@ inline BOOL AdjustWindowRect(RECT* lpRect, DWORD dwStyle, BOOL bMenu) { return T
 #define SM_CXVIRTUALSCREEN 78
 #define SM_CYVIRTUALSCREEN 79
 
+//	PDR-008: video/intro playback through the Win32 MCI window API is an
+//	explicit non-goal for the macOS port; there is no MCI backend. The entry
+//	points still compile and still fail, but they now report themselves once so
+//	that the gap shows up in the log instead of failing silently. The polling
+//	getters stay silent by design.
+
 #define MCIWndGetLength(h) (0)
 #define MCIWndGetPosition(h) (0)
-#define MCIWndCreate(h, style, flags, file) (nullptr)
+#define MCIWndCreate(h, style, flags, file) (PlatformReportUnsupportedFeature("MCIWndCreate (video)"), nullptr)
 #define MCIWndDestroy(h) (0)
 #define MCIWndStop(h) (0)
 #define MCIWndPlay(h) (0)
@@ -862,7 +891,7 @@ inline BOOL AdjustWindowRect(RECT* lpRect, DWORD dwStyle, BOOL bMenu) { return T
 #define MCIWndResume(h) (0)
 #define MCIWndSeek(h, pos) (0)
 #define MCIWndGetError(h, buf, len) (0)
-#define MCIWndOpen(h, file, flags) (0)
+#define MCIWndOpen(h, file, flags) (PlatformReportUnsupportedFeature("MCIWndOpen (video)"), 0)
 #define MCIWndHome(h) (0)
 #define MCIWndGetMode(h, buf, len) (0)
 #define MCI_MODE_NOT_READY 0
@@ -961,10 +990,20 @@ typedef tagMSG MSG;
 
 inline int MessageBox(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) { if (lpCaption) fprintf(stderr, "[%s] ", lpCaption); if (lpText) fprintf(stderr, "%s\n", lpText); return IDOK; }
 
-extern int g_PlatformMouseX;
-extern int g_PlatformMouseY;
-inline bool GetCursorPos(POINT* pPoint) { if (pPoint) { pPoint->x = g_PlatformMouseX; pPoint->y = g_PlatformMouseY; } return true; }
-inline void SetCursorPos(int x, int y) { g_PlatformMouseX = x; g_PlatformMouseY = y; }
+//	The cursor position and the desktop position of the window client area are
+//	owned by the platform layer (see Platform/PlatformInput.h). The Win32 entry
+//	points below speak *screen* coordinates, while the mouse messages carry
+//	*client* coordinates, so the translation happens inside the platform layer
+//	instead of exposing the client position directly.
+
+void PlatformSetWindowOrigin(int xWindow, int yWindow);
+BOOL PlatformGetWindowOrigin(int *retx, int *rety);
+void PlatformSetMouseClientPos(int x, int y);
+BOOL PlatformGetCursorPos(POINT* pPoint);
+void PlatformSetCursorPos(int x, int y);
+void PlatformWarpMouseInWindow(int xClient, int yClient);
+inline bool GetCursorPos(POINT* pPoint) { return (PlatformGetCursorPos(pPoint) ? true : false); }
+inline void SetCursorPos(int x, int y) { PlatformSetCursorPos(x, y); }
 
 #define VK_DOWN 0x28
 #define VK_UP 0x26
@@ -1148,8 +1187,34 @@ inline BOOL FlushFileBuffers(HANDLE hFile) {
 inline unsigned int rand_s(unsigned int* pVal) { *pVal = arc4random(); return 0; }
 
 typedef POINT* LPPOINT;
-inline BOOL ScreenToClient(HWND hWnd, LPPOINT lpPoint) { return TRUE; }
-inline BOOL ClientToScreen(HWND hWnd, LPPOINT lpPoint) { return TRUE; }
+
+//	Win32 screen<->client conversion is a translation by the position of the
+//	window's client area on the desktop. The arithmetic lives in pure helpers
+//	so that it can be unit tested without a live window; the platform layer
+//	supplies the window origin.
+
+inline void PlatformTranslateScreenToClient (POINT *pPoint, int xWindowOrigin, int yWindowOrigin)
+	{
+	if (pPoint)
+		{
+		pPoint->x -= xWindowOrigin;
+		pPoint->y -= yWindowOrigin;
+		}
+	}
+
+inline void PlatformTranslateClientToScreen (POINT *pPoint, int xWindowOrigin, int yWindowOrigin)
+	{
+	if (pPoint)
+		{
+		pPoint->x += xWindowOrigin;
+		pPoint->y += yWindowOrigin;
+		}
+	}
+
+BOOL PlatformScreenToClient(HWND hWnd, LPPOINT lpPoint);
+BOOL PlatformClientToScreen(HWND hWnd, LPPOINT lpPoint);
+inline BOOL ScreenToClient(HWND hWnd, LPPOINT lpPoint) { return PlatformScreenToClient(hWnd, lpPoint); }
+inline BOOL ClientToScreen(HWND hWnd, LPPOINT lpPoint) { return PlatformClientToScreen(hWnd, lpPoint); }
 
 #endif
 
@@ -2861,6 +2926,7 @@ CString pathAddExtensionIfNecessary (const CString &sPath, const CString &sExten
 bool pathCreate (const CString &sPath);
 bool pathDeleteAll (const CString &sPath);
 bool pathExists (const CString &sPath);
+CString pathGetAppDataRoot (void);
 CString pathGetExecutablePath (HINSTANCE hInstance);
 CString pathGetExtension (const CString &sPath);
 CString pathGetFilename (const CString &sPath);

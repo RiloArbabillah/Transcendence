@@ -160,3 +160,88 @@ SHORT PlatformGetKeyState(int vk)
 
 	return result;
 	}
+
+//	Window origin and cursor position
+//
+//	See PlatformInput.h for why the origin lives here instead of in the SDL
+//	layer. All coordinates are desktop (screen) coordinates except for the
+//	mouse cache, which holds the client position that SDL reports.
+
+static int s_xWindowOrigin = 0;
+static int s_yWindowOrigin = 0;
+static int s_xMouseClient = 0;
+static int s_yMouseClient = 0;
+
+void PlatformSetWindowOrigin(int xWindow, int yWindow)
+	{
+	s_xWindowOrigin = xWindow;
+	s_yWindowOrigin = yWindow;
+	}
+
+BOOL PlatformGetWindowOrigin(int *retx, int *rety)
+	{
+	if (retx)
+		*retx = s_xWindowOrigin;
+
+	if (rety)
+		*rety = s_yWindowOrigin;
+
+	return TRUE;
+	}
+
+void PlatformSetMouseClientPos(int x, int y)
+	{
+	s_xMouseClient = x;
+	s_yMouseClient = y;
+	}
+
+BOOL PlatformGetCursorPos(POINT *pPoint)
+	{
+	POINT pt;
+	pt.x = s_xMouseClient;
+	pt.y = s_yMouseClient;
+	PlatformTranslateClientToScreen(&pt, s_xWindowOrigin, s_yWindowOrigin);
+
+	if (pPoint)
+		*pPoint = pt;
+
+	return TRUE;
+	}
+
+void PlatformSetCursorPos(int x, int y)
+	{
+	POINT pt;
+	pt.x = x;
+	pt.y = y;
+	PlatformTranslateScreenToClient(&pt, s_xWindowOrigin, s_yWindowOrigin);
+
+	//	Keep the client-coordinate cache in sync so that GetCursorPos and the
+	//	WM_MOUSE* payloads agree immediately after a warp.
+
+	s_xMouseClient = pt.x;
+	s_yMouseClient = pt.y;
+
+	PlatformWarpMouseInWindow(pt.x, pt.y);
+	}
+
+BOOL PlatformScreenToClient(HWND hWnd, LPPOINT lpPoint)
+	{
+	(void)hWnd;
+
+	if (lpPoint == nullptr)
+		return FALSE;
+
+	PlatformTranslateScreenToClient(lpPoint, s_xWindowOrigin, s_yWindowOrigin);
+	return TRUE;
+	}
+
+BOOL PlatformClientToScreen(HWND hWnd, LPPOINT lpPoint)
+	{
+	(void)hWnd;
+
+	if (lpPoint == nullptr)
+		return FALSE;
+
+	PlatformTranslateClientToScreen(lpPoint, s_xWindowOrigin, s_yWindowOrigin);
+	return TRUE;
+	}

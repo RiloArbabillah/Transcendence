@@ -122,7 +122,7 @@ ALERROR SDLBitmapGetInfo(SDLBitmap* pBitmap, int* retcxWidth, int* retcyHeight, 
     return NOERROR;
 }
 
-static SDLBitmap* LookupBitmap(void* hDIB) {
+SDLBitmap* SDLBitmapLookup(void* hDIB) {
     if (!hDIB) return nullptr;
     auto it = GetBitmapMap().find(hDIB);
     if (it != GetBitmapMap().end()) {
@@ -132,25 +132,25 @@ static SDLBitmap* LookupBitmap(void* hDIB) {
 }
 
 ALERROR dibGetInfo(void* hDIB, int* retcxWidth, int* retcyHeight, void** retpBase, int* retiStride, BITMAPINFOHEADER* retpBMIH, void** retpBits) {
-    SDLBitmap* pBitmap = LookupBitmap(hDIB);
+    SDLBitmap* pBitmap = SDLBitmapLookup(hDIB);
     if (!pBitmap) return ERR_FAIL;
     return SDLBitmapGetInfo(pBitmap, retcxWidth, retcyHeight, retpBase, retiStride, retpBMIH, retpBits);
 }
 
 bool dibIs16bit(void* hDIB) {
-    SDLBitmap* pBitmap = LookupBitmap(hDIB);
+    SDLBitmap* pBitmap = SDLBitmapLookup(hDIB);
     if (!pBitmap) return false;
     return pBitmap->iBitCount == 16;
 }
 
 bool dibIs24bit(void* hDIB) {
-    SDLBitmap* pBitmap = LookupBitmap(hDIB);
+    SDLBitmap* pBitmap = SDLBitmapLookup(hDIB);
     if (!pBitmap) return false;
     return pBitmap->iBitCount == 24;
 }
 
 bool dibIs32bit(void* hDIB) {
-    SDLBitmap* pBitmap = LookupBitmap(hDIB);
+    SDLBitmap* pBitmap = SDLBitmapLookup(hDIB);
     if (!pBitmap) return false;
     return pBitmap->iBitCount == 32;
 }

@@ -23,13 +23,39 @@ class CScreenMgrSDL
 		bool GetInvalidRect (RECT *retrcRect) { retrcRect->left = 0; retrcRect->top = 0; retrcRect->right = m_cxScreen; retrcRect->bottom = m_cyScreen; return true; }
 		CG32bitImage &GetScreen (void);
 		int GetWidth (void) const { return m_cxScreen; }
-		void GlobalToLocal (int x, int y, int *retx, int *rety) const { ClientToLocal(x, y, retx, rety); }
+		void GlobalToLocal (int x, int y, int *retx, int *rety) const
+			{
+			//	Global (screen) to local mirrors Win32: convert to client
+			//	coordinates first and then to local screen coordinates. The
+			//	macOS screen manager neither scales nor letterboxes, so
+			//	ClientToLocal is the identity and only the window origin
+			//	matters.
+
+			POINT pt;
+			pt.x = x;
+			pt.y = y;
+			PlatformScreenToClient(NULL, &pt);
+
+			ClientToLocal(pt.x, pt.y, retx, rety);
+			}
 		void Init (int cxScreen, int cyScreen, CString *retsError = NULL);
 		void Invalidate (void) { }
 		void Invalidate (const RECT &rcRect) { }
 		bool IsMinimized (void) const { return m_bMinimized; }
 		void LocalToClient (int x, int y, int *retx, int *rety) const { if (retx) *retx = x; if (rety) *rety = y; }
-		void LocalToGlobal (int x, int y, int *retx, int *rety) const { if (retx) *retx = x; if (rety) *rety = y; }
+		void LocalToGlobal (int x, int y, int *retx, int *rety) const
+			{
+			//	Local (screen manager) to global (screen) coordinates: the
+			//	inverse of GlobalToLocal.
+
+			POINT pt;
+			pt.x = x;
+			pt.y = y;
+			PlatformClientToScreen(NULL, &pt);
+
+			if (retx) *retx = (int)pt.x;
+			if (rety) *rety = (int)pt.y;
+			}
 		void OnWMActivateApp (bool bActivate) { }
 		void OnWMDisplayChange (int iBitDepth, int cxWidth, int cyHeight) { }
 		void OnWMMove (int x, int y) { }

@@ -1,9 +1,14 @@
 #include "Alchemy.h"
 #include "DirectXUtil.h"
 #include "PlatformInput.h"
+#include "PathCompat.h"
 
 #include <cstdio>
 #include <cstring>
+#include <cstdlib>
+#include <ctime>
+#include <sys/stat.h>
+#include <unistd.h>
 
 namespace
 	{
@@ -310,6 +315,234 @@ int main()
 		bSuccess = Check(BitmapMap.size() == iBaseline, "bitmap map does not grow across cycles") && bSuccess;
 
 		SDL_FreeSurface(pSurface);
+		}
+	}
+
+	//	PDR-010/PDR-011: screen<->client conversion and the cursor position are
+	//	expressed in *screen* coordinates, offset by where the window client
+	//	area actually sits on the desktop. The arithmetic is exercised through
+	//	the pure helpers and through the platform-layer state, so that neither
+	//	a window nor a video device is required.
+
+	{
+	POINT Point;
+	Point.x = 120;
+	Point.y = 80;
+	PlatformTranslateScreenToClient(&Point, 100, 50);
+	bSuccess = Check(Point.x == 20 && Point.y == 30, "screen to client translation") && bSuccess;
+	PlatformTranslateClientToScreen(&Point, 100, 50);
+	bSuccess = Check(Point.x == 120 && Point.y == 80, "client to screen translation") && bSuccess;
+
+	//	A NULL point is ignored rather than dereferenced.
+
+	PlatformTranslateScreenToClient(NULL, 100, 50);
+	PlatformTranslateClientToScreen(NULL, 100, 50);
+	bSuccess = Check(true, "null point translation is ignored") && bSuccess;
+
+	//	With the window at (100,50) and the cursor at client (10,20), Win32
+	//	reports the screen position (110,70).
+
+	PlatformSetWindowOrigin(100, 50);
+	PlatformSetMouseClientPos(10, 20);
+
+	POINT Cursor;
+	memset(&Cursor, 0, sizeof(Cursor));
+	bSuccess = Check(PlatformGetCursorPos(&Cursor) == TRUE && Cursor.x == 110 && Cursor.y == 70,
+			"GetCursorPos reports screen coordinates") && bSuccess;
+
+	//	SetCursorPos takes screen coordinates and must round-trip.
+
+	PlatformSetCursorPos(210, 120);
+	memset(&Cursor, 0, sizeof(Cursor));
+	bSuccess = Check(PlatformGetCursorPos(&Cursor) == TRUE && Cursor.x == 210 && Cursor.y == 120,
+			"SetCursorPos/GetCursorPos round-trip") && bSuccess;
+
+	//	The Win32 shims must agree with the platform layer.
+
+	Point.x = 210;
+	Point.y = 120;
+	bSuccess = Check(PlatformScreenToClient(NULL, &Point) == TRUE && Point.x == 110 && Point.y == 70,
+			"ScreenToClient uses the window origin") && bSuccess;
+	bSuccess = Check(PlatformClientToScreen(NULL, &Point) == TRUE && Point.x == 210 && Point.y == 120,
+			"ClientToScreen uses the window origin") && bSuccess;
+	bSuccess = Check(PlatformScreenToClient(NULL, NULL) == FALSE
+			&& PlatformClientToScreen(NULL, NULL) == FALSE,
+			"screen/client conversion rejects a null point") && bSuccess;
+
+	int xOrigin = 0;
+	int yOrigin = 0;
+	bSuccess = Check(PlatformGetWindowOrigin(&xOrigin, &yOrigin) == TRUE && xOrigin == 100 && yOrigin == 50,
+			"GetWindowOrigin reports the window position") && bSuccess;
+
+	//	Restore the default origin so that later groups start clean.
+
+	PlatformSetWindowOrigin(0, 0);
+	PlatformSetMouseClientPos(0, 0);
+	}
+
+	//	PDR-012/PDR-013/PDR-014/PDR-015: file times must be real FILETIME
+	//	values, CopyFile must honour bFailIfExists, and the port must expose
+	//	exactly one application-data root.
+
+	{
+	char szSource[] = "/tmp/trans-port-fs-XXXXXX";
+	int iSource = mkstemp(szSource);
+	bSuccess = Check(iSource >= 0, "create test file") && bSuccess;
+
+	if (iSource >= 0)
+		{
+		const char *pszContent = "transcendence";
+		const ssize_t iContent = (ssize_t)strlen(pszContent);
+		bSuccess = Check(write(iSource, pszContent, (size_t)iContent) == iContent, "write test file") && bSuccess;
+
+		//	Pin the timestamp so that the conversion is checked against a known
+		//	instant: 1600000000 is 2020-09-13T12:26:40Z.
+
+		struct timespec Times[2];
+		Times[0].tv_sec = 1600000000;
+		Times[0].tv_nsec = 0;
+		Times[1].tv_sec = 1600000000;
+		Times[1].tv_nsec = 0;
+		bSuccess = Check(futimens(iSource, Times) == 0, "set test file time") && bSuccess;
+
+		FILETIME ftCreation = 0;
+		FILETIME ftAccess = 0;
+		FILETIME ftWrite = 0;
+		bSuccess = Check(GetFileTime((HANDLE)(intptr_t)iSource, &ftCreation, &ftAccess, &ftWrite) == TRUE,
+				"GetFileTime succeeds") && bSuccess;
+		bSuccess = Check(ftWrite != 0 && ftAccess != 0, "GetFileTime fills its outputs") && bSuccess;
+
+		SYSTEMTIME SystemTime;
+		memset(&SystemTime, 0, sizeof(SystemTime));
+		bSuccess = Check(FileTimeToSystemTime(&ftWrite, &SystemTime) == TRUE
+				&& SystemTime.wYear == 2020 && SystemTime.wMonth == 9 && SystemTime.wDay == 13
+				&& SystemTime.wHour == 12 && SystemTime.wMinute == 26 && SystemTime.wSecond == 40,
+				"FileTimeToSystemTime matches the file's UTC timestamp") && bSuccess;
+
+		//	A raw Unix timestamp is not a FILETIME; converting one must fail
+		//	instead of producing a meaningless date.
+
+		FILETIME ftRawEpoch = (FILETIME)1600000000ULL;
+		bSuccess = Check(FileTimeToSystemTime(&ftRawEpoch, &SystemTime) == FALSE,
+				"FileTimeToSystemTime rejects a raw Unix timestamp") && bSuccess;
+
+		//	PDR-014: a copy must fail when the destination exists and the caller
+		//	asked for that, and must overwrite when it did not.
+
+		char szCopy[] = "/tmp/trans-port-copy-XXXXXX";
+		int iCopy = mkstemp(szCopy);
+		bSuccess = Check(iCopy >= 0, "create copy target") && bSuccess;
+
+		if (iCopy >= 0)
+			{
+			close(iCopy);
+
+			bSuccess = Check(CopyFile(szSource, szCopy, TRUE) == FALSE,
+					"CopyFile fails when bFailIfExists and the target exists") && bSuccess;
+
+			bSuccess = Check(CopyFile(szSource, szCopy, FALSE) == TRUE,
+					"CopyFile overwrites when bFailIfExists is FALSE") && bSuccess;
+
+			int iCopied = open(szCopy, O_RDONLY);
+			bSuccess = Check(iCopied >= 0, "open copied file") && bSuccess;
+			if (iCopied >= 0)
+				{
+				char szBuffer[32];
+				memset(szBuffer, 0, sizeof(szBuffer));
+				ssize_t iRead = read(iCopied, szBuffer, sizeof(szBuffer) - 1);
+				bSuccess = Check(iRead == iContent && strcmp(szBuffer, pszContent) == 0,
+						"copied file has the source contents") && bSuccess;
+				close(iCopied);
+				}
+
+			//	A target that does not exist yet must still be created when
+			//	bFailIfExists is set.
+
+			char szNewTarget[] = "/tmp/trans-port-new-XXXXXX";
+			int iNew = mkstemp(szNewTarget);
+			if (iNew >= 0)
+				close(iNew);
+			unlink(szNewTarget);
+			bSuccess = Check(CopyFile(szSource, szNewTarget, TRUE) == TRUE,
+					"CopyFile creates a missing target when bFailIfExists") && bSuccess;
+			unlink(szNewTarget);
+
+			unlink(szCopy);
+			}
+
+		close(iSource);
+		unlink(szSource);
+		}
+
+	//	PDR-015: the Win32 special-folder shim, the kernel helper and the SDL
+	//	shell's log path must all name the same application-data root.
+
+	char szAppData[1024];
+	memset(szAppData, 0, sizeof(szAppData));
+	bSuccess = Check(SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, SHGFP_TYPE_CURRENT, szAppData) == S_OK,
+			"SHGetFolderPath(CSIDL_APPDATA)") && bSuccess;
+
+	char szLocalAppData[1024];
+	memset(szLocalAppData, 0, sizeof(szLocalAppData));
+	bSuccess = Check(SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA, NULL, SHGFP_TYPE_CURRENT, szLocalAppData) == S_OK
+			&& strcmp(szLocalAppData, szAppData) == 0,
+			"roaming and local app data share one root") && bSuccess;
+
+	Kernel::CString sAppDataRoot = Kernel::pathGetAppDataRoot();
+	bSuccess = Check(!sAppDataRoot.IsBlank(), "pathGetAppDataRoot is not blank") && bSuccess;
+	bSuccess = Check(strcmp(szAppData, sAppDataRoot.GetASCIIZPointer()) == 0,
+			"pathGetAppDataRoot agrees with SHGetFolderPath") && bSuccess;
+	bSuccess = Check(strEndsWithOld(CString(szAppData), CONSTLIT("/Library/Application Support/Kronosaur/Transcendence")),
+			"application data lives under the Kronosaur bundle") && bSuccess;
+	}
+
+	//	PDR-007: the DIB creation helpers must produce a usable bitmap instead
+	//	of failing outright.
+
+	{
+	HBITMAP hDib = NULL;
+	BYTE *pPixels = NULL;
+	bSuccess = Check(dibCreate24bitDIB(4, 3, 0, &hDib, &pPixels) == NOERROR, "dibCreate24bitDIB") && bSuccess;
+	bSuccess = Check(hDib != NULL && pPixels != NULL, "dibCreate24bitDIB returns a bitmap") && bSuccess;
+
+	if (hDib)
+		{
+		int cxWidth = 0;
+		int cyHeight = 0;
+		int iStride = 0;
+		void *pBase = NULL;
+		void *pBits = NULL;
+		bSuccess = Check(dibGetInfo(hDib, &cxWidth, &cyHeight, &pBase, &iStride, NULL, &pBits) == NOERROR
+				&& cxWidth == 4 && cyHeight == 3 && iStride >= 12 && pBase != NULL && pBits != NULL,
+				"created DIB reports its geometry") && bSuccess;
+
+		//	A crop inside the source must succeed; one that runs past the edge
+		//	must fail instead of reading out of bounds.
+
+		HBITMAP hCrop = NULL;
+		bSuccess = Check(dibCrop(hDib, 1, 1, 2, 2, &hCrop) == NOERROR, "dibCrop") && bSuccess;
+		if (hCrop)
+			{
+			cxWidth = 0;
+			cyHeight = 0;
+			bSuccess = Check(dibGetInfo(hCrop, &cxWidth, &cyHeight, NULL, NULL, NULL, NULL) == NOERROR
+					&& cxWidth == 2 && cyHeight == 2,
+					"cropped DIB reports the cropped geometry") && bSuccess;
+			SDLBitmapDestroy((SDLBitmap *)hCrop);
+			}
+
+		HBITMAP hBadCrop = NULL;
+		bSuccess = Check(dibCrop(hDib, 3, 2, 2, 2, &hBadCrop) == ERR_FAIL && hBadCrop == NULL,
+				"dibCrop rejects a crop outside the source") && bSuccess;
+
+		//	This port has no separate device-dependent bitmap, so a DDB
+		//	conversion hands back the same handle.
+
+		HBITMAP hDdb = NULL;
+		bSuccess = Check(dibConvertToDDB(hDib, NULL, &hDdb) == NOERROR && hDdb == hDib,
+				"dibConvertToDDB returns the DIB handle") && bSuccess;
+
+		SDLBitmapDestroy((SDLBitmap *)hDib);
 		}
 	}
 
