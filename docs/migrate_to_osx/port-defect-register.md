@@ -2,7 +2,7 @@
 
 ## Document Status
 
-- Version: v1.1
+- Version: v1.2
 - Last Updated: 2026-09-19
 - Branch: `osx`
 - Derived From: audit kode statis
@@ -88,18 +88,18 @@ Gate tambahan per temuan dicantumkan pada field **Gate verifikasi** di entri ter
 | PDR-013 | `WIN32_FIND_DATA::ftLastWriteTime` menyimpan epoch Unix | P1 | `confirmed` | 2 | `done` |
 | PDR-014 | `CopyFile` mengabaikan `bFailIfExists` | P1 | `confirmed` | 2 | `done` |
 | PDR-015 | `SHGetFolderPath` tanpa komponen `Kronosaur` | P1 | `confirmed` | 2 | `done` |
-| PDR-016 | `PlatformPostMessage` memotong `WPARAM` ke `int` | P2 | `confirmed` | 3 | `todo` |
-| PDR-017 | `PeekMessage` tidak mengisi `hwnd`/`time`/`pt` | P2 | `confirmed` | 3 | `todo` |
-| PDR-018 | `PlatformSendMessage` asinkron | P2 | `confirmed` | 3 | `todo` |
-| PDR-019 | `MAKELONG` untuk koordinat mouse | P2 | `confirmed` | 3 | `todo` |
-| PDR-020 | Crash handler `siglongjmp` dari signal context | P2 | `confirmed` | 3 | `todo` |
-| PDR-021 | `PlatformSetTimerCompat` race | P2 | `confirmed` | 3 | `todo` |
-| PDR-022 | `VirtualAlloc` `MEM_COMMIT` tidak commit/zero | P2 | `confirmed` | 3 | `todo` |
-| PDR-023 | `ShellExecute` blocking `waitpid` | P2 | `confirmed` | 3 | `todo` |
-| PDR-024 | `posixResolvePathCase` noise stderr + O(n) syscall | P2 | `confirmed` | 3 | `todo` |
-| PDR-025 | MT background paint dipaksa off | P2 | `confirmed` | 3 | `todo` |
-| PDR-026 | `bForceSTPaint` dipaksa `true` | P2 | `confirmed` | 3 | `todo` |
-| PDR-027 | Deteksi monokrom O(W·H) | P2 | `confirmed` | 3 | `todo` |
+| PDR-016 | `PlatformPostMessage` memotong `WPARAM` ke `int` | P2 | `confirmed` | 3 | `done` |
+| PDR-017 | `PeekMessage` tidak mengisi `hwnd`/`time`/`pt` | P2 | `confirmed` | 3 | `done` |
+| PDR-018 | `PlatformSendMessage` asinkron | P2 | `confirmed` | 3 | `done` |
+| PDR-019 | `MAKELONG` untuk koordinat mouse | P2 | `confirmed` | 3 | `done` |
+| PDR-020 | Crash handler `siglongjmp` dari signal context | P2 | `confirmed` | 3 | `done` |
+| PDR-021 | `PlatformSetTimerCompat` race | P2 | `confirmed` | 3 | `done` |
+| PDR-022 | `VirtualAlloc` `MEM_COMMIT` tidak commit/zero | P2 | `confirmed` | 3 | `done` |
+| PDR-023 | `ShellExecute` blocking `waitpid` | P2 | `confirmed` | 3 | `done` |
+| PDR-024 | `posixResolvePathCase` noise stderr + O(n) syscall | P2 | `confirmed` | 3 | `done` |
+| PDR-025 | MT background paint dipaksa off | P2 | `confirmed` | 3 | `done` |
+| PDR-026 | `bForceSTPaint` dipaksa `true` | P2 | `confirmed` | 3 | `done` |
+| PDR-027 | Deteksi monokrom O(W·H) | P2 | `confirmed` | 3 | `done` |
 | PDR-028 | `_fcvt_s` over-read | P3 | `confirmed` | 4 | `todo` |
 | PDR-029 | `wsprintf` asumsi buffer 4096 | P3 | `confirmed` | 4 | `todo` |
 | PDR-030 | `CreateFile` abaikan `dwShareMode` | P3 | `confirmed` | 4 | `todo` |
@@ -476,6 +476,14 @@ didokumentasikan di `functional-fs-utilities.md`.
 Fokus: menyelaraskan semantik message/event platform dengan Win32 dan menghapus pemaksaan
 performa yang tidak lagi diperlukan.
 
+Status fase: `done` (branch `fix/macos-port-p2-platform-perf`). Gate terverifikasi:
+`cmake --preset macos-debug`, `cmake --build --preset macos-debug` (termasuk
+`Transcendence.app` dan tool), dan `ctest -R mac-portability` lulus; `git diff --check`
+bersih. Utilitas baru (`PlatformMessage.{h,cpp}`, helper payload, skema timer generasi,
+crash handler berbasis `sigaltstack`, dan `PlatformRenderWorkaroundEnabled`) beserta
+workaround render yang dapat dikonfigurasi didokumentasikan di
+`platform-event-utilities.md`.
+
 ### PDR-016 — `PlatformPostMessage` memotong `WPARAM` ke `int`
 
 - **Status temuan:** `confirmed`
@@ -490,7 +498,11 @@ performa yang tidak lagi diperlukan.
 - **Fase perbaikan:** Fase 3 — PR `fix/macos-port-p2-platform-perf`
 - **Gate verifikasi:** Gate standar + unit test `PostMessage`/`PeekMessage` round-trip
   mempertahankan nilai `WPARAM` lebar penuh.
-- **Status kerja:** `todo`
+- **Perbaikan:** Signature menjadi
+  `bool PlatformPostMessage(int msg, WPARAM wParam, LPARAM lParam)`; `PostMessage` di
+  `Kernel.h` meneruskan `wParam` tanpa cast ke `int`, dan antrean menyimpan `WPARAM`/`LPARAM`
+  apa adanya.
+- **Status kerja:** `done`
 
 ### PDR-017 — `PeekMessage` tidak mengisi `hwnd`/`time`/`pt`
 
@@ -505,7 +517,11 @@ performa yang tidak lagi diperlukan.
 - **Fase perbaikan:** Fase 3 — PR `fix/macos-port-p2-platform-perf`
 - **Gate verifikasi:** Gate standar + unit test memastikan `hwnd`, `time`, dan `pt` terisi
   deterministik (bukan sampah).
-- **Status kerja:** `todo`
+- **Perbaikan:** `PlatformPostMessage` mengisi seluruh field lewat `FillMessage`
+  (`hwnd` dari `PlatformSetMessageWindow`, `time` dari `clock_gettime(CLOCK_MONOTONIC)`,
+  `pt` dari `PlatformGetCursorPos`), dan shim `PeekMessage` menyalin keenam field ke `MSG`.
+  Tipe `SMsgCompat` dihapus.
+- **Status kerja:** `done`
 
 ### PDR-018 — `PlatformSendMessage` asinkron
 
@@ -521,7 +537,11 @@ performa yang tidak lagi diperlukan.
 - **Fase perbaikan:** Fase 3 — PR `fix/macos-port-p2-platform-perf`
 - **Gate verifikasi:** Gate standar + unit test `SendMessage` menjalankan handler sebelum
   kembali (observable ordering).
-- **Status kerja:** `todo`
+- **Perbaikan:** `PlatformSendMessage` menjalankan dispatcher terdaftar
+  (`PlatformSetMessageDispatch`) secara sinkron dan mengembalikan `LRESULT`-nya;
+  `WM_CLOSE`/`WM_DESTROY` memanggil `PlatformCloseRequest`. Hanya build tanpa dispatcher
+  (tool/tes) yang jatuh ke pengantrean.
+- **Status kerja:** `done`
 
 ### PDR-019 — `MAKELONG` untuk koordinat mouse
 
@@ -541,7 +561,12 @@ performa yang tidak lagi diperlukan.
 - **Fase perbaikan:** Fase 3 — PR `fix/macos-port-p2-platform-perf`
 - **Gate verifikasi:** Gate standar + unit test packing/unpacking koordinat untuk nilai
   negatif dan nilai > 32767 tetap utuh.
-- **Status kerja:** `todo`
+- **Perbaikan:** `PlatformPackPoint`/`PlatformUnpackPoint` dan
+  `PlatformPackMouseWheel`/`PlatformUnpackMouseWheelDelta`/`PlatformUnpackMouseWheelFlags`
+  di `PlatformMessage.{h,cpp}`; `WM_MOUSEMOVE`, tombol mouse, dan `WM_MOUSEWHEEL` memakainya,
+  dan `WM_MOUSEWHEEL` kini memaketkan flag+delta ke `wParam` serta posisi layar ke `lParam`.
+  `WM_SIZE`/`WM_MOVE` memakai `PackUnsignedPair` (dua nilai tak bertanda).
+- **Status kerja:** `done`
 
 ### PDR-020 — Crash handler `siglongjmp` dari signal context
 
@@ -556,7 +581,12 @@ performa yang tidak lagi diperlukan.
 - **Fase perbaikan:** Fase 3 — PR `fix/macos-port-p2-platform-perf`
 - **Gate verifikasi:** Gate standar + jalur handler yang hanya memakai operasi
   async-signal-safe (tulis ke fd mentah) atau `sigaltstack`/`SA_ONSTACK` yang benar.
-- **Status kerja:** `todo`
+- **Perbaikan:** `installCrashHandler` memasang `sigaltstack` 64 KB dengan
+  `SA_ONSTACK`; deskriptor `Crash.log` dibuka sekali sebelum crash (`g_CrashLogFD`) dan
+  seluruh penulisan memakai `write()` mentah. Jalur recovery hanya menulis satu baris pendek
+  lewat fd tersebut sebelum `siglongjmp`; trade-off tak terdefinisi yang tersisa
+  didokumentasikan di `platform-event-utilities.md`.
+- **Status kerja:** `done`
 
 ### PDR-021 — `PlatformSetTimerCompat` race
 
@@ -572,7 +602,11 @@ performa yang tidak lagi diperlukan.
 - **Fase perbaikan:** Fase 3 — PR `fix/macos-port-p2-platform-perf`
 - **Gate verifikasi:** Gate standar + unit test set/clear timer berulang secara bersamaan tanpa
   timer ganda/hilang.
-- **Status kerja:** `todo`
+- **Perbaikan:** Registry timer memakai slot + generasi atomik
+  (`SPlatformTimerSlot`, `PLATFORM_MAX_TIMERS = 64`); `TimerThunk` memvalidasi slot dan
+  generasi sebelum mem-post `WM_TIMER`, slot dipublikasikan setelah `SDL_AddTimer` berhasil,
+  dan tabel penuh dilaporkan lewat `log_va`.
+- **Status kerja:** `done`
 
 ### PDR-022 — `VirtualAlloc` `MEM_COMMIT` tidak commit/zero
 
@@ -587,7 +621,9 @@ performa yang tidak lagi diperlukan.
 - **Fase perbaikan:** Fase 3 — PR `fix/macos-port-p2-platform-perf`
 - **Gate verifikasi:** Gate standar + unit test `VirtualAlloc(MEM_COMMIT)` mengembalikan region
   berisi nol.
-- **Status kerja:** `todo`
+- **Perbaikan:** `VirtualAlloc` membaca bit `MEM_COMMIT` (0x1000) dan
+  meng-zero-fill region, baik pada jalur `malloc()` maupun pada alamat eksplisit.
+- **Status kerja:** `done`
 
 ### PDR-023 — `ShellExecute` blocking `waitpid`
 
@@ -601,7 +637,9 @@ performa yang tidak lagi diperlukan.
 - **Fase perbaikan:** Fase 3 — PR `fix/macos-port-p2-platform-perf`
 - **Gate verifikasi:** Gate standar + `ShellExecute` kembali segera (non-blocking) dan tetap
   membuka target.
-- **Status kerja:** `todo`
+- **Perbaikan:** `ShellExecute` memakai *double fork* sehingga proses launcher
+  di-reparent ke `init` dan tidak ada `waitpid` yang memblokir thread UI.
+- **Status kerja:** `done`
 
 ### PDR-024 — `posixResolvePathCase` noise stderr + O(n) syscall
 
@@ -618,7 +656,11 @@ performa yang tidak lagi diperlukan.
 - **Fase perbaikan:** Fase 3 — PR `fix/macos-port-p2-platform-perf`
 - **Gate verifikasi:** Gate standar + verifikasi tidak ada output stderr saat resolusi case
   berhasil, dan hasil lookup tetap benar (termasuk cache per direktori bila ditambahkan).
-- **Status kerja:** `todo`
+- **Perbaikan:** Resolusi case memakai cache per direktori
+  (`namespace posixPathCase`) yang divalidasi dengan `st_mtime`/`st_mtimespec.tv_nsec`/
+  `st_dev`/`st_ino` dan dibersihkan setelah 64 entri; `fprintf(stderr, "Warning: case
+  mismatch ...")` per komponen dihapus.
+- **Status kerja:** `done`
 
 ### PDR-025 — MT background paint dipaksa off
 
@@ -633,7 +675,11 @@ performa yang tidak lagi diperlukan.
 - **Fase perbaikan:** Fase 3 — PR `fix/macos-port-p2-platform-perf`
 - **Gate verifikasi:** Gate standar + evaluasi ulang pemaksaan setelah bug render tertutup;
   bila belum aman, pertahankan dengan komentar eksplisit dan alasan terdokumentasi.
-- **Status kerja:** `todo`
+- **Perbaikan:** Pemaksaan dibungkus
+  `if (PlatformRenderWorkaroundEnabled("TRANSCENDENCE_MT_BKRND_PAINT"))`, sehingga jalur
+  multithreaded tetap dapat divalidasi dengan `TRANSCENDENCE_MT_BKRND_PAINT=off`; kriteria
+  keluar dicatat di `platform-event-utilities.md`.
+- **Status kerja:** `done`
 
 ### PDR-026 — `bForceSTPaint` dipaksa `true`
 
@@ -648,7 +694,10 @@ performa yang tidak lagi diperlukan.
 - **Fase perbaikan:** Fase 3 — PR `fix/macos-port-p2-platform-perf`
 - **Gate verifikasi:** Gate standar + keputusan terdokumentasi: hapus pemaksaan, atau
   pertahankan dengan tiket/kriteria keluar yang jelas.
-- **Status kerja:** `todo`
+- **Perbaikan:** Pemaksaan dibungkus
+  `if (PlatformRenderWorkaroundEnabled("TRANSCENDENCE_FORCE_ST_PAINT"))`, sehingga
+  `Ctx.bForceSTPaint` kembali ke `IsForceSTPaintEnabled()` saat variabel di-set `off`.
+- **Status kerja:** `done`
 
 ### PDR-027 — Deteksi monokrom O(W·H)
 
@@ -663,7 +712,11 @@ performa yang tidak lagi diperlukan.
 - **Fase perbaikan:** Fase 3 — PR `fix/macos-port-p2-platform-perf`
 - **Gate verifikasi:** Gate standar + verifikasi hasil deteksi tipe bitmap tidak berubah
   (paritas benar/salah) setelah optimasi, dengan sampling/early-exit terbatas.
-- **Status kerja:** `todo`
+- **Perbaikan:** Pemindaian dibatasi (`kMaxSamples = 4096`, grid maksimum
+  64×64) dan piksel dibaca lewat buffer 4 byte yang di-zero agar piksel 3 byte di ujung baris
+  tidak dibaca melewati buffer; helper bersama `SDLBitmapSurfaceIsMonochrome` dipakai oleh
+  `DIBSDL.cpp` dan `SDLBitmap.cpp`.
+- **Status kerja:** `done`
 
 ---
 

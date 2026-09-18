@@ -209,13 +209,24 @@ void CSFXOptions::CalcPaintThreads(void)
 		m_bUseMTBkrndPaint = true;
 
 	#if defined(__APPLE__)
-	//	The macOS Apple Silicon port still hits an intro-render crash in the
-	//	background-image path when we split viewport background painting across
-	//	multiple workers. Keep this path single-threaded until the SDL/macOS
-	//	presenter is fully validated under interactive rendering.
-	m_iMaxBkrndPaintWorkers = 0;
-	m_bUseMTBkrndPaint = false;
-	kernelDebugLogString(CONSTLIT("Disabling multithreaded background painting on macOS pending intro viewport stabilization."));
+	//	PDR-025: the macOS Apple Silicon port still hits an intro-render crash in
+	//	the background-image path when viewport background painting is split
+	//	across multiple workers, so this path stays single-threaded until the
+	//	SDL/macOS presenter is validated under interactive rendering.
+	//
+	//	The workaround can be turned off with
+	//	TRANSCENDENCE_MT_BKRND_PAINT=off so that the multithreaded path stays
+	//	reachable for validation; see docs/migrate_to_osx/platform-event-utilities.md.
+	//	Retire the workaround once the intro session renders cleanly with it off.
+
+	if (PlatformRenderWorkaroundEnabled("TRANSCENDENCE_MT_BKRND_PAINT"))
+		{
+		m_iMaxBkrndPaintWorkers = 0;
+		m_bUseMTBkrndPaint = false;
+		kernelDebugLogString(CONSTLIT("Disabling multithreaded background painting on macOS pending intro viewport stabilization (TRANSCENDENCE_MT_BKRND_PAINT=off to override)."));
+		}
+	else
+		kernelDebugLogString(CONSTLIT("Multithreaded background painting override disabled by TRANSCENDENCE_MT_BKRND_PAINT."));
 	#endif
 	}
 

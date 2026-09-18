@@ -5,6 +5,7 @@
 #include "TSUI.h"
 #include "Transcendence.h"
 #include "Platform/AppCore.h"
+#include "Platform/PlatformMessage.h"
 #include <cstdio>
 #include <cstdarg>
 #include <execinfo.h>
@@ -31,6 +32,21 @@ static void log_va(const char* fmt, ...) {
 }
 
 
+//	PDR-018: SendMessage() runs the registered dispatcher before it returns, so
+//	the engine sees the effect of a synchronous send immediately instead of on
+//	the next frame. The dispatcher handles a single message; UpdateGameUI()
+//	below drains the queue with the same routine.
+
+static LRESULT DispatchGameUIMessage(const SPlatformMessage& message);
+
+//	The platform layer expects a void callback; the shell's own close request
+//	reports whether the session actually accepted the close.
+
+static void OnPlatformCloseRequest(void)
+	{
+	RequestGameClose();
+	}
+
 bool InitGameUI(SAppState& state, const char *pszCommandLine)
 {
 	if (!CHumanInterface::Create())
@@ -38,6 +54,14 @@ bool InitGameUI(SAppState& state, const char *pszCommandLine)
 		log_msg("InitGameUI error: unable to create human interface");
 		return false;
 		}
+
+	//	The message queue stamps every message with the SDL window pointer (the
+	//	macOS port has no real HWND) and asks the shell to close the session when
+	//	the engine sends WM_CLOSE/WM_DESTROY.
+
+	PlatformSetMessageWindow(state.pWindow);
+	PlatformSetCloseRequest(OnPlatformCloseRequest);
+	PlatformSetMessageDispatch(DispatchGameUIMessage);
 
     g_pController = new CTranscendenceController();
     g_pHI->SetController(g_pController);
@@ -69,82 +93,101 @@ bool InitGameUI(SAppState& state, const char *pszCommandLine)
 	return true;
 }
 
+//	Handles one queued message. The mouse coordinates are unpacked through the
+//	platform helpers so that they sign-extend exactly the way Win32's
+//	GET_X_LPARAM/GET_Y_LPARAM do (PDR-019); the old code cast through
+//	(unsigned short), which turned a click on a monitor left of the origin into
+//	a coordinate far to the right.
+
+static LRESULT DispatchGameUIMessage(const SPlatformMessage& message)
+	{
+	if (!g_pHI)
+		return 0;
+
+	const UINT msg = message.message;
+	const WPARAM wParam = message.wParam;
+	const LPARAM lParam = message.lParam;
+
+	int x = 0;
+	int y = 0;
+
+	if (msg == WM_HI_COMMAND)
+		g_pHI->OnPostCommand(lParam);
+	else if (msg == WM_HI_TASK_COMPLETE)
+		g_pHI->OnTaskComplete((DWORD)wParam, lParam);
+	else if (msg == WM_TIMER)
+		g_pHI->OnTimer((DWORD)wParam);
+	else if (msg == WM_KEYDOWN)
+		g_pHI->WMKeyDown((int)wParam, (DWORD)lParam);
+	else if (msg == WM_KEYUP)
+		g_pHI->WMKeyUp((int)wParam, (DWORD)lParam);
+	else if (msg == WM_MOUSEMOVE)
+		{
+		PlatformUnpackPoint((DWORD)lParam, &x, &y);
+		g_pHI->WMMouseMove(x, y, (DWORD)wParam);
+		}
+	else if (msg == WM_LBUTTONDOWN)
+		{
+		PlatformUnpackPoint((DWORD)lParam, &x, &y);
+		g_pHI->WMLButtonDown(x, y, (DWORD)wParam);
+		}
+	else if (msg == WM_RBUTTONDOWN)
+		{
+		PlatformUnpackPoint((DWORD)lParam, &x, &y);
+		g_pHI->WMRButtonDown(x, y, (DWORD)wParam);
+		}
+	else if (msg == WM_MBUTTONDOWN)
+		{
+		PlatformUnpackPoint((DWORD)lParam, &x, &y);
+		g_pHI->WMMButtonDown(x, y, (DWORD)wParam);
+		}
+	else if (msg == WM_LBUTTONUP)
+		{
+		PlatformUnpackPoint((DWORD)lParam, &x, &y);
+		g_pHI->WMLButtonUp(x, y, (DWORD)wParam);
+		}
+	else if (msg == WM_RBUTTONUP)
+		{
+		PlatformUnpackPoint((DWORD)lParam, &x, &y);
+		g_pHI->WMRButtonUp(x, y, (DWORD)wParam);
+		}
+	else if (msg == WM_MBUTTONUP)
+		{
+		PlatformUnpackPoint((DWORD)lParam, &x, &y);
+		g_pHI->WMMButtonUp(x, y, (DWORD)wParam);
+		}
+	else if (msg == WM_MOUSEWHEEL)
+		{
+		PlatformUnpackPoint((DWORD)lParam, &x, &y);
+		g_pHI->WMMouseWheel(PlatformUnpackMouseWheelDelta((DWORD)wParam), x, y, (DWORD)PlatformUnpackMouseWheelFlags((DWORD)wParam));
+		}
+	else if (msg == WM_SIZE)
+		{
+		g_pHI->WMSize((int)LOWORD((DWORD)lParam), (int)HIWORD((DWORD)lParam), (int)wParam);
+		}
+	else if (msg == WM_MOVE)
+		{
+		g_pHI->WMMove((int)LOWORD((DWORD)lParam), (int)HIWORD((DWORD)lParam));
+		}
+	else if (msg == WM_CHAR)
+		g_pHI->WMChar((char)wParam, 0);
+
+	return 0;
+	}
+
 void UpdateGameUI(SAppState& state)
 {
     (void)state;
     static int tick = 0;
     tick++;
 
-    int msg;
-    int wParam;
-    void* lParam;
-    while (PlatformPeekMessage(&msg, &wParam, &lParam))
+    SPlatformMessage message;
+    while (PlatformPeekMessage(&message))
     {
         if (!g_pHI)
             break;
 
-        if (msg == WM_HI_COMMAND)
-            g_pHI->OnPostCommand((LPARAM)lParam);
-        else if (msg == WM_HI_TASK_COMPLETE)
-            g_pHI->OnTaskComplete((DWORD)wParam, (LPARAM)lParam);
-        else if (msg == WM_TIMER)
-            g_pHI->OnTimer((DWORD)wParam);
-        else if (msg == WM_KEYDOWN)
-            g_pHI->WMKeyDown(wParam, (DWORD)(uintptr_t)lParam);
-        else if (msg == WM_KEYUP)
-            g_pHI->WMKeyUp(wParam, (DWORD)(uintptr_t)lParam);
-        else if (msg == WM_MOUSEMOVE)
-            g_pHI->WMMouseMove(
-                (int)(unsigned short)LOWORD((uintptr_t)lParam),
-                (int)(unsigned short)HIWORD((uintptr_t)lParam),
-                (DWORD)(uintptr_t)wParam);
-        else if (msg == WM_LBUTTONDOWN)
-            g_pHI->WMLButtonDown(
-                (int)(unsigned short)LOWORD((uintptr_t)lParam),
-                (int)(unsigned short)HIWORD((uintptr_t)lParam),
-                (DWORD)(uintptr_t)wParam);
-        else if (msg == WM_RBUTTONDOWN)
-            g_pHI->WMRButtonDown(
-                (int)(unsigned short)LOWORD((uintptr_t)lParam),
-                (int)(unsigned short)HIWORD((uintptr_t)lParam),
-                (DWORD)(uintptr_t)wParam);
-        else if (msg == WM_MBUTTONDOWN)
-            g_pHI->WMMButtonDown(
-                (int)(unsigned short)LOWORD((uintptr_t)lParam),
-                (int)(unsigned short)HIWORD((uintptr_t)lParam),
-                (DWORD)(uintptr_t)wParam);
-        else if (msg == WM_LBUTTONUP)
-            g_pHI->WMLButtonUp(
-                (int)(unsigned short)LOWORD((uintptr_t)lParam),
-                (int)(unsigned short)HIWORD((uintptr_t)lParam),
-                (DWORD)(uintptr_t)wParam);
-        else if (msg == WM_RBUTTONUP)
-            g_pHI->WMRButtonUp(
-                (int)(unsigned short)LOWORD((uintptr_t)lParam),
-                (int)(unsigned short)HIWORD((uintptr_t)lParam),
-                (DWORD)(uintptr_t)wParam);
-        else if (msg == WM_MBUTTONUP)
-            g_pHI->WMMButtonUp(
-                (int)(unsigned short)LOWORD((uintptr_t)lParam),
-                (int)(unsigned short)HIWORD((uintptr_t)lParam),
-                (DWORD)(uintptr_t)wParam);
-        else if (msg == WM_MOUSEWHEEL)
-            g_pHI->WMMouseWheel(
-                (int)(short)HIWORD((uintptr_t)wParam),
-                (int)(unsigned short)LOWORD((uintptr_t)lParam),
-                (int)(unsigned short)HIWORD((uintptr_t)lParam),
-                (DWORD)LOWORD((uintptr_t)wParam));
-        else if (msg == WM_SIZE)
-            g_pHI->WMSize(
-                (int)(unsigned short)LOWORD((uintptr_t)lParam),
-                (int)(unsigned short)HIWORD((uintptr_t)lParam),
-                (int)(uintptr_t)wParam);
-        else if (msg == WM_MOVE)
-            g_pHI->WMMove(
-                (int)(unsigned short)LOWORD((uintptr_t)lParam),
-                (int)(unsigned short)HIWORD((uintptr_t)lParam));
-        else if (msg == WM_CHAR)
-            g_pHI->WMChar((char)wParam, 0);
+        DispatchGameUIMessage(message);
     }
 
     if (g_pHI) {
@@ -163,6 +206,10 @@ bool RequestGameClose(void)
 
 void CleanUpGameUI(void)
 {
+	PlatformSetMessageDispatch(nullptr);
+	PlatformSetCloseRequest(nullptr);
+	PlatformSetMessageWindow(nullptr);
+
 	CHumanInterface::Destroy();
 	g_pController = nullptr;
 }

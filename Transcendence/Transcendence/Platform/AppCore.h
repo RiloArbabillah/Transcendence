@@ -30,13 +30,6 @@ struct SFrameBufferInfo
 };
 #endif
 
-struct SPlatformMessage
-{
-    int msg;
-    int wParam;
-    void* lParam;
-};
-
 struct SAppState
 {
     SDL_Window* pWindow = nullptr;
@@ -50,7 +43,6 @@ struct SAppState
     int fps = 0;
     int cxWidth = 1024;
     int cyHeight = 768;
-    std::queue<SPlatformMessage> msgQueue;
 };
 
 struct SPlatformScreenInfo PlatformGetScreenInfo(void);
@@ -79,8 +71,6 @@ void PlatformRemoveTimer(int timerID);
 #define PLATFORM_MSG_COMMAND       2
 #define PLATFORM_MSG_TASK_COMPLETE 3
 
-bool PlatformPostMessage(int msg, int wParam, void* lParam);
-int PlatformPeekMessage(int* pMsg, int* pWParam, void** ppLParam);
 unsigned int PlatformSetTimerCompat(void* hWnd, unsigned int timerID, unsigned int elapse, void* callback);
 int PlatformKillTimerCompat(void* hWnd, unsigned int timerID);
 

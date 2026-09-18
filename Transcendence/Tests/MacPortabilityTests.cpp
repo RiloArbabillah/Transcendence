@@ -1,6 +1,7 @@
 #include "Alchemy.h"
 #include "DirectXUtil.h"
 #include "PlatformInput.h"
+#include "PlatformMessage.h"
 #include "PathCompat.h"
 
 #include <cstdio>
@@ -18,6 +19,21 @@ namespace
 			std::fprintf(stderr, "FAILED: %s\n", pMessage);
 
 		return bCondition;
+		}
+
+	//	PDR-018: the dispatch handler below records that it ran, so a test can
+	//	observe that SendMessage ran it before returning.
+
+	int g_iDispatchCount = 0;
+	unsigned int g_dwDispatchMessage = 0;
+	WPARAM g_wDispatchParam = 0;
+
+	LRESULT TestMessageDispatch(const SPlatformMessage &message)
+		{
+		g_iDispatchCount++;
+		g_dwDispatchMessage = message.message;
+		g_wDispatchParam = message.wParam;
+		return 0;
 		}
 	}
 
@@ -543,6 +559,197 @@ int main()
 				"dibConvertToDDB returns the DIB handle") && bSuccess;
 
 		SDLBitmapDestroy((SDLBitmap *)hDib);
+		}
+	}
+
+	//	PDR-022: MEM_COMMIT promises committed, zero-filled memory. A fresh
+	//	reservation and an explicit address that was reserved earlier must both
+	//	read as zero after the commit.
+
+	{
+	void *pBlock = VirtualAlloc(NULL, 4096, MEM_COMMIT, PAGE_READWRITE);
+	bSuccess = Check(pBlock != NULL, "VirtualAlloc(MEM_COMMIT) returns memory") && bSuccess;
+
+	if (pBlock)
+		{
+		const BYTE *pBytes = (const BYTE *)pBlock;
+		bool bZeroed = true;
+		for (int i = 0; i < 4096; i++)
+			{
+			if (pBytes[i] != 0)
+				{
+				bZeroed = false;
+				break;
+				}
+			}
+		bSuccess = Check(bZeroed, "VirtualAlloc(MEM_COMMIT) zero-fills a fresh region") && bSuccess;
+		VirtualFree(pBlock, 0, MEM_RELEASE);
+		}
+
+	//	The reserve/commit pair is the pattern CString uses: the range is
+	//	reserved first, and the later commit has to clear whatever the
+	//	allocator left behind.
+
+	BYTE *pReserved = (BYTE *)VirtualAlloc(NULL, 1024, MEM_RESERVE, PAGE_READWRITE);
+	bSuccess = Check(pReserved != NULL, "VirtualAlloc(MEM_RESERVE) returns memory") && bSuccess;
+
+	if (pReserved)
+		{
+		memset(pReserved, 0xAB, 1024);
+		bSuccess = Check(VirtualAlloc(pReserved, 1024, MEM_COMMIT, PAGE_READWRITE) == pReserved,
+				"VirtualAlloc(MEM_COMMIT) keeps an explicit address") && bSuccess;
+
+		bool bCleared = true;
+		for (int i = 0; i < 1024; i++)
+			{
+			if (pReserved[i] != 0)
+				{
+				bCleared = false;
+				break;
+				}
+			}
+		bSuccess = Check(bCleared, "VirtualAlloc(MEM_COMMIT) clears an explicit range") && bSuccess;
+		VirtualFree(pReserved, 0, MEM_RELEASE);
+		}
+	}
+
+	//	PDR-016/PDR-017: the queue must carry the payload at full width and hand
+	//	back every field of a Win32 MSG, not just message/wParam/lParam.
+
+	{
+	PlatformClearMessageQueue();
+	PlatformSetMessageWindow((void *)0x1234);
+
+	const WPARAM wWideParam = (WPARAM)0x123456789ABCDEF0ULL;
+	const LPARAM lWideParam = (LPARAM)0xFEDCBA9876543210ULL;
+	bSuccess = Check(PostMessage(NULL, WM_USER + 7, wWideParam, lWideParam), "PostMessage queues a message") && bSuccess;
+
+	MSG Message;
+	memset(&Message, 0, sizeof(Message));
+	Message.hwnd = (void *)0xBAD;
+	Message.time = 0;
+	Message.pt.x = 0x7FFF;
+	Message.pt.y = 0x7FFF;
+
+	POINT ExpectedCursor;
+	PlatformGetCursorPos(&ExpectedCursor);
+
+	bSuccess = Check(PeekMessage(&Message, NULL, 0, 0, PM_REMOVE), "PeekMessage returns the queued message") && bSuccess;
+	bSuccess = Check(Message.message == WM_USER + 7, "message id survives the queue") && bSuccess;
+	bSuccess = Check(Message.wParam == wWideParam && Message.lParam == lWideParam,
+			"wide WPARAM/LPARAM survive the queue") && bSuccess;
+	bSuccess = Check(Message.hwnd == (void *)0x1234, "PeekMessage fills hwnd") && bSuccess;
+	bSuccess = Check(Message.time != 0, "PeekMessage fills time") && bSuccess;
+	bSuccess = Check(Message.pt.x == ExpectedCursor.x && Message.pt.y == ExpectedCursor.y,
+			"PeekMessage fills pt from the cursor position") && bSuccess;
+	bSuccess = Check(!PeekMessage(&Message, NULL, 0, 0, PM_REMOVE), "the queue drains to empty") && bSuccess;
+
+	PlatformSetMessageWindow(NULL);
+	PlatformClearMessageQueue();
+	}
+
+	//	PDR-018: Win32 SendMessage runs the handler before it returns; it does
+	//	not merely queue the message for the next pump.
+
+	{
+	PlatformClearMessageQueue();
+	PlatformSetMessageDispatch(TestMessageDispatch);
+	g_iDispatchCount = 0;
+	g_dwDispatchMessage = 0;
+	g_wDispatchParam = 0;
+
+	SendMessage(NULL, WM_USER + 3, (WPARAM)0x1111222233334444ULL, (LPARAM)0x5555);
+
+	bSuccess = Check(g_iDispatchCount == 1, "SendMessage runs the handler before returning") && bSuccess;
+	bSuccess = Check(g_dwDispatchMessage == WM_USER + 3, "SendMessage passes the message id to the handler") && bSuccess;
+	bSuccess = Check(g_wDispatchParam == (WPARAM)0x1111222233334444ULL,
+			"SendMessage passes a wide wParam to the handler") && bSuccess;
+
+	MSG Message;
+	memset(&Message, 0, sizeof(Message));
+	bSuccess = Check(!PeekMessage(&Message, NULL, 0, 0, PM_REMOVE),
+			"a dispatched SendMessage is not also queued") && bSuccess;
+
+	//	WM_CLOSE goes to the registered close request instead of the dispatcher.
+
+	PlatformSetMessageDispatch(NULL);
+	PlatformClearMessageQueue();
+	}
+
+	//	PDR-019: coordinates and wheel deltas are packed as signed 16-bit halves
+	//	and must survive the round trip, including the sign-extension that
+	//	GET_X_LPARAM/GET_Y_LPARAM perform.
+
+	{
+	int x = 0;
+	int y = 0;
+
+	PlatformUnpackPoint(PlatformPackPoint(1920, 1080), &x, &y);
+	bSuccess = Check(x == 1920 && y == 1080, "an in-range point round-trips") && bSuccess;
+
+	PlatformUnpackPoint(PlatformPackPoint(-1200, -800), &x, &y);
+	bSuccess = Check(x == -1200 && y == -800, "a negative point round-trips") && bSuccess;
+
+	PlatformUnpackPoint(PlatformPackPoint(-1, 1), &x, &y);
+	bSuccess = Check(x == -1 && y == 1, "both halves are sign-extended") && bSuccess;
+
+	PlatformUnpackPoint(PlatformPackPoint(40000, -40000), &x, &y);
+	bSuccess = Check(x == 32767 && y == -32768,
+			"an out-of-range point clamps to the 16-bit bounds") && bSuccess;
+
+	//	MK_LBUTTON (0x0001) shares the wParam with the wheel delta, the way
+	//	Win32 packs it.
+
+	const DWORD dwWheel = PlatformPackMouseWheel((WORD)0x0001, -120);
+	bSuccess = Check(PlatformUnpackMouseWheelDelta(dwWheel) == -120, "the wheel delta round-trips") && bSuccess;
+	bSuccess = Check(PlatformUnpackMouseWheelFlags(dwWheel) == (WORD)0x0001, "the wheel key flags round-trip") && bSuccess;
+
+	const DWORD dwWheelUp = PlatformPackMouseWheel((WORD)0x0000, 120);
+	bSuccess = Check(PlatformUnpackMouseWheelDelta(dwWheelUp) == 120, "a positive wheel delta round-trips") && bSuccess;
+	}
+
+	//	PDR-027: the bounded monochrome scan must still classify a surface that
+	//	fits in the sample budget exactly, and must not read past the end of a
+	//	row.
+
+	{
+	DWORD MonoPixels[8 * 8];
+	for (int i = 0; i < 8 * 8; i++)
+		MonoPixels[i] = 0xFF000000;	//	opaque black
+
+	SDL_Surface *pMono = SDL_CreateRGBSurfaceFrom(MonoPixels, 8, 8, 32, 8 * 4,
+			0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
+	bSuccess = Check(pMono != NULL, "monochrome test surface") && bSuccess;
+
+	if (pMono)
+		{
+		bSuccess = Check(SDLBitmapSurfaceIsMonochrome(pMono), "an all-black surface is monochrome") && bSuccess;
+
+		for (int i = 0; i < 8 * 8; i++)
+			MonoPixels[i] = 0xFFFFFFFF;	//	opaque white
+		bSuccess = Check(SDLBitmapSurfaceIsMonochrome(pMono), "an all-white surface is monochrome") && bSuccess;
+
+		MonoPixels[8 * 4 + 3] = 0xFFFF0000;	//	one red pixel
+		bSuccess = Check(!SDLBitmapSurfaceIsMonochrome(pMono), "a surface with a colour pixel is not monochrome") && bSuccess;
+
+		SDL_FreeSurface(pMono);
+		}
+
+	//	A large surface takes the sampled path; an all-black one must still be
+	//	reported as monochrome.
+
+	DWORD LargePixels[128 * 128];
+	for (int i = 0; i < 128 * 128; i++)
+		LargePixels[i] = 0xFF000000;
+
+	SDL_Surface *pLarge = SDL_CreateRGBSurfaceFrom(LargePixels, 128, 128, 32, 128 * 4,
+			0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
+	bSuccess = Check(pLarge != NULL, "large monochrome test surface") && bSuccess;
+
+	if (pLarge)
+		{
+		bSuccess = Check(SDLBitmapSurfaceIsMonochrome(pLarge), "a large all-black surface is monochrome") && bSuccess;
+		SDL_FreeSurface(pLarge);
 		}
 	}
 
