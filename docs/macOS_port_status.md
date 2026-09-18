@@ -17,7 +17,9 @@ kept only as history.
 Status: phase 0 (register) is published, and phases 1, 2, 3, and 4 (`PDR-001`..`PDR-036`, plus
 `PDR-039` which was found while closing `PDR-028`) are closed on their phase branches with the
 `mac-portability` gate green. Phase 5 (`PDR-037`, `PDR-038`) stays `deferred` because the plan is
-macOS-only. Every phase is open as a stacked pull request and none is merged. The public helpers
+macOS-only. All five phases are merged into `osx` (`#1`..`#5`, `9cebf152e`..`40debd867`); the code
+phases were opened as a stack and each was retargeted to `osx` as its parent merged. The upstream
+default branch `master` is untouched; the port work lives only on `osx`. The public helpers
 added by the closed phases are documented in
 `docs/migrate_to_osx/platform-input-utilities.md`,
 `docs/migrate_to_osx/functional-fs-utilities.md`,
