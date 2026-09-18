@@ -2,7 +2,7 @@
 
 ## Document Status
 
-- Version: v1.8
+- Version: v1.9
 - Last Updated: 2026-09-19
 - Scope: documentation-only changes for the macOS port planning set
 
@@ -33,6 +33,20 @@ Summary:
 ## Entries
 
 ### 2026-09-19
+
+- Document: `hardening-utilities.md`, `index.md`, `port-defect-register.md`,
+  `task-backlog.md`, `change-log.md`, `../macOS_port_status.md`
+- Change Type: added
+- Summary: documented the macOS hardening/type-correctness fixes produced by fix phase 4
+  (`_fcvt_s`/`_gcvt_s`, the size-aware `wsprintf` array-reference overload, 64-bit
+  `SetFilePointer`, `MoveFile` plus the new `posixMoveFileAcrossVolumes` fallback, `GetTempPath`
+  promoted into `PathCompat.h`, `GetSystemInfo`, the `CreateFile` dispositions, `DebugLog`, and
+  `GetCrashLogPath`) in `hardening-utilities.md`, registered the document in `index.md`, marked
+  task `N-004` `done` in `task-backlog.md`, and flipped `PDR-028`..`PDR-036` in
+  `port-defect-register.md` (now v1.3). The same PR introduces the newly found `PDR-039`
+  (`_fcvt_s` swapped its `dec`/`sign` output parameters, corrupting every
+  `strFromDouble(value, decimals)` result) and corrects the `PDR-028` evidence text and the
+  `PDR-031` finding text; `PDR-039` is also recorded as `done`
 
 - Document: `platform-event-utilities.md`, `index.md`, `port-defect-register.md`,
   `task-backlog.md`, `change-log.md`, `../macOS_port_status.md`

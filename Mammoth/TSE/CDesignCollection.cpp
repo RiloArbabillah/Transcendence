@@ -5,11 +5,6 @@
 
 #include "PreComp.h"
 
-#if defined(__APPLE__) && defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wnon-pod-varargs"
-#endif
-
 #define STAR_SYSTEM_TOPOLOGY_TAG				CONSTLIT("StarSystemTopology")
 #define SYSTEM_TOPOLOGY_TAG						CONSTLIT("SystemTopology")
 
@@ -2259,5 +2254,4 @@ void CDesignList::DeleteAll (bool bFree)
 	}
 
 #if defined(__APPLE__) && defined(__clang__)
-#pragma clang diagnostic pop
 #endif

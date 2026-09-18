@@ -426,8 +426,16 @@ inline DWORD GetLastError() { return errno; }
 #define FILE_SHARE_WRITE 0x00000002
 #endif
 
+#ifndef CREATE_NEW
+#define CREATE_NEW 1
+#endif
+
 #ifndef CREATE_ALWAYS
 #define CREATE_ALWAYS 2
+#endif
+
+#ifndef TRUNCATE_EXISTING
+#define TRUNCATE_EXISTING 5
 #endif
 
 #ifndef OPEN_EXISTING
@@ -640,6 +648,16 @@ inline std::string posixResolvePathCase(const std::string &sPath)
 	}
 
 #ifndef CreateFile
+//	PDR-030: dwShareMode and dwFlags (FILE_ATTRIBUTE_*) have no POSIX
+//	equivalent that can be applied at open() time, so they are still ignored;
+//	an audit of every caller found only FILE_SHARE_READ /
+//	FILE_SHARE_READ|FILE_SHARE_WRITE, none of which depends on the share mode
+//	being enforced, so the limitation is documented rather than emulated with
+//	flock() (which would introduce advisory locking the callers never asked
+//	for). The creation dispositions, however, are now all honoured: CREATE_NEW
+//	and TRUNCATE_EXISTING used to fall through to the default branch and
+//	silently behave like OPEN_EXISTING.
+
 inline HANDLE CreateFile(const char* pFilename, DWORD dwAccess, DWORD dwShareMode, void* pSecurity, DWORD dwCreationDisposition, DWORD dwFlags, HANDLE hTemplate) {
     (void)pSecurity; (void)hTemplate; (void)dwShareMode; (void)dwFlags;
 
@@ -662,12 +680,22 @@ inline HANDLE CreateFile(const char* pFilename, DWORD dwAccess, DWORD dwShareMod
 
     switch (dwCreationDisposition)
         {
+        case CREATE_NEW:
+            if (access(sFilename.c_str(), F_OK) == 0)
+                return INVALID_HANDLE_VALUE;
+            flags |= O_CREAT | O_EXCL;
+            break;
+
         case CREATE_ALWAYS:
             flags |= O_CREAT | O_TRUNC;
             break;
 
         case OPEN_ALWAYS:
             flags |= O_CREAT;
+            break;
+
+        case TRUNCATE_EXISTING:
+            flags |= O_TRUNC;
             break;
 
         case OPEN_EXISTING:
@@ -822,10 +850,32 @@ inline BOOL WriteFile(HANDLE hFile, const void* buf, DWORD len, DWORD* written_o
 #endif
 
 #ifndef SetFilePointer
+//	PDR-031: the DWORD return type is not a defect -- Win32's SetFilePointer()
+//	returns DWORD too and reports the high-order half through pHighWord. What
+//	was missing is the *input* half of that contract: with FILE_BEGIN, Win32
+//	reads the high 32 bits of the new offset out of *pHighWord, and the shim
+//	ignored it and seeked to the 32-bit distance alone, so any 64-bit seek
+//	request landed at the wrong offset. The high half is now applied for
+//	FILE_BEGIN (FILE_CURRENT/FILE_END keep the signed 32-bit distance, as on
+//	Windows) and a failing lseek() reports INVALID_SET_FILE_POINTER instead of
+//	returning a truncated errno value as if it were a file position.
+
 inline DWORD SetFilePointer(HANDLE hFile, LONG lDist, LONG* pHighWord, DWORD dwWhence) {
-    off_t result = lseek((int)(intptr_t)hFile, lDist, (int)dwWhence);
-    if (pHighWord && result > 0xFFFFFFFF) *pHighWord = (DWORD)(result >> 32);
-    return (DWORD)result;
+    off_t dist = (off_t)lDist;
+
+    if (pHighWord && dwWhence == FILE_BEGIN)
+        dist = (off_t)(((unsigned long long)(DWORD)*pHighWord << 32) | (DWORD)lDist);
+
+    off_t result = lseek((int)(intptr_t)hFile, dist, (int)dwWhence);
+    if (result < 0)
+        {
+        if (pHighWord) *pHighWord = 0;
+        return INVALID_SET_FILE_POINTER;
+        }
+
+    if (pHighWord) *pHighWord = (DWORD)((unsigned long long)result >> 32);
+
+    return (DWORD)(unsigned long long)result;
 }
 #endif
 
@@ -1382,11 +1432,36 @@ struct CREATESTRUCTA { void* lpCreateParams; HINSTANCE hInstance; HMENU hMenu; H
 typedef const CREATESTRUCTA* LPCREATESTRUCT;
 struct SScreenMgrOptions { int cx; int cy; int bWindowed; void* hIcon; };
 
-inline int wsprintf(char* buf, const char* format, ...) {
+//	PDR-029: Win32's wsprintf() gives the callee no way to learn how large the
+//	destination is, so the shim's fixed 4096-byte cap was not a bound at all --
+//	an audit of the tree found 62 call sites, every one of them passing a
+//	256- or 1024-byte stack buffer, which a long enough expansion would have
+//	overrun. Taking the destination as an array reference lets the compiler
+//	recover its real size, and passing a bare pointer no longer compiles, so
+//	the unbounded form cannot come back. On Windows this overload is not
+//	compiled (the branch is #ifndef _WIN32) and the call sites keep using
+//	user32's wsprintf() exactly as before.
+
+template <size_t N>
+inline int wsprintf(char (&buf)[N], const char* format, ...) {
     va_list args;
     va_start(args, format);
-    int result = vsnprintf(buf, 4096, format, args);
+    int result = vsnprintf(buf, N, format, args);
     va_end(args);
+
+    if (result < 0)
+        {
+        buf[0] = '\0';
+        return 0;
+        }
+
+    //	On truncation, report how many characters are actually in the buffer:
+    //	callers pass the result to CString as a length, and vsnprintf() always
+    //	terminated the buffer even when it did not fit.
+
+    if ((size_t)result >= N)
+        return (int)(N - 1);
+
     return result;
 }
 
@@ -1404,13 +1479,58 @@ inline DWORD CharUpperBuff(char* s, DWORD n) { for (DWORD i = 0; i < n && s[i]; 
 
 #define _CVTBUFSIZE 309
 inline int _gcvt_s(char* buf, int len, double value, int digits) { snprintf(buf, len, "%.*g", digits, value); return 0; }
-inline int _fcvt_s(char* buf, int len, double value, int decimals, int* sign, int* dec) {
-    *sign = (value < 0) ? 1 : 0;
+//	PDR-028: the old body ran strchr()/strlen() over the whole buffer after a
+//	snprintf() that may have truncated, and it left everything past the digits
+//	holding whatever the heap happened to contain. The caller
+//	(Alchemy/Kernel/CString.cpp, strFromDouble) hands the shim a CString whose
+//	declared length is _CVTBUFSIZE, so those stale bytes were reachable as
+//	string content. The scan is now bounded by the number of bytes snprintf()
+//	reports it wrote, and the declared buffer is zeroed first so the result is
+//	deterministic no matter what the buffer held before.
+//
+//	PDR-039: the shim had also swapped its two output parameters. The CRT
+//	contract is _fcvt_s(buffer, sizeInBytes, value, count, dec, sign): the
+//	decimal-point index comes fifth and the sign sixth. The old body wrote the
+//	sign into the fifth parameter and the index into the sixth, so the one
+//	caller -- strFromDouble() -- read the sign out of its decimal-point
+//	variable and vice versa, and every strFromDouble(value, decimals) with an
+//	explicit decimal count returned a corrupted negative string (12.34 with 2
+//	decimals became "-0.1234"). The parameters now follow the CRT order, which
+//	is also what the Windows build gets from the real CRT.
+
+inline int _fcvt_s(char* buf, int len, double value, int decimals, int* dec, int* sign) {
+    if (dec) *dec = 0;
+    if (sign) *sign = (value < 0) ? 1 : 0;
+
+    if (!buf || len <= 0)
+        return -1;
+
+    memset(buf, 0, (size_t)len);
+
     double absVal = fabs(value);
-    snprintf(buf, len, "%.*f", decimals, absVal);
-    char* dot = strchr(buf, '.');
-    if (dot) { *dec = (int)(dot - buf); memmove(dot, dot + 1, strlen(dot)); }
-    else { *dec = (int)strlen(buf); }
+    int needed = snprintf(buf, (size_t)len, "%.*f", decimals, absVal);
+    if (needed < 0)
+        {
+        buf[0] = '\0';
+        return -1;
+        }
+
+    //	Bytes that are actually in the buffer (snprintf() always terminates).
+
+    int count = (needed < len ? needed : len - 1);
+
+    char* dot = (char*)memchr(buf, '.', (size_t)count);
+    if (dot)
+        {
+        int iDot = (int)(dot - buf);
+        memmove(dot, dot + 1, (size_t)(count - iDot));
+        if (dec) *dec = iDot;
+        }
+    else if (dec)
+        {
+        *dec = count;
+        }
+
     return 0;
 }
 
@@ -1530,8 +1650,41 @@ typedef SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* PSYSTEM_LOGICAL_PROCESSOR_INFOR
 #define LTP_PC_SMT 4
 struct SYSTEM_INFO { DWORD dwOemId; DWORD dwPageSize; LPVOID lpMinimumApplicationAddress; LPVOID lpMaximumApplicationAddress; DWORD_PTR dwActiveProcessorMask; DWORD dwNumberOfProcessors; DWORD dwProcessorType; DWORD dwAllocationGranularity; WORD wProcessorLevel; WORD wProcessorRevision; };
 #define RelationAll 0
-inline BOOL GetLogicalProcessorInformationEx(DWORD Type, void* pBuffer, DWORD* pLength) { (void)Type; (void)pBuffer; if (pLength) *pLength = 0; return FALSE; }
-inline void GetSystemInfo(SYSTEM_INFO* pInfo) { memset(pInfo, 0, sizeof(SYSTEM_INFO)); pInfo->dwNumberOfProcessors = 1; }
+//	PDR-034: GetLogicalProcessorInformationEx() remains a stub. It cannot be
+//	mapped onto the host without inventing a topology, and on macOS its only
+//	consumer (Alchemy/Kernel/Utilities.cpp) takes the __APPLE__ branch and
+//	never reaches it; returning FALSE with a zero length is the honest answer
+//	for "no information available" and callers already have to handle it.
+
+inline BOOL GetLogicalProcessorInformationEx(DWORD Type, void* pBuffer, DWORD* pLength) {
+    (void)Type; (void)pBuffer;
+    if (pLength) *pLength = 0;
+    return FALSE;
+    }
+
+//	PDR-034: the old GetSystemInfo() stub reported exactly one processor, which
+//	is wrong on every Apple Silicon machine and would have been used verbatim
+//	by any caller that trusted it. The fields a caller can actually depend on
+//	are now read from the host instead of invented.
+
+inline void GetSystemInfo(SYSTEM_INFO* pInfo) {
+    if (!pInfo)
+        return;
+
+    memset(pInfo, 0, sizeof(SYSTEM_INFO));
+
+    long iProcessors = sysconf(_SC_NPROCESSORS_ONLN);
+    long iPageSize = sysconf(_SC_PAGESIZE);
+
+    pInfo->dwNumberOfProcessors = (DWORD)(iProcessors > 0 ? iProcessors : 1);
+    pInfo->dwPageSize = (DWORD)(iPageSize > 0 ? iPageSize : 4096);
+    pInfo->dwAllocationGranularity = pInfo->dwPageSize;
+    pInfo->wProcessorLevel = 1;
+    pInfo->wProcessorRevision = 0;
+    pInfo->dwActiveProcessorMask = (pInfo->dwNumberOfProcessors >= 8 * sizeof(DWORD_PTR))
+            ? (DWORD_PTR)-1
+            : (((DWORD_PTR)1 << pInfo->dwNumberOfProcessors) - 1);
+    }
 #define SW_SHOWNORMAL 1
 inline BOOL GetUserNameA(char* pName, DWORD* pSize) {
     const char* pLogin = getlogin();
@@ -1581,7 +1734,91 @@ inline DWORD GetModuleFileName(HMODULE hModule, char* pFilename, DWORD nSize) {
 #else
 inline DWORD GetModuleFileName(HMODULE hModule, char* pFilename, DWORD nSize) { return 0; }
 #endif
-inline BOOL MoveFile(const char* pSrc, const char* pDst) { return rename(pSrc, pDst) == 0; }
+//	PDR-032: rename() cannot cross a filesystem boundary, so a move between
+//	two volumes (for example a save file on an external disk) failed with
+//	EXDEV even though Win32's MoveFile() handles that case by copying and then
+//	deleting the source. That fallback is now implemented. The overwrite
+//	semantics stay those of POSIX rename(): an existing destination is
+//	replaced, which matches MoveFileEx(MOVEFILE_REPLACE_EXISTING) and is what
+//	the engine's callers (Kernel::fileMove) rely on.
+
+inline BOOL posixMoveFileAcrossVolumes(const char* pSrc, const char* pDst) {
+    int hSrc = open(pSrc, O_RDONLY);
+    if (hSrc < 0)
+        return FALSE;
+
+    struct stat st;
+    if (fstat(hSrc, &st) != 0)
+        {
+        close(hSrc);
+        return FALSE;
+        }
+
+    int hDst = open(pDst, O_WRONLY | O_CREAT | O_TRUNC, st.st_mode & 0777);
+    if (hDst < 0)
+        {
+        close(hSrc);
+        return FALSE;
+        }
+
+    char szBuffer[65536];
+    bool bOK = true;
+
+    while (bOK)
+        {
+        ssize_t iRead = read(hSrc, szBuffer, sizeof(szBuffer));
+        if (iRead < 0)
+            {
+            if (errno == EINTR)
+                continue;
+            bOK = false;
+            break;
+            }
+
+        if (iRead == 0)
+            break;
+
+        ssize_t iWritten = 0;
+        while (iWritten < iRead)
+            {
+            ssize_t iWrite = write(hDst, szBuffer + iWritten, (size_t)(iRead - iWritten));
+            if (iWrite < 0)
+                {
+                if (errno == EINTR)
+                    continue;
+                bOK = false;
+                break;
+                }
+
+            iWritten += iWrite;
+            }
+        }
+
+    close(hSrc);
+    if (close(hDst) != 0)
+        bOK = false;
+
+    if (!bOK)
+        {
+        unlink(pDst);
+        return FALSE;
+        }
+
+    return (unlink(pSrc) == 0);
+}
+
+inline BOOL MoveFile(const char* pSrc, const char* pDst) {
+    if (!pSrc || !pDst)
+        return FALSE;
+
+    if (rename(pSrc, pDst) == 0)
+        return TRUE;
+
+    if (errno != EXDEV)
+        return FALSE;
+
+    return posixMoveFileAcrossVolumes(pSrc, pDst);
+}
 inline void* ShellExecute(void* hwnd, const char* pOp, const char* pFile, const char* pParams, const char* pDir, int nShow) {
     if (!pFile) return nullptr;
     (void)hwnd; (void)pOp; (void)pParams; (void)pDir; (void)nShow;

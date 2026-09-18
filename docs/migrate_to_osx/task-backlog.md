@@ -770,7 +770,7 @@ branch and pull request from `osx`; no direct commit to `main`/`master`.
 ### N-004 Phase 4 - hardening and minor defects (P3)
 
 - Priority: `P3`
-- Status: `todo`
+- Status: `done`
 - Goal: defensive correctness and cleanup for the remaining low-severity defects
 - Scope:
   - `PDR-028` `_fcvt_s` bounded conversion
@@ -782,12 +782,22 @@ branch and pull request from `osx`; no direct commit to `main`/`master`.
   - `PDR-034` CPU-info stubs
   - `PDR-035` varargs pragma removal after fixing call sites
   - `PDR-036` `DebugLog` on macOS debug builds
+  - `PDR-039` `_fcvt_s` swapped its `dec`/`sign` output parameters (found while closing
+    `PDR-028`)
 - Depends on:
   - N-003
 - Acceptance criteria:
-  - `PDR-028`..`PDR-036` marked `done` (or explicitly `deferred` with reason) in the same PR
-  - `_fcvt_s` test proves no out-of-bounds read with a small buffer
+  - `PDR-028`..`PDR-036` and `PDR-039` marked `done` (or explicitly `deferred` with reason) in
+    the same PR
+  - `_fcvt_s` test proves no out-of-bounds read with a small buffer, and a `strFromDouble`
+    regression test pins the CRT `dec`/`sign` order
   - build and `mac-portability` gate pass; `git diff --check` is clean
+- Delivery note: branch `fix/macos-port-p3-hardening`, PR open against
+  `fix/macos-port-p2-platform-perf` (stacked); not merged. Gate verified locally:
+  `cmake --preset macos-debug`, `cmake --build --preset macos-debug` (including
+  `Transcendence.app` and the tools), `ctest -R mac-portability`, and `git diff --check`
+  passed. The removed `-Wnon-pod-varargs` pragmas produced zero new warnings, so no call site
+  needed changing. Documented in `hardening-utilities.md`.
 
 ### N-005 Phase 5 - cross-platform regressions (deferred)
 
@@ -835,4 +845,7 @@ These tasks turn the current static-library build success into an executable lin
 
 Defect-closure track added 2026-09-19: Epic N (`N-000`..`N-004`) executes the static-audit
 findings from `port-defect-register.md` in four code phases plus the docs phase, each on its
-own branch and pull request from `osx`. Phase 5 (`PDR-037`, `PDR-038`) stays `deferred`.
+own branch and pull request from `osx`. All four code phases are delivered and open as stacked
+pull requests; none are merged. Phase 5 (`PDR-037`, `PDR-038`) stays `deferred`. A defect found
+while executing a phase is registered as a new `PDR-` entry on that phase (`PDR-039` on
+phase 4) rather than folded silently into an existing entry.

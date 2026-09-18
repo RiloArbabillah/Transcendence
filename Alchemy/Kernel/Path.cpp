@@ -399,7 +399,25 @@ BOOL FileTimeToSystemTime(FILETIME* pFileTime, SYSTEMTIME* pSystemTime)
 
 	return TRUE;
 	}
-inline DWORD GetTempPath(DWORD nBufferLength, char* lpBuffer) { if (lpBuffer && nBufferLength > 4) { strlcpy(lpBuffer, "/tmp", nBufferLength); return strlen(lpBuffer); } return 4; }
+//	PDR-032: macOS gives every process a private temporary directory through
+//	TMPDIR (and a sandboxed app cannot write to /tmp at all), so the shim no
+//	longer hardcodes /tmp. The return value keeps the meaning it had before:
+//	the length of the path that was written, or the length that would be
+//	needed (excluding the terminator) when the caller's buffer is too small.
+
+DWORD GetTempPath(DWORD nBufferLength, char* lpBuffer) {
+    const char* pszTemp = getenv("TMPDIR");
+    if (!pszTemp || !*pszTemp)
+        pszTemp = "/tmp";
+
+    DWORD dwLen = (DWORD)strlen(pszTemp);
+
+    if (!lpBuffer || nBufferLength <= dwLen)
+        return dwLen;
+
+    memcpy(lpBuffer, pszTemp, dwLen + 1);
+    return dwLen;
+    }
 inline DWORD GetFileAttributes(const char* lpFileName) {
 #ifndef _WIN32
     std::string sFilename = (lpFileName ? lpFileName : "");
@@ -511,6 +529,13 @@ inline DWORD GetFullPathName(const char* lpFileName, DWORD nBufferLength, char* 
 
 	return (DWORD)sAbsolute.size();
 	}
+//	PDR-032: the shell allocator and the PIDL lifetime API are stubs. No
+//	caller on the macOS target allocates through the shell (the shell folder
+//	lookups return a path string, not an ITEMIDLIST), so there is nothing to
+//	own and nothing to free; SHGetMalloc() therefore hands back a token rather
+//	than a usable allocator, and FreePIDL() is a no-op. Callers that need a
+//	real allocation must use the C++ allocator instead.
+
 inline void* SHGetMalloc() { return nullptr; }
 inline HRESULT SHGetMalloc(void** ppMalloc) { *ppMalloc = (void*)1; return S_OK; }
 #endif
@@ -1614,6 +1639,13 @@ bool Kernel::pathValidateFilename (const CString &sFilename, CString *retsValidF
 //	HELPERS
 
 void FreePIDL (LPITEMIDLIST pidl)
+
+//	FreePIDL
+//
+//	PDR-032: no-op, by design. See the note next to SHGetMalloc() above: the
+//	macOS shell paths in this file never allocate an ITEMIDLIST, so there is
+//	nothing to release. The stub is kept so that legacy call sites still link.
+
 	{
 	(void)pidl;
 	}

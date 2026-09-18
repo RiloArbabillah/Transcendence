@@ -81,4 +81,12 @@ BOOL FileTimeToSystemTime (FILETIME *pFileTime, SYSTEMTIME *pSystemTime);
 
 BOOL CopyFile (const char *pSrc, const char *pDst, BOOL bFailIfExists);
 
+//	Returns the directory a temporary file should be created in. Follows
+//	TMPDIR (which macOS sets to a per-process private directory) and falls back
+//	to /tmp. The return value is the length of the path that was written, or
+//	the length that would be needed (excluding the terminator) when the
+//	caller's buffer is too small, in which case the buffer is left untouched.
+
+DWORD GetTempPath (DWORD nBufferLength, char *lpBuffer);
+
 #endif

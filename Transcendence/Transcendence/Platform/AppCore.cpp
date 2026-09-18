@@ -206,7 +206,10 @@ static FILE* g_Log = nullptr;
 
 static void log_msg(const char* pMsg) {
     if (!g_Log) {
-        g_Log = fopen(GetAppLogPath(), "w");
+        //	PDR-033: the log used to be opened with "w", so every restart erased
+        //	the previous run. The file is now appended to, which is what makes
+        //	it useful for diagnosing a crash that happened on a earlier launch.
+        g_Log = fopen(GetAppLogPath(), "a");
     }
     if (g_Log) {
         fprintf(g_Log, "%s\n", pMsg);
@@ -467,6 +470,16 @@ int App_Init(void)
 
     g_AppState.cxWidth = DEFAULT_WIDTH;
     g_AppState.cyHeight = DEFAULT_HEIGHT;
+
+	//	PDR-033: the high-DPI drawable is deliberately NOT requested
+	//	(SDL_WINDOW_ALLOW_HIGHDPI / SDL_HINT_VIDEO_ALLOW_HIGHDPI). The renderer
+	//	below draws a fixed logical-size framebuffer that SDL_RenderCopy stretches
+	//	over the whole window, so the window's point size is the coordinate space
+	//	the game, the mouse mapping and the screen/client conversions already use.
+	//	Turning on a 2x drawable would need a matching scale audit in all three,
+	//	and that cannot be validated by the build + unit-test gate this phase is
+	//	held to. SDL still creates a Retina-capable window on macOS; only the
+	//	drawable size stays in points.
 
 	SDL_SetHint(SDL_HINT_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK, "1");
 
@@ -954,7 +967,47 @@ int PlatformKillTimerCompat(void* hWnd, unsigned int timerID)
 // Global crash handler — writes crash log to Crash.log
 // ============================================================================
 
-static const char CRASH_LOG_FILE[] = "Crash.log";
+//	PDR-033: the crash log used to be a bare relative name ("Crash.log"), so
+//	the report landed in whatever directory the process was launched from --
+//	which may not even be writable -- instead of next to the game's own log.
+//	It now lives in the same application-data root as GetAppLogPath().
+//
+//	The path is assembled with plain libc calls on purpose. installCrashHandler()
+//	runs before kernelInit(), so the engine's string and path helpers are not
+//	initialised yet and must not be used here.
+
+static const char CRASH_LOG_NAME[] = "Crash.log";
+
+static const char* GetCrashLogPath()
+	{
+	static char sPath[1024];
+	static bool bInit = false;
+
+	if (!bInit)
+		{
+		const char *pHome = getenv("HOME");
+		if (pHome && *pHome)
+			{
+			//	mkdir -p for the data root. Done once, here, because the crash
+			//	handler itself must never touch the filesystem.
+
+			char sDir[1024];
+			snprintf(sDir, sizeof(sDir), "%s/Library/Application Support/Kronosaur", pHome);
+			mkdir(sDir, 0755);
+
+			snprintf(sDir, sizeof(sDir), "%s/Library/Application Support/Kronosaur/Transcendence", pHome);
+			mkdir(sDir, 0755);
+
+			snprintf(sPath, sizeof(sPath), "%s/%s", sDir, CRASH_LOG_NAME);
+			}
+		else
+			snprintf(sPath, sizeof(sPath), "%s", CRASH_LOG_NAME);
+
+		bInit = true;
+		}
+
+	return sPath;
+	}
 
 // Re-entrancy guard: prevents a second (different) signal, delivered while we
 // are already writing the crash log, from corrupting the log or nesting into a
@@ -1026,7 +1079,7 @@ static int g_CrashLogFD = -1;
 
 static int OpenCrashLog(void)
 	{
-	return open(CRASH_LOG_FILE, O_WRONLY | O_CREAT | O_APPEND, 0644);
+	return open(GetCrashLogPath(), O_WRONLY | O_CREAT | O_APPEND, 0644);
 	}
 
 static void crashHandler(int sig)

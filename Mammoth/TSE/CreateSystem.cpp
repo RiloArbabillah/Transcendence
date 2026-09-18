@@ -6,11 +6,6 @@
 #include "PreComp.h"
 #include "math.h"
 
-#if defined(__APPLE__) && defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wnon-pod-varargs"
-#endif
-
 #define ALWAYS_SEPARATE_ENEMIES
 
 #ifdef DEBUG
@@ -4989,5 +4984,4 @@ SSystemCreateCtx::SSystemCreateCtx (CSystem &SystemArg) :
 	}
 
 #if defined(__APPLE__) && defined(__clang__)
-#pragma clang diagnostic pop
 #endif
