@@ -2,7 +2,7 @@
 
 ## Document Status
 
-- Version: v1.3
+- Version: v1.4
 - Last Updated: 2026-09-19
 - Derived From: `PRD.md`
 - Companion Document: `roadmap.md`
@@ -665,7 +665,7 @@ branch and pull request from `osx`; no direct commit to `main`/`master`.
 ### N-000 Publish the port defect register
 
 - Priority: `P0`
-- Status: `todo`
+- Status: `done`
 - Goal: publish a single register of all static-audit port defects and wire it into the
   documentation set
 - Deliverable:
@@ -679,11 +679,12 @@ branch and pull request from `osx`; no direct commit to `main`/`master`.
     trigger condition, fix phase, verification gate, and work status
   - no source-code changes in this task
   - `git diff --check` is clean
+- Delivery note: branch `docs/port-defect-register`, PR #1 open against `osx`; not merged
 
 ### N-001 Phase 1 - input and memory safety (P0)
 
 - Priority: `P0`
-- Status: `todo`
+- Status: `done`
 - Goal: restore complete virtual-key mapping and correct memory-stream accounting/safety
 - Scope:
   - `PDR-001` complete `PlatformGetAsyncKeyState` VK mapping, including a pure
@@ -702,6 +703,9 @@ branch and pull request from `osx`; no direct commit to `main`/`master`.
   - new portability tests cover memory-stream growth/zero-fill/commit accounting, bitmap
     create/destroy lookup, and every VK used by `DefaultKeyMappings.h`
   - no Windows behavior change; changes are platform-neutral or guarded
+- Delivery note: branch `fix/macos-port-p0-input-memory`, PR open against `osx`; not merged.
+  Gate verified locally: `cmake --preset macos-debug`, `cmake --build --preset macos-debug`
+  (including `Transcendence.app`), and `ctest -R mac-portability` passed
 
 ### N-002 Phase 2 - functional and filesystem gaps (P1)
 

@@ -48,12 +48,34 @@ ALERROR CMemoryWriteStream::Write (const char *pData, int iLength, int *retiByte
     ASSERT(m_pBlock);
     ASSERT(iLength >= 0);
 
-    if (m_iCurrentSize + iLength > m_iMaxSize) {
-        int iNewMaxSize = m_iMaxSize * 2;
-        char *pNewBlock = (char *)realloc(m_pBlock, iNewMaxSize);
-        if (pNewBlock == NULL) return ERR_MEMORY;
-        m_pBlock = pNewBlock;
-        m_iMaxSize = iNewMaxSize;
+    //  Commit the required space. The block is reserved up front (malloc) and
+    //  committed in ALLOC_SIZE steps, mirroring the Windows implementation
+    //  (VirtualAlloc reserve/commit). Newly committed memory is zero-filled,
+    //  which is what makes Seek() forward over uninitialized data safe.
+
+    if (m_iCurrentSize + iLength > m_iCommittedSize) {
+        int iAdditionalSize = AlignUp(m_iCurrentSize + iLength, ALLOC_SIZE) - m_iCommittedSize;
+
+        //  Grow the reservation if the commit would exceed it. A single write
+        //  can be larger than twice the current reservation, so keep doubling
+        //  until the whole request fits.
+
+        while (m_iCommittedSize + iAdditionalSize > m_iMaxSize) {
+            int iNewMaxSize = (m_iMaxSize < 0x3fff0000 ? m_iMaxSize * 2 : 0x7fff0000);
+            if (iNewMaxSize <= m_iMaxSize) return ERR_MEMORY;
+
+            char *pNewBlock = (char *)malloc(iNewMaxSize);
+            if (pNewBlock == NULL) return ERR_MEMORY;
+
+            if (m_iCommittedSize > 0) memcpy(pNewBlock, m_pBlock, m_iCommittedSize);
+
+            free(m_pBlock);
+            m_pBlock = pNewBlock;
+            m_iMaxSize = iNewMaxSize;
+        }
+
+        memset(m_pBlock + m_iCommittedSize, 0, iAdditionalSize);
+        m_iCommittedSize += iAdditionalSize;
     }
 
     if (pData) memcpy(m_pBlock + m_iCurrentSize, pData, iLength);

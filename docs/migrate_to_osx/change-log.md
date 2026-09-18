@@ -2,7 +2,7 @@
 
 ## Document Status
 
-- Version: v1.5
+- Version: v1.6
 - Last Updated: 2026-09-19
 - Scope: documentation-only changes for the macOS port planning set
 
@@ -33,6 +33,14 @@ Summary:
 ## Entries
 
 ### 2026-09-19
+
+- Document: `platform-input-utilities.md`, `index.md`, `port-defect-register.md`, `change-log.md`
+- Change Type: added
+- Summary: documented the macOS platform input helpers (`PlatformVKToScancode`,
+  `PlatformAsyncKeyStateForState`, `PlatformGetAsyncKeyState`, `PlatformGetKeyState`) as
+  public utilities in `platform-input-utilities.md`, registered the document in `index.md`,
+  and flipped `PDR-001`..`PDR-006` to `done` in `port-defect-register.md` after the Phase 1
+  fixes and `mac-portability` gate passed
 
 - Document: `port-defect-register.md`, `index.md`, `task-backlog.md`, `../bug_fix_plan.md`, `../macOS_port_status.md`, `change-log.md`
 - Change Type: added

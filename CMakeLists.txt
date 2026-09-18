@@ -929,6 +929,7 @@ add_library(platform_sdl STATIC
     "${CMAKE_CURRENT_SOURCE_DIR}/Transcendence/Transcendence/Platform/AppCore.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/Transcendence/Transcendence/Platform/CPlatformTimerSystem.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/Transcendence/Transcendence/Platform/MetalRenderer.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Transcendence/Transcendence/Platform/PlatformInput.cpp"
 )
 target_include_directories(platform_sdl PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/Alchemy/Include"
@@ -1092,9 +1093,12 @@ if(BUILD_TESTING)
     add_executable(mac_portability_tests
         "Transcendence/Tests/MacPortabilityTests.cpp"
         "Transcendence/Tools/PlatformToolStubs.cpp"
+        "Transcendence/Transcendence/Platform/PlatformInput.cpp"
+        "Alchemy/DirectXUtil/SDLBitmap.cpp"
     )
     target_include_directories(mac_portability_tests PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/Alchemy/Include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/Transcendence/Transcendence/Platform"
     )
     target_compile_definitions(mac_portability_tests PRIVATE
         TRANSCENDENCE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
@@ -1106,6 +1110,7 @@ if(BUILD_TESTING)
         alchemy_graphics
         alchemy_jpeg
         SDL2::SDL2
+        SDL2_image::SDL2_image-static
         "-framework CoreGraphics"
         "-framework ImageIO"
     )

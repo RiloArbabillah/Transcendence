@@ -2,7 +2,7 @@
 
 ## Document Status
 
-- Version: v1.4
+- Version: v1.5
 - Last Updated: 2026-09-19
 - Project: Native macOS Apple Silicon port of `kronosaur/TranscendenceDev`
 - Purpose: central navigation portal for planning and implementation documentation
@@ -69,6 +69,10 @@ Use this file as the primary entry point for the documentation set.
 - `image-portability-seam.md`
   - retained reference for image-ingestion portability boundaries after resource lookup moved off Win32 resources
 
+- `platform-input-utilities.md`
+  - public reference for the macOS platform input helpers (`PlatformVKToScancode`,
+    `PlatformAsyncKeyStateForState`) that translate Win32 virtual-key codes to SDL state
+
 ### Validation and Governance
 
 - `qa-test-matrix.md`
@@ -101,6 +105,7 @@ Use this file as the primary entry point for the documentation set.
 | `cmake-build-plan.md` | how the macOS build graph should be introduced |
 | `resource-loader-plan.md` | how to replace milestone-1 Win32 resource loading with a file-based path |
 | `image-portability-seam.md` | how to remove the remaining `HBITMAP` dependency from milestone-1 image ingestion |
+| `platform-input-utilities.md` | how Win32 virtual-key codes are translated to SDL input state on macOS |
 | `execution-task-plan.md` | what is actively being debugged and what the next verified slice is |
 | `minimax-m27-port-completion-plan.md` | how to execute the release-ready path from the current runnable baseline |
 | `release-ready-execution-plan.md` | how to close the remaining gaps to a tester-usable `.app` |
@@ -207,4 +212,5 @@ Use this file as the primary entry point for the documentation set.
 - `decision-log.md`
 - `change-log.md`
 - `port-defect-register.md`
+- `platform-input-utilities.md`
 - `compat-layer-bugfix-plan.md`
