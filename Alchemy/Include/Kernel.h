@@ -30,6 +30,7 @@
 #include <cstring>
 #include <cmath>
 #include <cstdarg>
+#include <cctype>
 #include <cstdio>
 #include <mutex>
 #include <map>
@@ -258,13 +259,27 @@ inline void* LockResource(HGLOBAL hResData) { return nullptr; }
 #include <sys/mman.h>
 #include <stdlib.h>
 #include <cstring>
+//	PDR-022: MEM_COMMIT promises committed, zero-filled memory. Reserving a
+//	region calls malloc(), whose contents are uninitialized, so a later
+//	MEM_COMMIT on an explicit address has to zero the range itself; returning
+//	the address untouched handed callers whatever the allocator left there.
+//	(CString's store and CStackBase both build on this: reserve once, commit
+//	incrementally, then rely on the new pages reading as zero.)
+
 inline void* VirtualAlloc(void* lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect) {
     (void)flProtect;
-    if (lpAddress && (flAllocationType & 0x1000))
+    const bool bCommit = ((flAllocationType & 0x1000) != 0);
+
+    if (lpAddress)
+        {
+        if (bCommit && dwSize > 0)
+            memset(lpAddress, 0, (size_t)dwSize);
         return lpAddress;
+        }
+
     void* pMem = malloc(dwSize);
-    if (pMem && (flAllocationType & 0x1000))
-        memset(pMem, 0, dwSize);
+    if (pMem && bCommit)
+        memset(pMem, 0, (size_t)dwSize);
     return pMem;
 }
 inline BOOL VirtualFree(void* lpAddress, SIZE_T dwSize, DWORD dwFreeType) {
@@ -430,10 +445,152 @@ inline DWORD GetLastError() { return errno; }
 //	different case than the actual files on disk. On case-sensitive volumes
 //	(APFS can be either) those lookups would fail.
 //
-//	For each component that does not exist with the given case, we scan the
-//	parent directory for a case-insensitive match. If no match is found we
+//	For each component that does not exist with the given case, we look up a
+//	case-insensitive match in the parent directory. If no match is found we
 //	keep the original component (so creating new files still works) and
 //	continue with the rest of the path.
+//
+//	PDR-024: the substitution itself is a normal, supported outcome, so it is
+//	not reported: the old code wrote a warning to stderr for every substituted
+//	component, which flooded the terminal while the engine loaded its data
+//	files. The parent-directory listings are cached instead of being re-read
+//	for every component. The cache is keyed on the directory's identity and
+//	modification time, so a directory whose contents changed is re-scanned.
+
+namespace posixPathCase
+	{
+	struct SDirectory
+		{
+		std::map<std::string, std::string> Names;	//	lowercase -> on-disk
+		time_t iModTime;
+		long iModTimeNsec;
+		dev_t iDevice;
+		ino_t iINode;
+		};
+
+	inline std::mutex &GetCacheLock (void)
+		{
+		static std::mutex s_CacheLock;
+		return s_CacheLock;
+		}
+
+	inline std::map<std::string, SDirectory> &GetCache (void)
+		{
+		static std::map<std::string, SDirectory> s_Cache;
+		return s_Cache;
+		}
+
+	inline std::string ToLower (const std::string &sValue)
+		{
+		std::string sLower(sValue);
+		for (size_t i = 0; i < sLower.size(); i++)
+			sLower[i] = (char)tolower((unsigned char)sLower[i]);
+
+		return sLower;
+		}
+
+	//	The modification stamp is taken at nanosecond resolution where the
+	//	platform provides it: two changes inside the same second are common
+	//	while a directory is being populated, and a second-resolution stamp
+	//	would hand back a stale listing.
+
+	inline void GetModStamp (const struct stat &DirStat, time_t *retTime, long *retNsec)
+		{
+		*retTime = DirStat.st_mtime;
+#if defined(__APPLE__)
+		*retNsec = DirStat.st_mtimespec.tv_nsec;
+#else
+		*retNsec = 0;
+#endif
+		}
+
+	inline bool ReadDirectory (const std::string &sDirectory, std::map<std::string, std::string> *retNames)
+		{
+		DIR *pDir = opendir(sDirectory.c_str());
+		if (pDir == NULL)
+			return false;
+
+		struct dirent *pEntry;
+		while ((pEntry = readdir(pDir)) != NULL)
+			{
+			//	insert() keeps the first match, which is the same entry the old
+			//	linear scan stopped on.
+
+			retNames->insert(std::make_pair(ToLower(pEntry->d_name), std::string(pEntry->d_name)));
+			}
+
+		closedir(pDir);
+		return true;
+		}
+
+	//	Returns the on-disk spelling of sComponent inside sDirectory. Returns
+	//	false when the directory cannot be read or holds no case-insensitive
+	//	match.
+
+	inline bool Lookup (const std::string &sDirectory, const std::string &sComponent, std::string *retsName)
+		{
+		struct stat DirStat;
+		if (stat(sDirectory.c_str(), &DirStat) != 0)
+			return false;
+
+		time_t iModTime;
+		long iModTimeNsec;
+		GetModStamp(DirStat, &iModTime, &iModTimeNsec);
+
+		const std::string sLower = ToLower(sComponent);
+
+		//	Cached listing for this exact directory revision?
+
+		{
+		std::lock_guard<std::mutex> Lock(GetCacheLock());
+		auto it = GetCache().find(sDirectory);
+		if (it != GetCache().end()
+				&& it->second.iModTime == iModTime
+				&& it->second.iModTimeNsec == iModTimeNsec
+				&& it->second.iDevice == DirStat.st_dev
+				&& it->second.iINode == DirStat.st_ino)
+			{
+			auto itName = it->second.Names.find(sLower);
+			if (itName == it->second.Names.end())
+				return false;
+
+			*retsName = itName->second;
+			return true;
+			}
+		}
+
+		//	Read the directory outside the lock: a concurrent miss may read the
+		//	same directory twice, which is harmless.
+
+		SDirectory Directory;
+		Directory.iModTime = iModTime;
+		Directory.iModTimeNsec = iModTimeNsec;
+		Directory.iDevice = DirStat.st_dev;
+		Directory.iINode = DirStat.st_ino;
+		if (!ReadDirectory(sDirectory, &Directory.Names))
+			return false;
+
+		{
+		std::lock_guard<std::mutex> Lock(GetCacheLock());
+		std::map<std::string, SDirectory> &Cache = GetCache();
+
+		//	Bound the cache. The engine walks a handful of data directories, so
+		//	dropping the whole map on overflow is simpler than tracking recency.
+
+		if (Cache.size() >= 64 && Cache.find(sDirectory) == Cache.end())
+			Cache.clear();
+
+		Cache[sDirectory] = Directory;
+		}
+
+		auto itName = Directory.Names.find(sLower);
+		if (itName == Directory.Names.end())
+			return false;
+
+		*retsName = itName->second;
+		return true;
+		}
+	}
 
 inline std::string posixResolvePathCase(const std::string &sPath)
 	{
@@ -461,23 +618,13 @@ inline std::string posixResolvePathCase(const std::string &sPath)
 					&& access(sCandidate.c_str(), F_OK) != 0)
 				{
 				std::string sDir = sResolved.empty() ? "." : sResolved;
-				DIR *pDir = opendir(sDir.c_str());
-				if (pDir)
+				std::string sActual;
+				if (posixPathCase::Lookup(sDir, sComp, &sActual))
 					{
-					struct dirent *pEntry;
-					while ((pEntry = readdir(pDir)) != NULL)
-						{
-						if (strcasecmp(pEntry->d_name, sComp.c_str()) == 0)
-							{
-							fprintf(stderr, "Warning: case mismatch in path: '%s' -> '%s'\n", sComp.c_str(), pEntry->d_name);
-							sCandidate = sResolved;
-							if (!sCandidate.empty() && sCandidate.back() != '/')
-								sCandidate += '/';
-							sCandidate += pEntry->d_name;
-							break;
-							}
-						}
-					closedir(pDir);
+					sCandidate = sResolved;
+					if (!sCandidate.empty() && sCandidate.back() != '/')
+						sCandidate += '/';
+					sCandidate += sActual;
 					}
 				}
 
@@ -832,6 +979,49 @@ inline bool PlatformReportUnsupportedFeature (const char *pszFeature)
 	return true;
 	}
 
+//	PDR-025/PDR-026: the macOS port keeps two render workarounds on by default
+//	-- single-threaded background painting and forced single-threaded object
+//	painting -- while the SDL presenter is validated against the intro session.
+//	Each one can be turned off from the environment so that the multithreaded
+//	paths stay reachable for validation, and so that the workaround can be
+//	retired once they pass. A value that is not one of the documented "off"
+//	spellings keeps the workaround on, so a typo fails safe.
+
+inline bool PlatformEnvFlagIsOff (const char *pszValue)
+	{
+	static const char *const sOff[] = { "0", "off", "no", "false" };
+
+	if (pszValue == NULL)
+		return false;
+
+	for (size_t i = 0; i < sizeof(sOff) / sizeof(sOff[0]); i++)
+		{
+		const char *pA = pszValue;
+		const char *pB = sOff[i];
+
+		while (*pA != '\0' && *pB != '\0' && tolower((unsigned char)*pA) == *pB)
+			{
+			pA++;
+			pB++;
+			}
+
+		if (*pA == '\0' && *pB == '\0')
+			return true;
+		}
+
+	return false;
+	}
+
+inline bool PlatformRenderWorkaroundEnabled (const char *pszEnvVar)
+	{
+	const char *pszValue = getenv(pszEnvVar);
+
+	if (pszValue == NULL || pszValue[0] == '\0')
+		return true;
+
+	return !PlatformEnvFlagIsOff(pszValue);
+	}
+
 bool PlatformDestroyWindow(HWND hWnd);
 LRESULT PlatformSendMessage(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
 inline HDC GetDC(HWND hWnd) { return nullptr; }
@@ -957,8 +1147,50 @@ inline HWND CreateWindowEx(DWORD dwExStyle, LPCSTR lpClassName, LPCSTR lpWindowN
 inline HWND GetCapture() { return nullptr; }
 inline HWND SetFocus(HWND hWnd) { return nullptr; }
 inline LRESULT SendMessage(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) { return PlatformSendMessage(hWnd, Msg, wParam, lParam); }
-bool PlatformPostMessage(int msg, int wParam, void* lParam);
-inline bool PostMessage(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) { PlatformPostMessage((int)Msg, (int)wParam, (void*)lParam); return true; }
+//	PDR-016/PDR-017/PDR-018: the macOS message queue mirrors the Win32 message
+//	payload. WPARAM/LPARAM keep their full pointer width (nothing is narrowed to
+//	int on the way through the queue), a dequeued message carries every field of
+//	a Win32 MSG -- hwnd, time and pt included -- and SendMessage runs the
+//	registered dispatcher before it returns instead of only queueing the
+//	message.
+struct SPlatformMessage
+	{
+	void* hwnd;
+	unsigned int message;
+	WPARAM wParam;
+	LPARAM lParam;
+	DWORD time;
+	POINT pt;
+	};
+
+struct tagMSG { void* hwnd; UINT message; WPARAM wParam; LPARAM lParam; DWORD time; POINT pt; };
+typedef tagMSG MSG;
+
+bool PlatformPostMessage(int msg, WPARAM wParam, LPARAM lParam);
+int PlatformPeekMessage(SPlatformMessage* pMessage);
+void PlatformClearMessageQueue(void);
+
+//	The shell registers the dispatcher that delivers a message to the game UI.
+//	When none is registered (command-line tools and unit tests) SendMessage
+//	falls back to queueing, which is what the message loop would have done.
+
+typedef LRESULT (*PlatformMessageDispatch)(const SPlatformMessage& message);
+void PlatformSetMessageDispatch(PlatformMessageDispatch pDispatch);
+
+//	WM_CLOSE/WM_DESTROY ask the shell to stop the application; the shell
+//	registers the request so that headless builds do not need it.
+
+typedef void (*PlatformCloseRequest)(void);
+void PlatformSetCloseRequest(PlatformCloseRequest pCloseRequest);
+
+//	The shell reports the window handle that the message queue should stamp on
+//	each message. The macOS port has no real HWND; the SDL window pointer is
+//	used as an opaque handle, and a headless build leaves it null.
+
+void PlatformSetMessageWindow(void* pWindow);
+void* PlatformGetMessageWindow(void);
+
+inline bool PostMessage(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) { return PlatformPostMessage((int)Msg, wParam, lParam); }
 inline bool PostQuitMessage(int nExitCode) { return true; }
 inline HDC BeginPaint(HWND hWnd, void* pPaintStruct) { return nullptr; }
 inline bool EndPaint(HWND hWnd, const void* pPaintStruct) { return true; }
@@ -972,13 +1204,24 @@ int PlatformKillTimerCompat(void* hWnd, unsigned int timerID);
 #define KillTimer(hwnd, id) PlatformKillTimerCompat((void*)(hwnd), (unsigned int)(id))
 inline int LoadCursor(HINSTANCE hInstance, LPCSTR lpCursorName) { return 0; }
 inline int SetCursor(int hCursor) { return 0; }
-int PlatformPeekMessage(int* pMsg, int* pWParam, void** ppLParam);
-inline bool PeekMessage(void* pMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg) { struct SMsgCompat { void* hwnd; UINT message; WPARAM wParam; LPARAM lParam; DWORD time; POINT pt; }; SMsgCompat* p = (SMsgCompat*)pMsg; int msg; int wParam; void* lParam; if (!PlatformPeekMessage(&msg, &wParam, &lParam)) return false; p->message = (UINT)msg; p->wParam = (WPARAM)wParam; p->lParam = (LPARAM)lParam; return true; }
+inline bool PeekMessage(void* pMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg)
+	{
+	MSG* p = (MSG*)pMsg;
+	SPlatformMessage message;
+	if (!PlatformPeekMessage(&message))
+		return false;
+
+	p->hwnd = message.hwnd;
+	p->message = (UINT)message.message;
+	p->wParam = message.wParam;
+	p->lParam = message.lParam;
+	p->time = message.time;
+	p->pt = message.pt;
+	return true;
+	}
 inline bool TranslateMessage(const void* pMsg) { return false; }
 inline LRESULT DispatchMessage(const void* pMsg) { return 0; }
 
-struct tagMSG { void* hwnd; UINT message; WPARAM wParam; LPARAM lParam; DWORD time; POINT pt; };
-typedef tagMSG MSG;
 #define PM_REMOVE 0x0001
 #define PM_NOYIELD 0x0002
 
@@ -1342,14 +1585,30 @@ inline BOOL MoveFile(const char* pSrc, const char* pDst) { return rename(pSrc, p
 inline void* ShellExecute(void* hwnd, const char* pOp, const char* pFile, const char* pParams, const char* pDir, int nShow) {
     if (!pFile) return nullptr;
     (void)hwnd; (void)pOp; (void)pParams; (void)pDir; (void)nShow;
+
+    //	PDR-023: Win32 ShellExecute returns once the target has been handed to
+    //	the shell; it does not wait for the launched application. The old code
+    //	waited for "open" to exit, which parked the calling (UI) thread for as
+    //	long as the helper took. Fork an intermediate child that immediately
+    //	forks the real launcher and exits, so the wait below only ever covers a
+    //	process that is already on its way out. The launcher itself is
+    //	reparented to launchd and is never waited for.
+
     pid_t pid = fork();
     if (pid < 0)
         return nullptr;
+
     if (pid == 0)
         {
-        // Use exec directly so filenames/URLs are not interpreted by a shell.
-        execlp("open", "open", pFile, (char*)nullptr);
-        _exit(127);
+        pid_t pidLauncher = fork();
+        if (pidLauncher == 0)
+            {
+            // Use exec directly so filenames/URLs are not interpreted by a shell.
+            execlp("open", "open", pFile, (char*)nullptr);
+            _exit(127);
+            }
+
+        _exit(pidLauncher > 0 ? 0 : 1);
         }
 
     int status = 0;

@@ -33,6 +33,21 @@ void SDLBitmapDestroy(SDLBitmap* pBitmap);
 //	handle was not created by SDLBitmapCreate*/dibCreate*.
 
 SDLBitmap* SDLBitmapLookup(void* hBitmap);
+
+//	PDR-027: returns true when the surface holds only black and white pixels.
+//
+//	The scan is bounded. A surface whose pixel count fits in the sample budget
+//	is examined in full, so the answer is exact whenever it is cheap to be
+//	exact; a larger surface is examined on a fixed grid of up to 64x64 pixels.
+//	A colour image is therefore only reported as monochrome when its colour
+//	lives entirely between the grid lines, which requires a patch smaller than
+//	about a thousandth of the image. The bound is what keeps the load path from
+//	walking every pixel of every large background image.
+//
+//	The scan is shared by the DIB loader (DetectBitmapType) and the bitmap
+//	loader, so the two cannot drift apart.
+
+bool SDLBitmapSurfaceIsMonochrome(SDL_Surface* pSurface);
 ALERROR SDLBitmapGetInfo(SDLBitmap* pBitmap, int* retcxWidth, int* retcyHeight, void** retpBase, int* retiStride, BITMAPINFOHEADER* retpBMIH, void** retpBits);
 
 ALERROR dibGetInfo(void* hDIB, int* retcxWidth, int* retcyHeight, void** retpBase, int* retiStride, BITMAPINFOHEADER* retpBMIH, void** retpBits);

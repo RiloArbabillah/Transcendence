@@ -739,7 +739,7 @@ branch and pull request from `osx`; no direct commit to `main`/`master`.
 ### N-003 Phase 3 - platform/event semantics and performance (P2)
 
 - Priority: `P2`
-- Status: `todo`
+- Status: `done`
 - Goal: align message/event semantics with Win32 and remove unnecessary performance caps
 - Scope:
   - `PDR-016`/`PDR-017` message `WPARAM` width and `hwnd`/`time`/`pt` population
@@ -759,6 +759,13 @@ branch and pull request from `osx`; no direct commit to `main`/`master`.
   - coordinate packing tests cover negative values and values above 32767
   - `PDR-025`/`PDR-026` keep an explicit, documented exit criterion if the cap remains
   - build and `mac-portability` gate pass; `git diff --check` is clean
+- Delivery note: branch `fix/macos-port-p2-platform-perf`, PR open against
+  `fix/macos-port-p1-functional-fs` (stacked); not merged. Gate verified locally:
+  `cmake --preset macos-debug`, `cmake --build --preset macos-debug` (including
+  `Transcendence.app` and the tools), `ctest -R mac-portability`, and `git diff --check`
+  passed. `PDR-025`/`PDR-026` keep the workarounds on by default but expose
+  `TRANSCENDENCE_MT_BKRND_PAINT` / `TRANSCENDENCE_FORCE_ST_PAINT` with documented exit
+  criteria in `platform-event-utilities.md`.
 
 ### N-004 Phase 4 - hardening and minor defects (P3)
 

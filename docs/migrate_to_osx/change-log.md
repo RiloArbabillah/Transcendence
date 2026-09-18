@@ -2,7 +2,7 @@
 
 ## Document Status
 
-- Version: v1.7
+- Version: v1.8
 - Last Updated: 2026-09-19
 - Scope: documentation-only changes for the macOS port planning set
 
@@ -33,6 +33,17 @@ Summary:
 ## Entries
 
 ### 2026-09-19
+
+- Document: `platform-event-utilities.md`, `index.md`, `port-defect-register.md`,
+  `task-backlog.md`, `change-log.md`, `../macOS_port_status.md`
+- Change Type: added
+- Summary: documented the macOS platform/event utilities produced by fix phase 3 (the
+  `PlatformMessage` queue and payload helpers, the generation-based timer registry, the
+  `sigaltstack`-based crash handler, and the `TRANSCENDENCE_MT_BKRND_PAINT` /
+  `TRANSCENDENCE_FORCE_ST_PAINT` render workaround overrides) in
+  `platform-event-utilities.md`, registered the document in `index.md`, marked task `N-003`
+  `done` in `task-backlog.md`, and flipped `PDR-016`..`PDR-027` in `port-defect-register.md`
+  (now v1.2) after the phase-3 fixes and `mac-portability` gate passed
 
 - Document: `functional-fs-utilities.md`, `index.md`, `port-defect-register.md`,
   `task-backlog.md`, `change-log.md`

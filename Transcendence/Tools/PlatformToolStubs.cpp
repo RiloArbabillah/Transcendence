@@ -8,13 +8,9 @@
 
 #include "Kernel.h"
 
-int PlatformPeekMessage(int *pMsg, int *pWParam, void **ppLParam)
-	{
-	if (pMsg) *pMsg = 0;
-	if (pWParam) *pWParam = 0;
-	if (ppLParam) *ppLParam = nullptr;
-	return 0;
-	}
+//	The message queue itself lives in Platform/PlatformMessage.cpp, which these
+//	tools link: the queue never receives anything without a window, so the tools
+//	see an empty queue rather than a second, divergent implementation.
 
 //	No window means nowhere to move the cursor.
 

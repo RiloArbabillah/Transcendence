@@ -14,12 +14,15 @@ and pull request at a time from `osx`; the cross-platform findings (`PDR-037`, `
 `deferred` because this plan is macOS-only. The older `docs/bug_fix_plan.md` is superseded and
 kept only as history.
 
-Status: phase 0 (register) is published, and phases 1 and 2 (`PDR-001`..`PDR-015`) are closed on
-their phase branches with the `mac-portability` gate green. Phases 3 and 4 (`PDR-016`..`PDR-036`)
-are still `todo`. The public helpers added by phases 1 and 2 are documented in
-`docs/migrate_to_osx/platform-input-utilities.md` and
-`docs/migrate_to_osx/functional-fs-utilities.md`. Runtime-only checks (real window cursor warp,
-video/intro playback, audio fade transitions) remain separate, unverified gates.
+Status: phase 0 (register) is published, and phases 1, 2, and 3 (`PDR-001`..`PDR-027`) are closed
+on their phase branches with the `mac-portability` gate green. Phase 4 (`PDR-028`..`PDR-036`) is
+still `todo`. The public helpers added by the closed phases are documented in
+`docs/migrate_to_osx/platform-input-utilities.md`,
+`docs/migrate_to_osx/functional-fs-utilities.md`, and
+`docs/migrate_to_osx/platform-event-utilities.md`. Runtime-only checks (real window cursor warp,
+video/intro playback, audio fade transitions, multi-monitor mouse coordinates, crash recovery,
+timer behaviour under load, and intro rendering with the render workarounds disabled) remain
+separate, unverified gates.
 
 ## Build Status
 

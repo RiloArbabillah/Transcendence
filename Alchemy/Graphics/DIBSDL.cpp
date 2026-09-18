@@ -11,6 +11,52 @@
 
 namespace
 	{
+	//	PDR-027: the monochrome test used to run SDL_GetRGB() on every pixel of
+	//	every bitmap that was loaded, which is O(W*H) work on the load path and
+	//	dominates the load time of large background images. It also read a full
+	//	Uint32 at a 3-byte pixel, which reads one byte past the last pixel of the
+	//	surface.
+	//
+	//	The scan is now bounded: a surface whose pixel count fits in the sample
+	//	budget is still examined in full (so the answer stays exact whenever it
+	//	is cheap to be exact), and a larger surface is examined on a fixed grid
+	//	of up to kMaxSamples pixels. A colour image can only be reported as
+	//	monochrome if every sampled pixel is black or white, i.e. if its colour
+	//	lives entirely between the grid lines; the grid is dense enough that this
+	//	requires a patch smaller than about a thousandth of the image.
+
+	const int kMaxSamples = 4096;
+	const int kMaxGridSide = 64;
+
+	//	Reads one pixel as RGB. For 3-byte pixels the three bytes are read
+	//	individually instead of through a Uint32 load, so the last pixel of the
+	//	surface is not read past the end of the pixel buffer.
+
+	inline void ReadPixelRGB (const BYTE *pPixel, const SDL_PixelFormat *pFormat, BYTE *retR, BYTE *retG, BYTE *retB)
+		{
+		//	A pixel value is the native-endian reading of the pixel's bytes,
+		//	padded with zeroes; assembling it through a zeroed buffer gives the
+		//	same value as an unaligned Uint32 load without reading past the last
+		//	pixel of the surface.
+
+		BYTE byValue[4] = { 0, 0, 0, 0 };
+		memcpy(byValue, pPixel, (size_t)pFormat->BytesPerPixel);
+
+		Uint32 dwPixel = 0;
+		memcpy(&dwPixel, byValue, sizeof(dwPixel));
+
+		SDL_GetRGB(dwPixel, pFormat, retR, retG, retB);
+		}
+
+	inline bool IsMonochromePixel (const BYTE *pPixel, const SDL_PixelFormat *pFormat)
+		{
+		BYTE byR, byG, byB;
+		ReadPixelRGB(pPixel, pFormat, &byR, &byG, &byB);
+
+		return ((byR == 0x00 && byG == 0x00 && byB == 0x00)
+				|| (byR == 0xff && byG == 0xff && byB == 0xff));
+		}
+
 	EBitmapTypes DetectBitmapType(SDL_Surface *pSurface)
 		{
 		if (!pSurface || !pSurface->format)
@@ -21,35 +67,55 @@ namespace
 			return bitmapAlpha;
 
 		const int iBytesPerPixel = pSurface->format->BytesPerPixel;
-		if (iBytesPerPixel >= 3)
+		if (iBytesPerPixel < 3)
+			return bitmapRGB;
+
+		const int cxWidth = pSurface->w;
+		const int cyHeight = pSurface->h;
+		if (cxWidth <= 0 || cyHeight <= 0 || !pSurface->pixels)
+			return bitmapRGB;
+
+		const BYTE *pPixels = (const BYTE *)pSurface->pixels;
+		const SDL_PixelFormat *pFormat = pSurface->format;
+
+		//	Small surface: examine every pixel.
+
+		if ((long long)cxWidth * (long long)cyHeight <= kMaxSamples)
 			{
-			bool bMonochrome = true;
-			const BYTE *pRow = (const BYTE *)pSurface->pixels;
-			for (int y = 0; y < pSurface->h && bMonochrome; y++)
+			for (int y = 0; y < cyHeight; y++)
 				{
-				const BYTE *pPixel = pRow;
-				for (int x = 0; x < pSurface->w; x++)
+				const BYTE *pPixel = pPixels + (size_t)y * (size_t)pSurface->pitch;
+				for (int x = 0; x < cxWidth; x++)
 					{
-					BYTE byR, byG, byB;
-					SDL_GetRGB(*(const Uint32 *)pPixel, pSurface->format, &byR, &byG, &byB);
-					if (!((byR == 0x00 && byG == 0x00 && byB == 0x00)
-							|| (byR == 0xff && byG == 0xff && byB == 0xff)))
-						{
-						bMonochrome = false;
-						break;
-						}
+					if (!IsMonochromePixel(pPixel, pFormat))
+						return bitmapRGB;
 
 					pPixel += iBytesPerPixel;
 					}
-
-				pRow += pSurface->pitch;
 				}
 
-			if (bMonochrome)
-				return bitmapMonochrome;
+			return bitmapMonochrome;
 			}
 
-		return bitmapRGB;
+		//	Large surface: sample a fixed grid.
+
+		const int cxGrid = (cxWidth < kMaxGridSide ? cxWidth : kMaxGridSide);
+		const int cyGrid = (cyHeight < kMaxGridSide ? cyHeight : kMaxGridSide);
+
+		for (int iy = 0; iy < cyGrid; iy++)
+			{
+			const int y = (int)(((long long)iy * (long long)cyHeight) / (long long)cyGrid);
+			const BYTE *pRow = pPixels + (size_t)y * (size_t)pSurface->pitch;
+
+			for (int ix = 0; ix < cxGrid; ix++)
+				{
+				const int x = (int)(((long long)ix * (long long)cxWidth) / (long long)cxGrid);
+				if (!IsMonochromePixel(pRow + (size_t)x * (size_t)iBytesPerPixel, pFormat))
+					return bitmapRGB;
+				}
+			}
+
+		return bitmapMonochrome;
 		}
 	}
 

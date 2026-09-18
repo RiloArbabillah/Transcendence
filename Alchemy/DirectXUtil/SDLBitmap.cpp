@@ -98,6 +98,84 @@ void SDLBitmapDestroy(SDLBitmap* pBitmap) {
     delete pBitmap;
 }
 
+namespace {
+
+//	Reads one pixel as RGB. The pixel value is assembled through a zeroed
+//	buffer rather than an unaligned Uint32 load, so a 3-byte pixel at the end
+//	of a row is not read past the end of the pixel buffer. (PDR-027)
+
+bool IsMonochromePixel(const BYTE* pPixel, const SDL_PixelFormat* pFormat) {
+    BYTE byValue[4] = { 0, 0, 0, 0 };
+    memcpy(byValue, pPixel, (size_t)pFormat->BytesPerPixel);
+
+    Uint32 dwPixel = 0;
+    memcpy(&dwPixel, byValue, sizeof(dwPixel));
+
+    BYTE byR = 0;
+    BYTE byG = 0;
+    BYTE byB = 0;
+    SDL_GetRGB(dwPixel, pFormat, &byR, &byG, &byB);
+
+    return ((byR == 0x00 && byG == 0x00 && byB == 0x00)
+            || (byR == 0xff && byG == 0xff && byB == 0xff));
+}
+
+} // anonymous namespace
+
+bool SDLBitmapSurfaceIsMonochrome(SDL_Surface* pSurface) {
+    if (!pSurface || !pSurface->format || !pSurface->pixels)
+        return false;
+
+    const SDL_PixelFormat* pFormat = pSurface->format;
+    const int iBytesPerPixel = pFormat->BytesPerPixel;
+    if (iBytesPerPixel < 3)
+        return false;
+
+    const int cxWidth = pSurface->w;
+    const int cyHeight = pSurface->h;
+    if (cxWidth <= 0 || cyHeight <= 0)
+        return false;
+
+    const BYTE* pPixels = (const BYTE*)pSurface->pixels;
+
+    const int kMaxSamples = 4096;
+    const int kMaxGridSide = 64;
+
+    //  Small surface: examine every pixel.
+
+    if ((long long)cxWidth * (long long)cyHeight <= kMaxSamples) {
+        for (int y = 0; y < cyHeight; y++) {
+            const BYTE* pPixel = pPixels + (size_t)y * (size_t)pSurface->pitch;
+            for (int x = 0; x < cxWidth; x++) {
+                if (!IsMonochromePixel(pPixel, pFormat))
+                    return false;
+
+                pPixel += iBytesPerPixel;
+            }
+        }
+
+        return true;
+    }
+
+    //  Large surface: sample a fixed grid.
+
+    const int cxGrid = (cxWidth < kMaxGridSide ? cxWidth : kMaxGridSide);
+    const int cyGrid = (cyHeight < kMaxGridSide ? cyHeight : kMaxGridSide);
+
+    for (int iy = 0; iy < cyGrid; iy++) {
+        const int y = (int)(((long long)iy * (long long)cyHeight) / (long long)cyGrid);
+        const BYTE* pRow = pPixels + (size_t)y * (size_t)pSurface->pitch;
+
+        for (int ix = 0; ix < cxGrid; ix++) {
+            const int x = (int)(((long long)ix * (long long)cxWidth) / (long long)cxGrid);
+            if (!IsMonochromePixel(pRow + (size_t)x * (size_t)iBytesPerPixel, pFormat))
+                return false;
+        }
+    }
+
+    return true;
+}
+
 ALERROR SDLBitmapGetInfo(SDLBitmap* pBitmap, int* retcxWidth, int* retcyHeight, void** retpBase, int* retiStride, BITMAPINFOHEADER* retpBMIH, void** retpBits) {
     if (!pBitmap) return ERR_FAIL;
 
@@ -228,29 +306,11 @@ ALERROR dibLoadToBufferFromFile(Kernel::CString sFilespec, SBMPImageLoad* retIma
     const int iDataSize = retImage->iPitch * retImage->cyHeight;
     retImage->Pixels = CString((const char*)pSurface->pixels, iDataSize);
 
-    if (retImage->iType == bitmapRGB) {
-        bool bMonochrome = true;
-        const BYTE* pRow = (const BYTE*)pSurface->pixels;
-        for (int y = 0; y < retImage->cyHeight && bMonochrome; y++) {
-            const BYTE* pPixel = pRow;
-            for (int x = 0; x < retImage->cxWidth; x++) {
-                const BYTE b = pPixel[0];
-                const BYTE g = pPixel[1];
-                const BYTE r = pPixel[2];
-                if (!((r == 0x00 && g == 0x00 && b == 0x00) || (r == 0xff && g == 0xff && b == 0xff))) {
-                    bMonochrome = false;
-                    break;
-                }
+    //  PDR-027: the same bounded scan that the DIB loader uses. This used to be
+    //  a second, unbounded copy of the monochrome test.
 
-                pPixel += 4;
-            }
-
-            pRow += retImage->iPitch;
-        }
-
-        if (bMonochrome)
-            retImage->iType = bitmapMonochrome;
-    }
+    if (retImage->iType == bitmapRGB && SDLBitmapSurfaceIsMonochrome(pSurface))
+        retImage->iType = bitmapMonochrome;
 
     if (pConverted)
         SDL_FreeSurface(pConverted);

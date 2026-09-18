@@ -930,6 +930,7 @@ add_library(platform_sdl STATIC
     "${CMAKE_CURRENT_SOURCE_DIR}/Transcendence/Transcendence/Platform/CPlatformTimerSystem.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/Transcendence/Transcendence/Platform/MetalRenderer.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/Transcendence/Transcendence/Platform/PlatformInput.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Transcendence/Transcendence/Platform/PlatformMessage.cpp"
 )
 target_include_directories(platform_sdl PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/Alchemy/Include"
@@ -1032,11 +1033,14 @@ add_custom_command(TARGET transcendence_app POST_BUILD
 add_executable(asset_validation_tool
     "Transcendence/Tools/AssetValidationMain.cpp"
     "Transcendence/Tools/PlatformToolStubs.cpp"
+    "Transcendence/Transcendence/Platform/PlatformInput.cpp"
+    "Transcendence/Transcendence/Platform/PlatformMessage.cpp"
 )
 
 target_include_directories(asset_validation_tool PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/Alchemy/Include"
     "${CMAKE_CURRENT_SOURCE_DIR}/Mammoth/Include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Transcendence/Transcendence/Platform"
 )
 
 target_link_libraries(asset_validation_tool PRIVATE
@@ -1062,11 +1066,14 @@ add_executable(transcompiler_tool
     "Transcendence/TransCompiler/CTDBCompiler.cpp"
     "Transcendence/TransCompiler/main.cpp"
     "Transcendence/Tools/PlatformToolStubs.cpp"
+    "Transcendence/Transcendence/Platform/PlatformInput.cpp"
+    "Transcendence/Transcendence/Platform/PlatformMessage.cpp"
 )
 
 target_include_directories(transcompiler_tool PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/Alchemy/Include"
     "${CMAKE_CURRENT_SOURCE_DIR}/Mammoth/Include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Transcendence/Transcendence/Platform"
     "${CMAKE_CURRENT_SOURCE_DIR}/Transcendence/TransCompiler"
 )
 
@@ -1094,6 +1101,7 @@ if(BUILD_TESTING)
         "Transcendence/Tests/MacPortabilityTests.cpp"
         "Transcendence/Tools/PlatformToolStubs.cpp"
         "Transcendence/Transcendence/Platform/PlatformInput.cpp"
+        "Transcendence/Transcendence/Platform/PlatformMessage.cpp"
         "Alchemy/DirectXUtil/SDLBitmap.cpp"
     )
     target_include_directories(mac_portability_tests PRIVATE

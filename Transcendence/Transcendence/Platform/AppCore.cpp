@@ -5,6 +5,7 @@
 
 #include "AppCore.h"
 #include "PlatformInput.h"
+#include "PlatformMessage.h"
 #include <SDL2/SDL.h>
 #include "Alchemy.h"
 #include "Kernel.h"
@@ -12,7 +13,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <cstdarg>
-#include <queue>
 #include <map>
 #include <mutex>
 #include <string>
@@ -22,10 +22,6 @@
 #include <unistd.h>
 #include <time.h>
 #include <sys/stat.h>
-
-#ifndef MAKELONG
-#define MAKELONG(a, b) ((unsigned int)(((unsigned short)(a)) | ((unsigned int)((unsigned short)(b))) << 16))
-#endif
 
 #ifndef WM_KEYDOWN
 #define WM_KEYDOWN 0x0100
@@ -286,15 +282,82 @@ BOOL PlatformReleaseCapture(void)
 	return (SDL_CaptureMouse(SDL_FALSE) == 0 ? TRUE : FALSE);
 	}
 
-static std::mutex g_MessageQueueCS;
 static std::mutex g_TimerCS;
-static std::map<unsigned int, SDL_TimerID> g_Timers;
 static const int PLATFORM_WM_TIMER = 0x0113;
+
+//	PDR-021: SDL_RemoveTimer() cannot stop a callback that is already running,
+//	and SDL reuses timer handles, so a timer that was replaced or killed could
+//	still deliver one more WM_TIMER for a timer the game had already destroyed.
+//	Every registration gets a slot from a fixed table plus a generation counter;
+//	the callback carries both and drops the tick when the slot no longer holds
+//	that generation. The table is fixed-size and never freed, so a callback in
+//	flight can never touch memory that was handed back to the allocator.
+
+static const int PLATFORM_MAX_TIMERS = 64;
+
+struct SPlatformTimerSlot
+	{
+	std::atomic<bool> bInUse{false};
+	std::atomic<unsigned int> dwTimerID{0};
+	std::atomic<unsigned long long> iGeneration{1};
+	};
+
+static SPlatformTimerSlot g_TimerSlots[PLATFORM_MAX_TIMERS];
+
+struct SPlatformTimer
+	{
+	SDL_TimerID id = 0;
+	int iSlot = -1;
+	unsigned long long iGeneration = 0;
+	};
+
+static std::map<unsigned int, SPlatformTimer> g_Timers;
+
+static void RetireTimerSlot(int iSlot)
+	{
+	if (iSlot < 0 || iSlot >= PLATFORM_MAX_TIMERS)
+		return;
+
+	//	Bump the generation first: a callback that has not yet passed its check
+	//	sees the new value and drops its tick.
+
+	g_TimerSlots[iSlot].iGeneration.fetch_add(1);
+	g_TimerSlots[iSlot].bInUse.store(false);
+	}
+
+static int AllocTimerSlot(void)
+	{
+	for (int i = 0; i < PLATFORM_MAX_TIMERS; i++)
+		if (!g_TimerSlots[i].bInUse.load())
+			return i;
+
+	return -1;
+	}
+
+static void* MakeTimerParam(int iSlot, unsigned long long iGeneration)
+	{
+	return (void*)(uintptr_t)(((iGeneration & 0xFFFFFFFFULL) << 32) | (unsigned int)(iSlot + 1));
+	}
 
 static Uint32 TimerThunk(Uint32 interval, void *param)
 {
-    const unsigned int dwTimerID = (unsigned int)(uintptr_t)param;
-    PlatformPostMessage(PLATFORM_WM_TIMER, (int)dwTimerID, nullptr);
+    const uintptr_t iParam = (uintptr_t)param;
+    const int iSlot = (int)(iParam & 0xFFFFFFFFULL) - 1;
+
+    if (iSlot < 0 || iSlot >= PLATFORM_MAX_TIMERS)
+        return 0;
+
+    const unsigned long long iGeneration = g_TimerSlots[iSlot].iGeneration.load();
+    if ((iGeneration & 0xFFFFFFFFULL) != (iParam >> 32))
+        return 0;
+
+    if (!g_TimerSlots[iSlot].bInUse.load())
+        return 0;
+
+    //	PDR-016: the timer id travels at full width; it used to be narrowed to
+    //	int on the way into the queue.
+
+    PlatformPostMessage(PLATFORM_WM_TIMER, (WPARAM)g_TimerSlots[iSlot].dwTimerID.load(), 0);
     return interval;
 }
 
@@ -485,12 +548,15 @@ void App_Shutdown(void)
     {
         std::lock_guard<std::mutex> lock(g_TimerCS);
         for (auto &entry : g_Timers)
-            SDL_RemoveTimer(entry.second);
+            {
+            RetireTimerSlot(entry.second.iSlot);
+            SDL_RemoveTimer(entry.second.id);
+            }
         g_Timers.clear();
     }
 
-    while (!g_AppState.msgQueue.empty())
-        g_AppState.msgQueue.pop();
+    PlatformClearMessageQueue();
+    PlatformSetMessageWindow(nullptr);
 
     if (g_AppState.pFrameBuffer) { delete[] g_AppState.pFrameBuffer; g_AppState.pFrameBuffer = nullptr; }
     if (g_AppState.pTexture) { SDL_DestroyTexture(g_AppState.pTexture); g_AppState.pTexture = nullptr; }
@@ -623,6 +689,19 @@ static DWORD SDLScancodeToKeyData(SDL_Scancode scanCode)
     }
 }
 
+//	WM_SIZE and WM_MOVE carry two *unsigned* 16-bit halves -- a client size and
+//	a window position -- rather than the signed point that WM_MOUSEMOVE and the
+//	mouse-button messages carry, so they are packed here instead of through
+//	PlatformPackPoint(). (PDR-019)
+
+static DWORD PackUnsignedPair(int iLow, int iHigh)
+	{
+	const DWORD dwLow = (DWORD)(unsigned short)(iLow & 0xFFFF);
+	const DWORD dwHigh = (DWORD)(unsigned short)(iHigh & 0xFFFF);
+
+	return (dwLow | (dwHigh << 16));
+	}
+
 int App_PumpEvents(void)
 {
     //	Refresh the desktop position of the window before dispatching, so that
@@ -646,24 +725,24 @@ int App_PumpEvents(void)
         case SDL_KEYDOWN:
             PlatformPostMessage(
                 WM_KEYDOWN,
-                SDLKeyToVK(event.key.keysym.scancode),
-                (void *)(uintptr_t)SDLScancodeToKeyData(event.key.keysym.scancode));
+                (WPARAM)SDLKeyToVK(event.key.keysym.scancode),
+                (LPARAM)(uintptr_t)SDLScancodeToKeyData(event.key.keysym.scancode));
             break;
         case SDL_KEYUP:
             PlatformPostMessage(
                 WM_KEYUP,
-                SDLKeyToVK(event.key.keysym.scancode),
-                (void *)(uintptr_t)SDLScancodeToKeyData(event.key.keysym.scancode));
+                (WPARAM)SDLKeyToVK(event.key.keysym.scancode),
+                (LPARAM)(uintptr_t)SDLScancodeToKeyData(event.key.keysym.scancode));
             break;
         case SDL_TEXTINPUT:
             for (const char* p = event.text.text; *p; p++)
-                PlatformPostMessage(WM_CHAR, *p, nullptr);
+                PlatformPostMessage(WM_CHAR, (WPARAM)(unsigned char)*p, 0);
             break;
         case SDL_MOUSEMOTION:
             PlatformSetMouseClientPos(event.motion.x, event.motion.y);
             PlatformPostMessage(WM_MOUSEMOVE,
-                (int)SDLMouseStateToMKFlags(event.motion.state),
-                (void*)(uintptr_t)MAKELONG(event.motion.x, event.motion.y));
+                (WPARAM)SDLMouseStateToMKFlags(event.motion.state),
+                (LPARAM)(uintptr_t)PlatformPackPoint(event.motion.x, event.motion.y));
             break;
         case SDL_MOUSEBUTTONDOWN:
             {
@@ -674,8 +753,8 @@ int App_PumpEvents(void)
                 int y = event.button.y;
                 PlatformSetMouseClientPos(x, y);
                 PlatformPostMessage(msg,
-                    (int)SDLMouseButtonEventToMKFlags(event.button, true),
-                    (void*)(uintptr_t)MAKELONG(x, y));
+                    (WPARAM)SDLMouseButtonEventToMKFlags(event.button, true),
+                    (LPARAM)(uintptr_t)PlatformPackPoint(x, y));
             }
             break;
         case SDL_MOUSEBUTTONUP:
@@ -687,8 +766,8 @@ int App_PumpEvents(void)
                 int y = event.button.y;
                 PlatformSetMouseClientPos(x, y);
                 PlatformPostMessage(msg,
-                    (int)SDLMouseButtonEventToMKFlags(event.button, false),
-                    (void*)(uintptr_t)MAKELONG(x, y));
+                    (WPARAM)SDLMouseButtonEventToMKFlags(event.button, false),
+                    (LPARAM)(uintptr_t)PlatformPackPoint(x, y));
             }
             break;
         case SDL_MOUSEWHEEL:
@@ -707,20 +786,20 @@ int App_PumpEvents(void)
 
                 const int iDelta = (event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -event.wheel.y : event.wheel.y);
                 PlatformPostMessage(WM_MOUSEWHEEL,
-                    (int)(uintptr_t)MAKELONG(SDLMouseStateToMKFlags(SDL_GetMouseState(nullptr, nullptr)), (short)(iDelta * 120)),
-                    (void*)(uintptr_t)MAKELONG(x + xWindow, y + yWindow));
+                    (WPARAM)PlatformPackMouseWheel((WORD)SDLMouseStateToMKFlags(SDL_GetMouseState(nullptr, nullptr)), iDelta * 120),
+                    (LPARAM)(uintptr_t)PlatformPackPoint(x + xWindow, y + yWindow));
             }
             break;
         case SDL_WINDOWEVENT:
             if (event.window.event == SDL_WINDOWEVENT_RESIZED)
                 {
                 log_va("App_PumpEvents: SDL_WINDOWEVENT_RESIZED %d x %d", event.window.data1, event.window.data2);
-                PlatformPostMessage(WM_SIZE, 0, (void*)(uintptr_t)MAKELONG(event.window.data1, event.window.data2));
+                PlatformPostMessage(WM_SIZE, 0, (LPARAM)(uintptr_t)PackUnsignedPair(event.window.data1, event.window.data2));
                 }
             else if (event.window.event == SDL_WINDOWEVENT_MOVED)
                 {
                 log_va("App_PumpEvents: SDL_WINDOWEVENT_MOVED %d,%d", event.window.data1, event.window.data2);
-                PlatformPostMessage(WM_MOVE, 0, (void*)(uintptr_t)MAKELONG(event.window.data1, event.window.data2));
+                PlatformPostMessage(WM_MOVE, 0, (LPARAM)(uintptr_t)PackUnsignedPair(event.window.data1, event.window.data2));
                 }
             else if (event.window.event == SDL_WINDOWEVENT_CLOSE)
                 {
@@ -798,35 +877,6 @@ uint32_t* App_GetFrameBuffer(void) { return g_AppState.pFrameBuffer; }
 int App_GetFrameBufferWidth(void) { return g_AppState.cxWidth; }
 int App_GetFrameBufferHeight(void) { return g_AppState.cyHeight; }
 
-bool PlatformPostMessage(int msg, int wParam, void* lParam)
-{
-    std::lock_guard<std::mutex> lock(g_MessageQueueCS);
-
-    SPlatformMessage message;
-    message.msg = msg;
-    message.wParam = wParam;
-    message.lParam = lParam;
-    g_AppState.msgQueue.push(message);
-    return true;
-}
-
-LRESULT PlatformSendMessage(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
-{
-    (void)hWnd;
-
-    switch (Msg)
-    {
-    case WM_CLOSE:
-    case WM_DESTROY:
-        App_SetRunning(0);
-        return 0;
-
-    default:
-        PlatformPostMessage((int)Msg, (int)wParam, (void*)lParam);
-        return 0;
-    }
-}
-
 bool PlatformDestroyWindow(HWND hWnd)
 {
     (void)hWnd;
@@ -834,61 +884,71 @@ bool PlatformDestroyWindow(HWND hWnd)
     return true;
 }
 
-int PlatformPeekMessage(int* pMsg, int* pWParam, void** ppLParam)
-{
-    std::lock_guard<std::mutex> lock(g_MessageQueueCS);
-
-    if (g_AppState.msgQueue.empty())
-        return 0;
-
-    const SPlatformMessage& message = g_AppState.msgQueue.front();
-    if (pMsg) *pMsg = message.msg;
-    if (pWParam) *pWParam = message.wParam;
-    if (ppLParam) *ppLParam = message.lParam;
-    g_AppState.msgQueue.pop();
-
-    return 1;
-}
+//	PDR-021: the registry below hands the callback a slot index plus a
+//	generation stamp, so a tick that SDL_RemoveTimer() could not stop drops
+//	itself instead of delivering a WM_TIMER for a timer that no longer exists.
 
 unsigned int PlatformSetTimerCompat(void* hWnd, unsigned int timerID, unsigned int elapse, void* callback)
-{
-    (void)hWnd;
-    (void)callback;
+	{
+	(void)hWnd;
+	(void)callback;
 
-    if (elapse == 0)
-        return 0;
+	if (elapse == 0)
+		return 0;
 
-    std::lock_guard<std::mutex> lock(g_TimerCS);
+	std::lock_guard<std::mutex> lock(g_TimerCS);
 
-    auto it = g_Timers.find(timerID);
-    if (it != g_Timers.end())
-        {
-        SDL_RemoveTimer(it->second);
-        g_Timers.erase(it);
-        }
+	auto it = g_Timers.find(timerID);
+	if (it != g_Timers.end())
+		{
+		RetireTimerSlot(it->second.iSlot);
+		SDL_RemoveTimer(it->second.id);
+		g_Timers.erase(it);
+		}
 
-    SDL_TimerID id = SDL_AddTimer(elapse, TimerThunk, (void *)(uintptr_t)timerID);
-    if (id == 0)
-        return 0;
+	const int iSlot = AllocTimerSlot();
+	if (iSlot < 0)
+		{
+		log_va("PlatformSetTimerCompat: timer table is full (%d slots)", PLATFORM_MAX_TIMERS);
+		return 0;
+		}
 
-    g_Timers.insert({ timerID, id });
-    return timerID;
-}
+	const unsigned long long iGeneration = g_TimerSlots[iSlot].iGeneration.load();
+
+	SDL_TimerID id = SDL_AddTimer(elapse, TimerThunk, MakeTimerParam(iSlot, iGeneration));
+	if (id == 0)
+		return 0;
+
+	//	The slot becomes visible to the callback only once the timer exists, so
+	//	a tick that arrives immediately still finds a fully published slot.
+
+	g_TimerSlots[iSlot].dwTimerID.store(timerID);
+	g_TimerSlots[iSlot].bInUse.store(true);
+
+	SPlatformTimer timer;
+	timer.id = id;
+	timer.iSlot = iSlot;
+	timer.iGeneration = iGeneration;
+	g_Timers[timerID] = timer;
+
+	return timerID;
+	}
 
 int PlatformKillTimerCompat(void* hWnd, unsigned int timerID)
-{
-    (void)hWnd;
+	{
+	(void)hWnd;
 
-    std::lock_guard<std::mutex> lock(g_TimerCS);
+	std::lock_guard<std::mutex> lock(g_TimerCS);
 
-    auto it = g_Timers.find(timerID);
-    if (it == g_Timers.end())
-        return 0;
+	auto it = g_Timers.find(timerID);
+	if (it == g_Timers.end())
+		return 0;
 
-    SDL_RemoveTimer(it->second);
-    g_Timers.erase(it);
-    return 1;
-}
+	RetireTimerSlot(it->second.iSlot);
+	SDL_RemoveTimer(it->second.id);
+	g_Timers.erase(it);
+	return 1;
+	}
 
 // ============================================================================
 // Global crash handler — writes crash log to Crash.log
@@ -956,6 +1016,19 @@ static void sigWriteDec(int fd, int val)
 		write(fd, &buf[i], 1);
 	}
 
+//	PDR-020: the handler runs on its own signal stack and writes through a
+//	file descriptor that was opened before the crash, so the two things a
+//	crash handler must never do -- run on the stack it is reporting, and call
+//	a libc entry point that is not async-signal-safe -- are gone from both the
+//	fatal path and the recovery path.
+
+static int g_CrashLogFD = -1;
+
+static int OpenCrashLog(void)
+	{
+	return open(CRASH_LOG_FILE, O_WRONLY | O_CREAT | O_APPEND, 0644);
+	}
+
 static void crashHandler(int sig)
 	{
 	// Re-entrancy guard: a different signal arriving while we're already
@@ -964,10 +1037,10 @@ static void crashHandler(int sig)
 		_exit(128 + sig);
 	g_InHandler = 1;
 
-	int fd = open(CRASH_LOG_FILE, O_WRONLY | O_CREAT | O_APPEND, 0644);
+	int fd = g_CrashLogFD;
 	if (fd < 0)
 		{
-		const char msg[] = "CRASH: signal handler failed to open Crash.log\n";
+		const char msg[] = "CRASH: no crash log descriptor is open\n";
 		write(STDERR_FILENO, msg, sizeof(msg) - 1);
 		}
 	else
@@ -1001,7 +1074,6 @@ static void crashHandler(int sig)
 		backtrace_symbols_fd(frames, nFrames, fd);
 
 		sigWrite(fd, "\n");
-		close(fd);
 		}
 
 	// Restore the default disposition, then RETURN. The original (still-pending)
@@ -1041,11 +1113,34 @@ void crashRecoveryEnd()
 	g_CrashRecoveryActive = 0;
 	}
 
+//	PDR-020: the recovery jump leaves the signal handler's frame, so the
+//	handler does the least amount of work that is still useful: it appends a
+//	short, async-signal-safe record to the already-open crash log and jumps
+//	back. No open(), no backtrace and no allocation run here, so recovering
+//	from a corrupt-save crash cannot touch the allocator or the stdio buffers
+//	from a signal context.
+//
+//	The jump itself remains undefined behaviour per POSIX. That is a deliberate,
+//	bounded trade-off: the game arms it around a single script callback (see
+//	CTranscendenceModel::StartGame) so that a corrupt save file can be reported
+//	instead of terminating the session, and it is only reachable while that
+//	callback is running. The handler is installed on a dedicated signal stack
+//	below, which is what makes a stack-overflow crash reachable at all.
+
 static void crashHandlerWithRecovery(int sig)
 	{
 	if (g_CrashRecoveryActive)
 		{
 		g_CrashRecoveryActive = 0;
+
+		const int fd = g_CrashLogFD;
+		if (fd >= 0)
+			{
+			sigWrite(fd, "=== RECOVERED CRASH ===\nSignal: ");
+			sigWriteDec(fd, sig);
+			sigWrite(fd, "\n");
+			}
+
 		siglongjmp(g_CrashRecoveryJmp, sig);
 		}
 	crashHandler(sig);
@@ -1053,10 +1148,28 @@ static void crashHandlerWithRecovery(int sig)
 
 static void installCrashHandler()
 	{
+	//	PDR-020: the handler runs on its own stack. The most common script crash
+	//	is a stack overflow, and a handler that runs on the exhausted stack it is
+	//	supposed to report cannot run at all: the kernel delivers a second
+	//	SIGSEGV with SIG_DFL in place and the process dies without a crash log.
+
+	static char s_SignalStack[64 * 1024];
+	stack_t signalStack;
+	signalStack.ss_sp = s_SignalStack;
+	signalStack.ss_size = sizeof(s_SignalStack);
+	signalStack.ss_flags = 0;
+	sigaltstack(&signalStack, NULL);
+
+	//	The crash log descriptor is opened once, here, so that the handler never
+	//	calls open() -- which is not async-signal-safe -- while a crash is being
+	//	reported. The descriptor is deliberately never closed.
+
+	g_CrashLogFD = OpenCrashLog();
+
 	struct sigaction sa;
 	sa.sa_handler = crashHandlerWithRecovery;
 	sigemptyset(&sa.sa_mask);
-	sa.sa_flags = 0;
+	sa.sa_flags = SA_ONSTACK;
 	sigaction(SIGSEGV, &sa, NULL);
 	sigaction(SIGABRT, &sa, NULL);
 	sigaction(SIGBUS,  &sa, NULL);
