@@ -1,5 +1,6 @@
 #include "Alchemy.h"
 #include "DirectXUtil.h"
+#include "PlatformInput.h"
 
 #include <cstdio>
 #include <cstring>
@@ -120,6 +121,197 @@ int main()
 				"CFileReadStream read") && bSuccess;
 		}
 	bSuccess = Check(Stream.Close() == NOERROR, "CFileReadStream close") && bSuccess;
+
+	//	PDR-002/PDR-003: the memory write stream must grow its reservation until
+	//	the whole request fits (a single write can exceed twice the current
+	//	maximum) and must account for committed bytes so that a forward Seek
+	//	exposes zero-filled memory instead of uninitialized heap.
+
+	{
+	CMemoryWriteStream MemoryStream(1024);
+	bSuccess = Check(MemoryStream.Create() == NOERROR, "CMemoryWriteStream create") && bSuccess;
+
+	const int iChunkSize = 4096;
+	char szChunk[iChunkSize];
+	for (int i = 0; i < iChunkSize; i++)
+		szChunk[i] = (char)(i & 0xFF);
+
+	int iBytesWritten = 0;
+	bSuccess = Check(MemoryStream.Write(szChunk, iChunkSize, &iBytesWritten) == NOERROR && iBytesWritten == iChunkSize,
+			"CMemoryWriteStream write beyond 2x maximum") && bSuccess;
+	bSuccess = Check(MemoryStream.GetLength() == iChunkSize, "CMemoryWriteStream length after growth") && bSuccess;
+	bSuccess = Check(MemoryStream.GetCommittedSize() >= iChunkSize, "CMemoryWriteStream committed covers write") && bSuccess;
+
+	bool bIntact = true;
+	const char *pBlock = MemoryStream.GetPointer();
+	for (int i = 0; i < iChunkSize; i++)
+		if (pBlock[i] != (char)(i & 0xFF))
+			bIntact = false;
+	bSuccess = Check(bIntact, "CMemoryWriteStream data intact after growth") && bSuccess;
+
+	//	Seeking forward past the committed region must extend the stream with
+	//	zero-filled bytes, not garbage.
+
+	const int iSeekTo = MemoryStream.GetCommittedSize() + 512;
+	MemoryStream.Seek(iSeekTo);
+	bSuccess = Check(MemoryStream.GetLength() == iSeekTo, "CMemoryWriteStream forward seek extends length") && bSuccess;
+	bSuccess = Check(MemoryStream.GetCommittedSize() >= iSeekTo, "CMemoryWriteStream committed covers seek") && bSuccess;
+
+	pBlock = MemoryStream.GetPointer();
+	bool bZeroFilled = true;
+	for (int i = iChunkSize; i < iSeekTo; i++)
+		if (pBlock[i] != 0)
+			bZeroFilled = false;
+	bSuccess = Check(bZeroFilled, "CMemoryWriteStream seek region is zero-filled") && bSuccess;
+
+	//	Growing again must preserve the data written before the reallocation.
+
+	char szTail[8192];
+	for (int i = 0; i < (int)sizeof(szTail); i++)
+		szTail[i] = (char)(0xFF - (i & 0x7F));
+	bSuccess = Check(MemoryStream.Write(szTail, (int)sizeof(szTail)) == NOERROR, "CMemoryWriteStream second growth") && bSuccess;
+
+	pBlock = MemoryStream.GetPointer();
+	bIntact = true;
+	for (int i = 0; i < iChunkSize; i++)
+		if (pBlock[i] != (char)(i & 0xFF))
+			bIntact = false;
+	bSuccess = Check(bIntact, "CMemoryWriteStream data preserved across second growth") && bSuccess;
+	}
+
+	//	PDR-001: every virtual key referenced by the default key mappings must
+	//	map to the right scancode, and the async-key-state query must report it
+	//	as down. The state is injected so that the mapping is exercised without
+	//	a window, a device, or an initialized SDL video subsystem.
+
+	{
+	struct SVKCase
+		{
+		int iVK;
+		SDL_Scancode iScancode;
+		};
+
+	const SVKCase KeyCases[] =
+		{
+		{ 'A', SDL_SCANCODE_A },
+		{ 'B', SDL_SCANCODE_B },
+		{ 'C', SDL_SCANCODE_C },
+		{ 'D', SDL_SCANCODE_D },
+		{ 'F', SDL_SCANCODE_F },
+		{ 'G', SDL_SCANCODE_G },
+		{ 'M', SDL_SCANCODE_M },
+		{ 'N', SDL_SCANCODE_N },
+		{ 'P', SDL_SCANCODE_P },
+		{ 'Q', SDL_SCANCODE_Q },
+		{ 'R', SDL_SCANCODE_R },
+		{ 'S', SDL_SCANCODE_S },
+		{ 'T', SDL_SCANCODE_T },
+		{ 'U', SDL_SCANCODE_U },
+		{ 'V', SDL_SCANCODE_V },
+		{ 'W', SDL_SCANCODE_W },
+		{ 'X', SDL_SCANCODE_X },
+		{ 'Y', SDL_SCANCODE_Y },
+		{ 'Z', SDL_SCANCODE_Z },
+		{ VK_CONTROL, SDL_SCANCODE_LCTRL },
+		{ VK_DOWN, SDL_SCANCODE_DOWN },
+		{ VK_LEFT, SDL_SCANCODE_LEFT },
+		{ VK_PAUSE, SDL_SCANCODE_PAUSE },
+		{ VK_RIGHT, SDL_SCANCODE_RIGHT },
+		{ VK_SHIFT, SDL_SCANCODE_LSHIFT },
+		{ VK_SPACE, SDL_SCANCODE_SPACE },
+		{ VK_TAB, SDL_SCANCODE_TAB },
+		{ VK_UP, SDL_SCANCODE_UP },
+		{ VK_F1, SDL_SCANCODE_F1 },
+		{ VK_F2, SDL_SCANCODE_F2 },
+		{ VK_F6, SDL_SCANCODE_F6 },
+		{ VK_F7, SDL_SCANCODE_F7 },
+		{ VK_F8, SDL_SCANCODE_F8 },
+		{ VK_F9, SDL_SCANCODE_F9 },
+		};
+
+	Uint8 KeyState[SDL_NUM_SCANCODES];
+	bool bMapping = true;
+	for (size_t i = 0; i < sizeof(KeyCases) / sizeof(KeyCases[0]); i++)
+		{
+		if (PlatformVKToScancode(KeyCases[i].iVK) != KeyCases[i].iScancode)
+			bMapping = false;
+
+		//	Key up: nothing reported.
+
+		memset(KeyState, 0, sizeof(KeyState));
+		if (PlatformAsyncKeyStateForState(KeyCases[i].iVK, KeyState, 0, KMOD_NONE) != 0)
+			bMapping = false;
+
+		//	Key down: reported as down.
+
+		KeyState[KeyCases[i].iScancode] = 1;
+		if (PlatformAsyncKeyStateForState(KeyCases[i].iVK, KeyState, 0, KMOD_NONE) != (SHORT)0x8000)
+			bMapping = false;
+		}
+	bSuccess = Check(bMapping, "default key mapping VK to scancode") && bSuccess;
+
+	Uint8 EmptyState[SDL_NUM_SCANCODES];
+	memset(EmptyState, 0, sizeof(EmptyState));
+
+	//	Mouse buttons have no scancode and are polled from the button state.
+
+	bSuccess = Check(PlatformVKToScancode(VK_LBUTTON) == SDL_SCANCODE_UNKNOWN
+			&& PlatformAsyncKeyStateForState(VK_LBUTTON, EmptyState, SDL_BUTTON(SDL_BUTTON_LEFT), KMOD_NONE) == (SHORT)0x8000
+			&& PlatformAsyncKeyStateForState(VK_LBUTTON, EmptyState, 0, KMOD_NONE) == 0,
+			"left mouse button virtual key") && bSuccess;
+	bSuccess = Check(PlatformAsyncKeyStateForState(VK_RBUTTON, EmptyState, SDL_BUTTON(SDL_BUTTON_RIGHT), KMOD_NONE) == (SHORT)0x8000
+			&& PlatformAsyncKeyStateForState(VK_RBUTTON, EmptyState, 0, KMOD_NONE) == 0,
+			"right mouse button virtual key") && bSuccess;
+	bSuccess = Check(PlatformAsyncKeyStateForState(VK_MBUTTON, EmptyState, SDL_BUTTON(SDL_BUTTON_MIDDLE), KMOD_NONE) == (SHORT)0x8000,
+			"middle mouse button virtual key") && bSuccess;
+
+	//	Modifiers are driven by the SDL modifier state.
+
+	bSuccess = Check(PlatformAsyncKeyStateForState(VK_SHIFT, EmptyState, 0, KMOD_LSHIFT) == (SHORT)0x8000
+			&& PlatformAsyncKeyStateForState(VK_CONTROL, EmptyState, 0, KMOD_RCTRL) == (SHORT)0x8000
+			&& PlatformAsyncKeyStateForState(VK_MENU, EmptyState, 0, KMOD_LALT) == (SHORT)0x8000
+			&& PlatformAsyncKeyStateForState(VK_NUMLOCK, EmptyState, 0, KMOD_NUM) == (SHORT)0x8000,
+			"modifier virtual keys") && bSuccess;
+	}
+
+	//	PDR-006: destroying a bitmap must drop its lookup entry, so that the
+	//	registry neither dangles nor grows across repeated create/destroy cycles.
+
+	{
+	//	A caller-owned pixel buffer keeps this independent of SDL video init.
+
+	DWORD PixelBuffer[8 * 8];
+	memset(PixelBuffer, 0, sizeof(PixelBuffer));
+	SDL_Surface *pSurface = SDL_CreateRGBSurfaceFrom(PixelBuffer, 8, 8, 32, 8 * 4,
+			0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
+	bSuccess = Check(pSurface != NULL, "SDL_CreateRGBSurfaceFrom") && bSuccess;
+
+	if (pSurface)
+		{
+		std::map<void*, SDLBitmap*>& BitmapMap = GetSDLBitmapMap();
+		const size_t iBaseline = BitmapMap.size();
+
+		SDLBitmap *pBitmap = SDLBitmapCreateFromSurface(pSurface, bitmapRGB, false);
+		bSuccess = Check(pBitmap != NULL, "SDLBitmapCreateFromSurface") && bSuccess;
+
+		if (pBitmap)
+			{
+			bSuccess = Check(BitmapMap.count((void *)pBitmap) == 1, "bitmap registered in lookup map") && bSuccess;
+			SDLBitmapDestroy(pBitmap);
+			bSuccess = Check(BitmapMap.count((void *)pBitmap) == 0, "bitmap removed from lookup map on destroy") && bSuccess;
+			}
+
+		for (int i = 0; i < 64; i++)
+			{
+			SDLBitmap *pCycle = SDLBitmapCreateFromSurface(pSurface, bitmapRGB, false);
+			if (pCycle)
+				SDLBitmapDestroy(pCycle);
+			}
+		bSuccess = Check(BitmapMap.size() == iBaseline, "bitmap map does not grow across cycles") && bSuccess;
+
+		SDL_FreeSurface(pSurface);
+		}
+	}
 
 	kernelCleanUp();
 	return (bSuccess ? 0 : 1);

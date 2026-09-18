@@ -33,6 +33,7 @@
 #include <cstdio>
 #include <mutex>
 #include <map>
+#include <set>
 #include <sys/time.h>
 #include <sys/mman.h>
 #include <unistd.h>
@@ -565,6 +566,47 @@ inline HANDLE CreateFile(const char* pFilename, DWORD dwAccess, DWORD dwShareMod
 struct SEventHandle { DWORD dwMagic; int fd[2]; bool bManualReset; };
 #define EVENT_MAGIC 0x45565448
 
+//	Handle registry.
+//
+//	Win32 handles are emulated with two unrelated kinds of values: heap
+//	allocated structs (events, file mappings, kernel thread handles) and raw
+//	POSIX file descriptors. A file descriptor is a small integer that can be
+//	larger than any pointer/heuristic threshold, so the value alone cannot
+//	tell us which kind we are holding. We therefore record every emulated
+//	handle we hand out; anything not in the registry is a file descriptor.
+
+namespace KernelHandleRegistry {
+	inline std::set<void*>& GetHandles (void)
+		{
+		static std::set<void*> sHandles;
+		return sHandles;
+		}
+
+	inline std::mutex& GetMutex (void)
+		{
+		static std::mutex sMutex;
+		return sMutex;
+		}
+
+	inline void RegisterHandle (void *pHandle)
+		{
+		std::lock_guard<std::mutex> lock(GetMutex());
+		GetHandles().insert(pHandle);
+		}
+
+	inline void UnregisterHandle (void *pHandle)
+		{
+		std::lock_guard<std::mutex> lock(GetMutex());
+		GetHandles().erase(pHandle);
+		}
+
+	inline bool IsHandle (void *pHandle)
+		{
+		std::lock_guard<std::mutex> lock(GetMutex());
+		return (GetHandles().count(pHandle) != 0);
+		}
+	}
+
 inline HANDLE CreateEvent(void* pAttrs, BOOL bManualReset, BOOL bInitialState, LPCSTR lpName) {
     (void)pAttrs; (void)lpName;
     SEventHandle *pEvent = new SEventHandle;
@@ -577,12 +619,15 @@ inline HANDLE CreateEvent(void* pAttrs, BOOL bManualReset, BOOL bInitialState, L
         char c = 1;
         if (write(pEvent->fd[1], &c, 1) < 0) {}
     }
+    KernelHandleRegistry::RegisterHandle(pEvent);
     return (HANDLE)pEvent;
 }
 
 inline BOOL SetEvent(HANDLE h) {
     if (!h || h == INVALID_HANDLE_VALUE) return FALSE;
+    if (!KernelHandleRegistry::IsHandle((void *)h)) return FALSE;
     SEventHandle *p = (SEventHandle *)h;
+    if (p->dwMagic != EVENT_MAGIC) return FALSE;
     char c = 1;
     if (write(p->fd[1], &c, 1) < 0) {}
     return TRUE;
@@ -590,7 +635,9 @@ inline BOOL SetEvent(HANDLE h) {
 
 inline BOOL ResetEvent(HANDLE h) {
     if (!h || h == INVALID_HANDLE_VALUE) return FALSE;
+    if (!KernelHandleRegistry::IsHandle((void *)h)) return FALSE;
     SEventHandle *p = (SEventHandle *)h;
+    if (p->dwMagic != EVENT_MAGIC) return FALSE;
     char buf[64];
     while (read(p->fd[0], buf, sizeof(buf)) > 0) {}
     return TRUE;
@@ -665,6 +712,7 @@ inline HANDLE CreateFileMapping(HANDLE hFile, void* pAttr, DWORD flProtect, DWOR
     pH->fd = (int)(intptr_t)hFile;
     pH->size = ((size_t)dwMaxSizeHigh << 32) | dwMaxSizeLow;
     pH->prot = (flProtect == PAGE_READONLY) ? PROT_READ : PROT_READ | PROT_WRITE;
+    KernelHandleRegistry::RegisterHandle(pH);
     return (HANDLE)pH;
 }
 #endif
@@ -1001,16 +1049,18 @@ inline void CloseHandle(HANDLE h)
 	if (h == NULL || h == INVALID_HANDLE_VALUE)
 		return;
 
-	//	Event handles are heap-allocated structs (large pointer values).
-	//	File descriptors are small integers (typically < 1024).
-	//	Check if this looks like a pointer before dereferencing.
+	//	Emulated handles (events, file mappings, kernel threads) are heap
+	//	allocated structs registered at creation time. Anything else is a
+	//	POSIX file descriptor. We must not dereference based on the numeric
+	//	value alone: a file descriptor larger than the old 1024 threshold
+	//	would be read as a struct and crash.
 
-	intptr_t iHandle = (intptr_t)h;
-	if (iHandle > 1024)
+	if (KernelHandleRegistry::IsHandle((void *)h))
 		{
 		SFileMappingHandle *pMap = (SFileMappingHandle *)h;
 		if (pMap->dwMagic == FILE_MAPPING_MAGIC)
 			{
+			KernelHandleRegistry::UnregisterHandle(pMap);
 			delete pMap;
 			return;
 			}
@@ -1018,6 +1068,7 @@ inline void CloseHandle(HANDLE h)
 		SEventHandle *pEvent = (SEventHandle *)h;
 		if (pEvent->dwMagic == EVENT_MAGIC)
 			{
+			KernelHandleRegistry::UnregisterHandle(pEvent);
 			close(pEvent->fd[0]);
 			close(pEvent->fd[1]);
 			delete pEvent;
@@ -1025,7 +1076,7 @@ inline void CloseHandle(HANDLE h)
 			}
 		}
 
-	close((int)iHandle);
+	close((int)(intptr_t)h);
 	}
 
 #define TIMER_RESOLUTION 1
@@ -1288,7 +1339,9 @@ inline void EnterCriticalSection (CRITICAL_SECTION *pCS) {
 inline void LeaveCriticalSection (CRITICAL_SECTION *pCS) { pthread_mutex_unlock(&pCS->Mutex); }
 inline DWORD WaitForSingleObject(HANDLE h, DWORD dwTimeout) {
     if (!h || h == INVALID_HANDLE_VALUE) return WAIT_OBJECT_0;
+    if (!KernelHandleRegistry::IsHandle((void *)h)) return WAIT_OBJECT_0;
     SEventHandle *p = (SEventHandle *)h;
+    if (p->dwMagic != EVENT_MAGIC) return WAIT_OBJECT_0;
     struct pollfd pfd;
     pfd.fd = p->fd[0];
     pfd.events = POLLIN;
@@ -1308,7 +1361,8 @@ inline DWORD WaitForMultipleObjects(DWORD nCount, const HANDLE* pHandles, BOOL b
     if (nCount == 0) return WAIT_TIMEOUT;
     struct pollfd *pFds = (struct pollfd *)alloca(nCount * sizeof(struct pollfd));
     for (DWORD i = 0; i < nCount; i++) {
-        SEventHandle *p = (SEventHandle *)pHandles[i];
+        SEventHandle *p = (KernelHandleRegistry::IsHandle((void *)pHandles[i]) ? (SEventHandle *)pHandles[i] : NULL);
+        if (p && p->dwMagic != EVENT_MAGIC) p = NULL;
         pFds[i].fd = (p ? p->fd[0] : -1);
         pFds[i].events = POLLIN;
     }
@@ -2296,6 +2350,7 @@ class CMemoryWriteStream : public CObject, public IWriteStream
 
 		char *GetPointer (void) { return m_pBlock; }
 		int GetLength (void) { return m_iCurrentSize; }
+		int GetCommittedSize (void) const { return m_iCommittedSize; }
 		void Seek (int iPos);
 
 		//	IWriteStream virtuals

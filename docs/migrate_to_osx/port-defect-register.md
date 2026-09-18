@@ -73,12 +73,12 @@ Gate tambahan per temuan dicantumkan pada field **Gate verifikasi** di entri ter
 
 | ID | Judul singkat | Prioritas | Status temuan | Fase | Status kerja |
 |---|---|---|---|---|---|
-| PDR-001 | Pemetaan VK tidak lengkap di `PlatformGetAsyncKeyState` | P0 | `confirmed` | 1 | `todo` |
-| PDR-002 | `CMemoryWriteStream::Write` tumbuh hanya sekali | P0 | `confirmed` | 1 | `todo` |
-| PDR-003 | `m_iCommittedSize` tidak pernah di-update | P0 | `confirmed` | 1 | `todo` |
-| PDR-004 | `CloseHandle` heuristik pointer-vs-fd | P0 | `confirmed` | 1 | `todo` |
-| PDR-005 | Event handle tanpa magic check | P0 | `confirmed` | 1 | `todo` |
-| PDR-006 | `SDLBitmapDestroy` tidak menghapus entri map | P0 | `confirmed` | 1 | `todo` |
+| PDR-001 | Pemetaan VK tidak lengkap di `PlatformGetAsyncKeyState` | P0 | `confirmed` | 1 | `done` |
+| PDR-002 | `CMemoryWriteStream::Write` tumbuh hanya sekali | P0 | `confirmed` | 1 | `done` |
+| PDR-003 | `m_iCommittedSize` tidak pernah di-update | P0 | `confirmed` | 1 | `done` |
+| PDR-004 | `CloseHandle` heuristik pointer-vs-fd | P0 | `confirmed` | 1 | `done` |
+| PDR-005 | Event handle tanpa magic check | P0 | `confirmed` | 1 | `done` |
+| PDR-006 | `SDLBitmapDestroy` tidak menghapus entri map | P0 | `confirmed` | 1 | `done` |
 | PDR-007 | `dibCreate*`/`dibCrop`/`dibConvertToDDB`/`dibLoadFromResource` selalu `ERR_FAIL` | P1 | `confirmed` | 2 | `todo` |
 | PDR-008 | `MCIWnd*` no-op | P1 | `confirmed` | 2 | `todo` |
 | PDR-009 | `CMCIMixerStub.cpp` menggantikan `CMCIMixer.cpp` | P1 | `likely` | 2 | `todo` |
@@ -124,6 +124,12 @@ terpisah di luar cakupan rencana ini.
 Fokus: pemetaan virtual-key yang lengkap dan koreksi akuntansi/keamanan memori pada
 kompat layer. Fase ini adalah prasyarat agar kontrol default dan alokasi dinamis bekerja benar.
 
+Status fase: `done` (branch `fix/macos-port-p0-input-memory`). Gate terverifikasi:
+`cmake --preset macos-debug`, `cmake --build --preset macos-debug` (termasuk
+`Transcendence.app`), dan `ctest -R mac-portability` lulus. Utilitas baru
+`PlatformVKToScancode`/`PlatformAsyncKeyStateForState` didokumentasikan di
+`platform-input-utilities.md`.
+
 ### PDR-001 — Pemetaan VK tidak lengkap di `PlatformGetAsyncKeyState`
 
 - **Status temuan:** `confirmed`
@@ -144,7 +150,8 @@ kompat layer. Fase ini adalah prasyarat agar kontrol default dan alokasi dinamis
 - **Gate verifikasi:** Gate standar + unit test `PlatformVKToScancode` untuk setiap VK pada
   `DefaultKeyMappings.h`, plus assert `PlatformGetAsyncKeyState` mengembalikan `0x8000` saat
   scancode terkait aktif.
-- **Status kerja:** `todo`
+- **Perbaikan:** `PlatformVKToScancode` dan `PlatformAsyncKeyStateForState` di `Transcendence/Transcendence/Platform/PlatformInput.cpp`; pemetaan lama dihapus dari `AppCore.cpp`, yang kini hanya memuat `PlatformInput.h`.
+- **Status kerja:** `done`
 
 ### PDR-002 — `CMemoryWriteStream::Write` tumbuh hanya sekali
 
@@ -161,7 +168,8 @@ kompat layer. Fase ini adalah prasyarat agar kontrol default dan alokasi dinamis
 - **Fase perbaikan:** Fase 1 — PR `fix/macos-port-p0-input-memory`
 - **Gate verifikasi:** Gate standar + unit test menulis melebihi `2 × m_iMaxSize` tanpa korupsi
   (build Debug + sanitizer-friendly assertion) dan memverifikasi data utuh.
-- **Status kerja:** `todo`
+- **Perbaikan:** `Alchemy/Kernel/CMemoryStream.cpp` — `Write` menggandakan reservasi dalam loop sampai seluruh permintaan muat, dengan `memcpy` data lama dan `free` blok lama.
+- **Status kerja:** `done`
 
 ### PDR-003 — `m_iCommittedSize` tidak pernah di-update
 
@@ -177,7 +185,8 @@ kompat layer. Fase ini adalah prasyarat agar kontrol default dan alokasi dinamis
 - **Fase perbaikan:** Fase 1 — PR `fix/macos-port-p0-input-memory`
 - **Gate verifikasi:** Gate standar + unit test: `Seek` maju menghasilkan byte nol, dan
   `m_iCommittedSize` konsisten dengan jumlah byte yang pernah ditulis.
-- **Status kerja:** `todo`
+- **Perbaikan:** `Alchemy/Kernel/CMemoryStream.cpp` — region yang baru di-commit di-`memset` nol dan `m_iCommittedSize` dinaikkan, sehingga `Seek` maju membaca nol. Getter `GetCommittedSize()` ditambahkan untuk pengujian.
+- **Status kerja:** `done`
 
 ### PDR-004 — `CloseHandle` heuristik pointer-vs-fd
 
@@ -193,7 +202,8 @@ kompat layer. Fase ini adalah prasyarat agar kontrol default dan alokasi dinamis
 - **Fase perbaikan:** Fase 1 — PR `fix/macos-port-p0-input-memory`
 - **Gate verifikasi:** Gate standar + unit test `CloseHandle` pada fd tinggi dan pada handle
   event/mapping (tanpa crash, tidak menutup fd yang salah).
-- **Status kerja:** `todo`
+- **Perbaikan:** `Alchemy/Include/Kernel.h` — registry `KernelHandleRegistry` mencatat setiap handle emulasi (event, file mapping) saat dibuat; `CloseHandle` memakai registry, bukan heuristik `> 1024`.
+- **Status kerja:** `done`
 
 ### PDR-005 — Event handle tanpa magic check
 
@@ -211,7 +221,8 @@ kompat layer. Fase ini adalah prasyarat agar kontrol default dan alokasi dinamis
 - **Fase perbaikan:** Fase 1 — PR `fix/macos-port-p0-input-memory`
 - **Gate verifikasi:** Gate standar + unit test memastikan handle non-event ditolak dengan
   aman (`FALSE`/`WAIT_TIMEOUT`), bukan dereference liar.
-- **Status kerja:** `todo`
+- **Perbaikan:** `Alchemy/Include/Kernel.h` — `SetEvent`, `ResetEvent`, `WaitForSingleObject`, dan `WaitForMultipleObjects` memvalidasi keanggotaan registry dan `dwMagic == EVENT_MAGIC` sebelum menyentuh `SEventHandle`.
+- **Status kerja:** `done`
 
 ### PDR-006 — `SDLBitmapDestroy` tidak menghapus entri map
 
@@ -229,7 +240,8 @@ kompat layer. Fase ini adalah prasyarat agar kontrol default dan alokasi dinamis
 - **Fase perbaikan:** Fase 1 — PR `fix/macos-port-p0-input-memory`
 - **Gate verifikasi:** Gate standar + unit test: create → destroy → lookup mengembalikan `null`,
   dan ukuran map tidak tumbuh setelah siklus berulang.
-- **Status kerja:** `todo`
+- **Perbaikan:** `Alchemy/DirectXUtil/SDLBitmap.cpp` — `SDLBitmapDestroy` menghapus entri `GetSDLBitmapMap()` sebelum membebaskan surface dan objek.
+- **Status kerja:** `done`
 
 ---
 

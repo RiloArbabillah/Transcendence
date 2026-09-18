@@ -86,6 +86,12 @@ SDLBitmap* SDLBitmapCreateFromSurface(SDL_Surface* pSurface, EBitmapTypes iType,
 void SDLBitmapDestroy(SDLBitmap* pBitmap) {
     if (!pBitmap) return;
 
+    //  Drop the lookup entry first: the map is keyed by the SDLBitmap pointer,
+    //  so leaving it behind would both dangle and grow without bound as
+    //  callers create/destroy bitmaps.
+
+    GetBitmapMap().erase((void*)pBitmap);
+
     if (pBitmap->surface && pBitmap->bOwnsSurface) {
         SDL_FreeSurface(pBitmap->surface);
     }

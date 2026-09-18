@@ -4,6 +4,7 @@
 //	Provides SDL2-based platform layer for the game engine
 
 #include "AppCore.h"
+#include "PlatformInput.h"
 #include <SDL2/SDL.h>
 #include "Alchemy.h"
 #include "Kernel.h"
@@ -282,45 +283,6 @@ static DWORD SDLMouseStateToMKFlags(Uint32 dwButtons)
         dwFlags |= MK_MBUTTON;
 
     return dwFlags;
-}
-
-SHORT PlatformGetAsyncKeyState(int vk)
-{
-    SDL_Keymod mod = SDL_GetModState();
-    switch (vk)
-    {
-        case VK_SHIFT:
-            return (mod & KMOD_SHIFT) ? (SHORT)0x8000 : 0;
-        case VK_CONTROL:
-            return (mod & KMOD_CTRL) ? (SHORT)0x8000 : 0;
-        case VK_MENU:
-            return (mod & KMOD_ALT) ? (SHORT)0x8000 : 0;
-        case VK_NUMLOCK:
-            return (mod & KMOD_NUM) ? (SHORT)0x8000 : 0;
-    }
-
-    const Uint8* keyState = SDL_GetKeyboardState(nullptr);
-    SDL_Scancode sc = SDL_SCANCODE_UNKNOWN;
-    if (vk >= 'A' && vk <= 'Z') sc = (SDL_Scancode)(SDL_SCANCODE_A + (vk - 'A'));
-    else if (vk == '0') sc = SDL_SCANCODE_0;
-    else if (vk >= '1' && vk <= '9') sc = (SDL_Scancode)(SDL_SCANCODE_1 + (vk - '1'));
-    else if (vk == VK_DOWN) sc = SDL_SCANCODE_DOWN;
-    else if (vk == VK_UP) sc = SDL_SCANCODE_UP;
-    else if (vk == VK_NEXT) sc = SDL_SCANCODE_PAGEDOWN;
-    else if (vk == VK_PRIOR) sc = SDL_SCANCODE_PAGEUP;
-    else if (vk == VK_END) sc = SDL_SCANCODE_END;
-    if (sc != SDL_SCANCODE_UNKNOWN && keyState[sc])
-        return (SHORT)0x8000;
-    return 0;
-}
-
-SHORT PlatformGetKeyState(int vk)
-{
-    SDL_Keymod mod = SDL_GetModState();
-    SHORT result = PlatformGetAsyncKeyState(vk);
-    if (vk == VK_NUMLOCK && (mod & KMOD_NUM))
-        result |= 0x0001;
-    return result;
 }
 
 static DWORD SDLMouseButtonEventToMKFlags(const SDL_MouseButtonEvent &Event, bool bIncludeCurrentButton)
