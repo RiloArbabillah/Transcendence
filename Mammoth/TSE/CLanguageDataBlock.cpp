@@ -283,17 +283,14 @@ void CLanguageDataBlock::Copy (const CLanguageDataBlock &Src)
 		}
 	}
 
-#if defined(__APPLE__) && defined(_DEBUG)
-void CLanguageDataBlock::DebugLog (const CDesignType &Type, const CString &sID, const CString &sText)
+//	PDR-036: this function used to be compiled as an empty stub on Apple debug
+//	builds (#if defined(__APPLE__) && defined(_DEBUG) ... return;). The reason
+//	was a non-POD CString being handed to the varargs pattern formatter, which
+//	clang diagnoses as -Wnon-pod-varargs; the body has since been rewritten to
+//	build the line with CString::Append() and the pattern call now passes only
+//	integers, so the stub is no longer needed and translation debugging works
+//	again on macOS.
 
-//	DebugLog
-//
-//	Debug translations.
-
-	{
-	return;
-	}
-#else
 void CLanguageDataBlock::DebugLog (const CDesignType &Type, const CString &sID, const CString &sText)
 
 //	DebugLog
@@ -315,7 +312,6 @@ void CLanguageDataBlock::DebugLog (const CDesignType &Type, const CString &sID, 
 
 	m_DebugLog.EnqueueAndOverwrite(sLine);
 	}
-#endif
 
 void CLanguageDataBlock::DeleteAll (void)
 

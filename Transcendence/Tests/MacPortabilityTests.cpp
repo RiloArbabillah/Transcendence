@@ -753,6 +753,347 @@ int main()
 		}
 	}
 
+	//	PDR-028: _fcvt_s is handed a CString whose declared length is
+	//	_CVTBUFSIZE (309), so the shim is told the buffer is 309 bytes and must
+	//	produce a deterministic, NUL-terminated digit string without leaving
+	//	stale bytes inside the declared range.
+
+	{
+	struct SFcvtCase { double rValue; int iDecimals; const char *pszDigits; int iDec; int iSign; };
+	const SFcvtCase FcvtCases[] = {
+		{ 0.5, 0, "0", 1, 0 },
+		{ 12.34, 0, "12", 2, 0 },
+		{ -0.125, 3, "0125", 1, 1 },
+		{ 9.9, 0, "10", 2, 0 },
+		};
+
+	for (int i = 0; i < (int)(sizeof(FcvtCases) / sizeof(FcvtCases[0])); i++)
+		{
+		//	0xAA everywhere, exactly like a recycled CString buffer.
+
+		char szDigits[310];
+		memset(szDigits, 0xAA, sizeof(szDigits));
+
+		int iDec = -1;
+		int iSign = -1;
+		int iResult = _fcvt_s(szDigits, 309, FcvtCases[i].rValue, FcvtCases[i].iDecimals, &iDec, &iSign);
+
+		bSuccess = Check(iResult == 0, "_fcvt_s succeeds") && bSuccess;
+		bSuccess = Check(strcmp(szDigits, FcvtCases[i].pszDigits) == 0, "_fcvt_s produces the expected digits") && bSuccess;
+		bSuccess = Check(iDec == FcvtCases[i].iDec && iSign == FcvtCases[i].iSign,
+				"_fcvt_s reports the decimal point and the sign") && bSuccess;
+
+		//	Everything between the terminator and the declared length must have
+		//	been cleared, so no stale byte can be read as part of the string.
+
+		bool bCleared = true;
+		for (size_t j = strlen(szDigits) + 1; j < 309; j++)
+			{
+			if (szDigits[j] != 0)
+				bCleared = false;
+			}
+
+		bSuccess = Check(bCleared, "_fcvt_s leaves no stale bytes inside the declared buffer") && bSuccess;
+
+		//	The byte past the declared length is the caller's, not ours.
+
+		bSuccess = Check(szDigits[309] == (char)0xAA, "_fcvt_s does not write past the declared length") && bSuccess;
+		}
+
+	//	A buffer far too small for the formatted value must still be safe.
+
+	char szTiny[8];
+	memset(szTiny, 0xAA, sizeof(szTiny));
+
+	int iTinyDec = -1;
+	int iTinySign = -1;
+	bSuccess = Check(_fcvt_s(szTiny, (int)sizeof(szTiny), 1234567.875, 3, &iTinyDec, &iTinySign) == 0,
+			"_fcvt_s succeeds with a truncating buffer") && bSuccess;
+	bSuccess = Check(szTiny[sizeof(szTiny) - 1] == '\0' && strlen(szTiny) == sizeof(szTiny) - 1,
+			"_fcvt_s terminates a truncating buffer") && bSuccess;
+
+	int iNullDec = -1;
+	int iNullSign = -1;
+	bSuccess = Check(_fcvt_s(NULL, 0, 1.0, 0, &iNullDec, &iNullSign) != 0,
+			"_fcvt_s rejects an unusable buffer") && bSuccess;
+	}
+
+	//	PDR-039: the shim had its two output parameters swapped, so the caller
+	//	Kernel::strFromDouble() read the sign out of its decimal-point variable
+	//	and vice versa. Every call with an explicit decimal count came back
+	//	corrupted (12.34 with 2 decimals became "-0.1234"). These cases pin the
+	//	caller against the CRT parameter order.
+
+	{
+	struct SStrFromDoubleCase { double rValue; int iDecimals; const char *pszExpected; };
+	const SStrFromDoubleCase Cases[] = {
+		{ 12.34, 2, "12.34" },
+		{ -0.125, 3, "-0.125" },
+		{ 0.5, 0, "0.0" },
+		{ 9.9, 0, "10.0" },
+		{ 0.05, 1, "0.1" },
+		{ 100.0, 2, "100.00" },
+		{ 12.34, -1, "12.34" },
+		};
+
+	for (int i = 0; i < (int)(sizeof(Cases) / sizeof(Cases[0])); i++)
+		{
+		CString sResult = Kernel::strFromDouble(Cases[i].rValue, Cases[i].iDecimals);
+		const char *pszActual = (const char *)sResult.GetASCIIZPointer();
+		bool bMatch = (strcmp(pszActual, Cases[i].pszExpected) == 0);
+
+		if (!bMatch)
+			std::fprintf(stderr, "FAILED: strFromDouble(%g, %d) = \"%s\", expected \"%s\"\n",
+					Cases[i].rValue, Cases[i].iDecimals, pszActual, Cases[i].pszExpected);
+
+		bSuccess = Check(bMatch,
+				"strFromDouble keeps the sign and the decimal point in the CRT positions") && bSuccess;
+		}
+	}
+
+	//	PDR-029: wsprintf must bound itself to the destination array it is
+	//	given, not to a fixed 4096 bytes.
+
+	{
+	char szTruncated[16];
+	int iWritten = wsprintf(szTruncated, "%s", "abcdefghijklmnopqrstuvwxyz");
+	bSuccess = Check(iWritten == (int)sizeof(szTruncated) - 1, "wsprintf reports the truncated length") && bSuccess;
+	bSuccess = Check(strlen(szTruncated) == sizeof(szTruncated) - 1 && szTruncated[sizeof(szTruncated) - 1] == '\0',
+			"wsprintf terminates a truncated destination") && bSuccess;
+	bSuccess = Check(strncmp(szTruncated, "abcdefghijklmno", sizeof(szTruncated) - 1) == 0,
+			"wsprintf keeps the characters that fit") && bSuccess;
+
+	char szFits[64];
+	iWritten = wsprintf(szFits, "%d/%d", 12, 34);
+	bSuccess = Check(iWritten == 5 && strcmp(szFits, "12/34") == 0, "wsprintf writes an untruncated result") && bSuccess;
+	}
+
+	//	PDR-030: the creation dispositions must be honoured. CREATE_NEW and
+	//	TRUNCATE_EXISTING used to fall through and behave like OPEN_EXISTING.
+
+	{
+	char szExisting[] = "/tmp/trans-port-create-XXXXXX";
+	int iExisting = mkstemp(szExisting);
+	bSuccess = Check(iExisting >= 0, "create disposition test file") && bSuccess;
+
+	if (iExisting >= 0)
+		{
+		bSuccess = Check(write(iExisting, "keep", 4) == 4, "write disposition test file") && bSuccess;
+		close(iExisting);
+
+		HANDLE hFile = CreateFile(szExisting, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ,
+				NULL, CREATE_NEW, 0, NULL);
+		bSuccess = Check(hFile == INVALID_HANDLE_VALUE, "CREATE_NEW fails when the file exists") && bSuccess;
+
+		hFile = CreateFile(szExisting, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ,
+				NULL, TRUNCATE_EXISTING, 0, NULL);
+		bSuccess = Check(hFile != INVALID_HANDLE_VALUE, "TRUNCATE_EXISTING opens an existing file") && bSuccess;
+
+		if (hFile != INVALID_HANDLE_VALUE)
+			{
+			DWORD dwSizeHigh = 0;
+			DWORD dwSizeLow = GetFileSize(hFile, &dwSizeHigh);
+			bSuccess = Check(dwSizeLow == 0 && dwSizeHigh == 0, "TRUNCATE_EXISTING empties the file") && bSuccess;
+			CloseHandle(hFile);
+			}
+
+		unlink(szExisting);
+		}
+
+	//	TRUNCATE_EXISTING must not create a missing file, while CREATE_NEW must.
+
+	char szAbsent[] = "/tmp/trans-port-absent-XXXXXX";
+	int iAbsent = mkstemp(szAbsent);
+	if (iAbsent >= 0)
+		close(iAbsent);
+	unlink(szAbsent);
+
+	HANDLE hAbsent = CreateFile(szAbsent, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ,
+			NULL, TRUNCATE_EXISTING, 0, NULL);
+	bSuccess = Check(hAbsent == INVALID_HANDLE_VALUE, "TRUNCATE_EXISTING does not create a missing file") && bSuccess;
+
+	hAbsent = CreateFile(szAbsent, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ,
+			NULL, CREATE_NEW, 0, NULL);
+	bSuccess = Check(hAbsent != INVALID_HANDLE_VALUE, "CREATE_NEW creates a missing file") && bSuccess;
+	if (hAbsent != INVALID_HANDLE_VALUE)
+		CloseHandle(hAbsent);
+	unlink(szAbsent);
+	}
+
+	//	PDR-031: a 64-bit position must survive SetFilePointer, and GetFileSize
+	//	must report the high half of a size above 4 GiB. The file is created
+	//	sparse, so the 5 GiB length costs no disk space.
+
+	{
+	char szSparse[] = "/tmp/trans-port-sparse-XXXXXX";
+	int iSparse = mkstemp(szSparse);
+	bSuccess = Check(iSparse >= 0, "create sparse test file") && bSuccess;
+
+	if (iSparse >= 0)
+		{
+		const off_t iFiveGiB = (off_t)5 * 1024 * 1024 * 1024;
+		bSuccess = Check(ftruncate(iSparse, iFiveGiB) == 0, "size the sparse test file") && bSuccess;
+
+		HANDLE hFile = (HANDLE)(intptr_t)iSparse;
+
+		LONG lHigh = 1;
+		DWORD dwLow = SetFilePointer(hFile, (LONG)0x40000000, &lHigh, FILE_BEGIN);
+		bSuccess = Check(dwLow == 0x40000000 && lHigh == 1,
+				"SetFilePointer applies the input high word") && bSuccess;
+
+		LONG lHighOut = 0;
+		DWORD dwCurrent = SetFilePointer(hFile, 0, &lHighOut, FILE_CURRENT);
+		bSuccess = Check(dwCurrent == 0x40000000 && lHighOut == 1,
+				"the 64-bit position round-trips") && bSuccess;
+
+		DWORD dwSizeHigh = 0;
+		DWORD dwSizeLow = GetFileSize(hFile, &dwSizeHigh);
+		bSuccess = Check(dwSizeLow == 0x40000000 && dwSizeHigh == 1,
+				"GetFileSize reports a size above 4 GiB") && bSuccess;
+
+		//	A seek before the start of the file fails and reports the Win32
+		//	sentinel instead of a truncated errno value.
+
+		bSuccess = Check(SetFilePointer(hFile, -1, NULL, FILE_BEGIN) == INVALID_SET_FILE_POINTER,
+				"a failing seek reports INVALID_SET_FILE_POINTER") && bSuccess;
+
+		close(iSparse);
+		unlink(szSparse);
+		}
+	}
+
+	//	PDR-032: MoveFile must replace an existing destination, and the
+	//	cross-volume fallback must copy and unlink. GetTempPath must follow
+	//	TMPDIR instead of hardcoding /tmp.
+
+	{
+	char szMoveSrc[] = "/tmp/trans-port-move-src-XXXXXX";
+	int iMoveSrc = mkstemp(szMoveSrc);
+	char szMoveDst[] = "/tmp/trans-port-move-dst-XXXXXX";
+	int iMoveDst = mkstemp(szMoveDst);
+	bSuccess = Check(iMoveSrc >= 0 && iMoveDst >= 0, "create move test files") && bSuccess;
+
+	if (iMoveSrc >= 0 && iMoveDst >= 0)
+		{
+		bSuccess = Check(write(iMoveSrc, "alpha", 5) == 5, "write move source") && bSuccess;
+		bSuccess = Check(write(iMoveDst, "beta", 4) == 4, "write move destination") && bSuccess;
+		close(iMoveSrc);
+		close(iMoveDst);
+
+		bSuccess = Check(MoveFile(szMoveSrc, szMoveDst) == TRUE, "MoveFile replaces an existing destination") && bSuccess;
+		bSuccess = Check(access(szMoveSrc, F_OK) != 0, "MoveFile removes the source") && bSuccess;
+
+		int iMoved = open(szMoveDst, O_RDONLY);
+		bSuccess = Check(iMoved >= 0, "open the moved file") && bSuccess;
+		if (iMoved >= 0)
+			{
+			char szBuffer[16];
+			memset(szBuffer, 0, sizeof(szBuffer));
+			ssize_t iRead = read(iMoved, szBuffer, sizeof(szBuffer) - 1);
+			bSuccess = Check(iRead == 5 && strcmp(szBuffer, "alpha") == 0,
+					"the destination holds the source contents") && bSuccess;
+			close(iMoved);
+			}
+
+		//	MoveFile on a path that does not exist must fail rather than
+		//	silently succeed.
+
+		bSuccess = Check(MoveFile(szMoveSrc, szMoveDst) == FALSE, "MoveFile fails for a missing source") && bSuccess;
+
+		unlink(szMoveDst);
+		}
+
+	//	The EXDEV fallback is not reachable from a single volume, so the helper
+	//	it calls is exercised directly: it must copy the contents and remove
+	//	the source.
+
+	char szFallbackSrc[] = "/tmp/trans-port-fallback-src-XXXXXX";
+	int iFallbackSrc = mkstemp(szFallbackSrc);
+	char szFallbackDst[] = "/tmp/trans-port-fallback-dst-XXXXXX";
+	int iFallbackDst = mkstemp(szFallbackDst);
+	bSuccess = Check(iFallbackSrc >= 0 && iFallbackDst >= 0, "create fallback test files") && bSuccess;
+
+	if (iFallbackSrc >= 0 && iFallbackDst >= 0)
+		{
+		bSuccess = Check(write(iFallbackSrc, "gamma", 5) == 5, "write fallback source") && bSuccess;
+		close(iFallbackSrc);
+		close(iFallbackDst);
+
+		bSuccess = Check(posixMoveFileAcrossVolumes(szFallbackSrc, szFallbackDst) == TRUE,
+				"the cross-volume fallback reports success") && bSuccess;
+		bSuccess = Check(access(szFallbackSrc, F_OK) != 0, "the cross-volume fallback removes the source") && bSuccess;
+
+		int iFallback = open(szFallbackDst, O_RDONLY);
+		bSuccess = Check(iFallback >= 0, "open the fallback destination") && bSuccess;
+		if (iFallback >= 0)
+			{
+			char szBuffer[16];
+			memset(szBuffer, 0, sizeof(szBuffer));
+			ssize_t iRead = read(iFallback, szBuffer, sizeof(szBuffer) - 1);
+			bSuccess = Check(iRead == 5 && strcmp(szBuffer, "gamma") == 0,
+					"the cross-volume fallback copies the contents") && bSuccess;
+			close(iFallback);
+			}
+
+		unlink(szFallbackDst);
+		}
+
+	//	GetTempPath must report the directory the process was actually given.
+
+	char szTemp[512];
+	const char *pszOriginalTemp = getenv("TMPDIR");
+	CString sSavedTemp(pszOriginalTemp ? pszOriginalTemp : "");
+
+	DWORD dwTempLen = GetTempPath((DWORD)sizeof(szTemp), szTemp);
+	const char *pszExpectedTemp = (pszOriginalTemp && *pszOriginalTemp) ? pszOriginalTemp : "/tmp";
+	bSuccess = Check(dwTempLen == (DWORD)strlen(pszExpectedTemp), "GetTempPath returns the length it wrote") && bSuccess;
+	bSuccess = Check(strcmp(szTemp, pszExpectedTemp) == 0, "GetTempPath honours TMPDIR") && bSuccess;
+
+	//	An undersized buffer must report the length that would be needed and
+	//	must be left untouched.
+
+	char szSmallTemp[4];
+	memset(szSmallTemp, 0x5A, sizeof(szSmallTemp));
+	bSuccess = Check(GetTempPath((DWORD)sizeof(szSmallTemp), szSmallTemp) == (DWORD)strlen(pszExpectedTemp),
+			"GetTempPath reports the needed length") && bSuccess;
+	bSuccess = Check(szSmallTemp[0] == (char)0x5A, "GetTempPath leaves an undersized buffer alone") && bSuccess;
+
+	bSuccess = Check(setenv("TMPDIR", "/tmp/trans-port-temp", 1) == 0, "set TMPDIR") && bSuccess;
+	bSuccess = Check(GetTempPath((DWORD)sizeof(szTemp), szTemp) == (DWORD)strlen("/tmp/trans-port-temp")
+			&& strcmp(szTemp, "/tmp/trans-port-temp") == 0,
+			"GetTempPath follows a changed TMPDIR") && bSuccess;
+
+	if (!sSavedTemp.IsBlank())
+		setenv("TMPDIR", sSavedTemp.GetASCIIZPointer(), 1);
+	else
+		unsetenv("TMPDIR");
+	}
+
+	//	PDR-034: the CPU information a caller can rely on must come from the
+	//	host, and the logical-processor query must stay an honest stub.
+
+	{
+	SYSTEM_INFO SystemInfo;
+	memset(&SystemInfo, 0x5A, sizeof(SystemInfo));
+	GetSystemInfo(&SystemInfo);
+
+	bSuccess = Check(SystemInfo.dwNumberOfProcessors >= 1, "GetSystemInfo reports at least one processor") && bSuccess;
+	bSuccess = Check(SystemInfo.dwPageSize >= 4096 && (SystemInfo.dwPageSize & (SystemInfo.dwPageSize - 1)) == 0,
+			"GetSystemInfo reports a plausible page size") && bSuccess;
+	bSuccess = Check(SystemInfo.dwAllocationGranularity == SystemInfo.dwPageSize,
+			"the allocation granularity matches the page size") && bSuccess;
+	bSuccess = Check(SystemInfo.dwActiveProcessorMask != 0, "the active processor mask is not empty") && bSuccess;
+
+	if (SystemInfo.dwNumberOfProcessors < 8 * sizeof(DWORD_PTR))
+		bSuccess = Check(SystemInfo.dwActiveProcessorMask
+				== (((DWORD_PTR)1 << SystemInfo.dwNumberOfProcessors) - 1),
+				"the active processor mask covers every processor") && bSuccess;
+
+	DWORD dwLength = 1234;
+	bSuccess = Check(GetLogicalProcessorInformationEx(RelationAll, NULL, &dwLength) == FALSE && dwLength == 0,
+			"GetLogicalProcessorInformationEx reports no information") && bSuccess;
+	}
+
 	kernelCleanUp();
 	return (bSuccess ? 0 : 1);
 	}

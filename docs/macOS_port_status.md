@@ -7,22 +7,27 @@ This document records the current state of the native macOS Apple Silicon port a
 ## Defect Register
 
 The actionable defect list for the macOS path now lives in
-`docs/migrate_to_osx/port-defect-register.md` (`PDR-001`..`PDR-038`). It records every finding
+`docs/migrate_to_osx/port-defect-register.md` (`PDR-001`..`PDR-039`). It records every finding
 from the 2026-09-19 static code audit with priority, `file:line`, macOS impact, trigger
 condition, fix phase, verification gate, and work status. Fix phases are delivered one branch
 and pull request at a time from `osx`; the cross-platform findings (`PDR-037`, `PDR-038`) stay
 `deferred` because this plan is macOS-only. The older `docs/bug_fix_plan.md` is superseded and
 kept only as history.
 
-Status: phase 0 (register) is published, and phases 1, 2, and 3 (`PDR-001`..`PDR-027`) are closed
-on their phase branches with the `mac-portability` gate green. Phase 4 (`PDR-028`..`PDR-036`) is
-still `todo`. The public helpers added by the closed phases are documented in
+Status: phase 0 (register) is published, and phases 1, 2, 3, and 4 (`PDR-001`..`PDR-036`, plus
+`PDR-039` which was found while closing `PDR-028`) are closed on their phase branches with the
+`mac-portability` gate green. Phase 5 (`PDR-037`, `PDR-038`) stays `deferred` because the plan is
+macOS-only. Every phase is open as a stacked pull request and none is merged. The public helpers
+added by the closed phases are documented in
 `docs/migrate_to_osx/platform-input-utilities.md`,
-`docs/migrate_to_osx/functional-fs-utilities.md`, and
-`docs/migrate_to_osx/platform-event-utilities.md`. Runtime-only checks (real window cursor warp,
+`docs/migrate_to_osx/functional-fs-utilities.md`,
+`docs/migrate_to_osx/platform-event-utilities.md`, and
+`docs/migrate_to_osx/hardening-utilities.md`. Runtime-only checks (real window cursor warp,
 video/intro playback, audio fade transitions, multi-monitor mouse coordinates, crash recovery,
-timer behaviour under load, and intro rendering with the render workarounds disabled) remain
-separate, unverified gates.
+timer behaviour under load, intro rendering with the render workarounds disabled, translation
+logging output, temp-directory behaviour under a sandbox, real cross-volume file moves,
+Retina/HiDPI coordinates, and crash-log placement under a Finder launch) remain separate,
+unverified gates.
 
 ## Build Status
 

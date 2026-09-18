@@ -5,11 +5,6 @@
 
 #include "PreComp.h"
 
-#if defined(__APPLE__) && defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wnon-pod-varargs"
-#endif
-
 //#define DEBUG_FILE_CORRUPTION
 
 #define CONTROLLER_AUTON					CONSTLIT("auton")
@@ -3498,5 +3493,4 @@ CString CUniverse::ValidatePlayerName (const CString &sName)
 	}
 
 #if defined(__APPLE__) && defined(__clang__)
-#pragma clang diagnostic pop
 #endif

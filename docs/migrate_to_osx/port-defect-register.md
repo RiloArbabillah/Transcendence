@@ -2,7 +2,7 @@
 
 ## Document Status
 
-- Version: v1.2
+- Version: v1.3
 - Last Updated: 2026-09-19
 - Branch: `osx`
 - Derived From: audit kode statis
@@ -53,7 +53,7 @@ Dokumen ini **melengkapi**, bukan menggantikan:
 
 ### Skema ID dan Field Wajib
 
-- ID berurutan: `PDR-001` … `PDR-038`.
+- ID berurutan: `PDR-001` … `PDR-039`.
 - Setiap entri wajib memuat: **ID**, **judul**, **status temuan**, **prioritas**, **lokasi
   `file:line`**, **dampak di macOS**, **kondisi pemicu**, **fase perbaikan**, **gate
   verifikasi**, dan **status kerja**.
@@ -100,15 +100,16 @@ Gate tambahan per temuan dicantumkan pada field **Gate verifikasi** di entri ter
 | PDR-025 | MT background paint dipaksa off | P2 | `confirmed` | 3 | `done` |
 | PDR-026 | `bForceSTPaint` dipaksa `true` | P2 | `confirmed` | 3 | `done` |
 | PDR-027 | Deteksi monokrom O(W·H) | P2 | `confirmed` | 3 | `done` |
-| PDR-028 | `_fcvt_s` over-read | P3 | `confirmed` | 4 | `todo` |
-| PDR-029 | `wsprintf` asumsi buffer 4096 | P3 | `confirmed` | 4 | `todo` |
-| PDR-030 | `CreateFile` abaikan `dwShareMode` | P3 | `confirmed` | 4 | `todo` |
-| PDR-031 | `SetFilePointer`/`GetFileSize` 32-bit | P3 | `confirmed` | 4 | `todo` |
-| PDR-032 | `MoveFile`/`GetTempPath`/`FreePIDL`/`SHGetMalloc` | P3 | `confirmed` | 4 | `todo` |
-| PDR-033 | `SDL_SetHint` setelah `SDL_CreateWindow`, HIGHDPI, log `"w"`, `Crash.log` di CWD | P3 | `likely` | 4 | `todo` |
-| PDR-034 | `GetSystemInfo`/`GetLogicalProcessorInformationEx` stub | P3 | `dead-code` | 4 | `todo` |
-| PDR-035 | `#pragma clang diagnostic ignored "-Wnon-pod-varargs"` | P3 | `confirmed` | 4 | `todo` |
-| PDR-036 | `DebugLog` mati di `CLanguageDataBlock.cpp` | P3 | `confirmed` | 4 | `todo` |
+| PDR-028 | `_fcvt_s` over-read | P3 | `confirmed` | 4 | `done` |
+| PDR-029 | `wsprintf` asumsi buffer 4096 | P3 | `confirmed` | 4 | `done` |
+| PDR-030 | `CreateFile` abaikan `dwShareMode` | P3 | `confirmed` | 4 | `done` |
+| PDR-031 | `SetFilePointer`/`GetFileSize` 32-bit | P3 | `confirmed` | 4 | `done` |
+| PDR-032 | `MoveFile`/`GetTempPath`/`FreePIDL`/`SHGetMalloc` | P3 | `confirmed` | 4 | `done` |
+| PDR-033 | `SDL_SetHint` setelah `SDL_CreateWindow`, HIGHDPI, log `"w"`, `Crash.log` di CWD | P3 | `likely` | 4 | `done` |
+| PDR-034 | `GetSystemInfo`/`GetLogicalProcessorInformationEx` stub | P3 | `dead-code` | 4 | `done` |
+| PDR-035 | `#pragma clang diagnostic ignored "-Wnon-pod-varargs"` | P3 | `confirmed` | 4 | `done` |
+| PDR-036 | `DebugLog` mati di `CLanguageDataBlock.cpp` | P3 | `confirmed` | 4 | `done` |
+| PDR-039 | `_fcvt_s` menukar parameter `dec`/`sign` | P2 | `confirmed` | 4 | `done` |
 | PDR-037 | `#define WINAPI` kosong di luar guard `_WIN32` | P3 | `latent` | 5 | `deferred` |
 | PDR-038 | `CMemoryStream.cpp` stub menggantikan implementasi Windows | P3 | `latent` | 5 | `deferred` |
 
@@ -725,26 +726,43 @@ workaround render yang dapat dikonfigurasi didokumentasikan di
 Fokus: perbaikan defensif, kebenaran tipe, dan pembersihan diagnostik. Tidak ada perubahan
 perilaku yang diharapkan selain hilangnya bug tepi.
 
+Status fase: `done` (branch `fix/macos-port-p3-hardening`). Gate terverifikasi:
+`cmake --preset macos-debug`, `cmake --build --preset macos-debug` (termasuk
+`Transcendence.app` dan tool), `ctest -R mac-portability`, dan `git diff --check` lulus.
+Utilitas dan keputusan fase ini (`_fcvt_s`/`_gcvt_s`, `wsprintf` referensi-array,
+`SetFilePointer` 64-bit, `MoveFile`/`posixMoveFileAcrossVolumes`, `GetTempPath`,
+`GetSystemInfo`, disposition `CreateFile`, `DebugLog`, `GetCrashLogPath`) didokumentasikan di
+`hardening-utilities.md`. Temuan baru `PDR-039` (`_fcvt_s` menukar parameter `dec`/`sign`)
+ditemukan dan ditutup pada fase yang sama.
+
 ### PDR-028 — `_fcvt_s` over-read
 
 - **Status temuan:** `confirmed`
 - **Prioritas:** `P3`
-- **Lokasi:** `Alchemy/Include/Kernel.h:1074-1082`
+- **Lokasi:** `Alchemy/Include/Kernel.h:1074-1082` (posisi saat audit; kini
+  `Alchemy/Include/Kernel.h:1501-1535`)
 - **Dampak di macOS:** Implementasi melakukan `snprintf(buf, len, "%.*f", decimals, absVal)`
   lalu `memmove(dot, dot+1, strlen(dot))`. Parameter `len` adalah panjang buffer **dan** nilai
-  yang dipakai pemanggil sebagai panjang string (`Alchemy/Kernel/CString.cpp:1767` memanggil
+  yang dipakai pemanggil sebagai panjang string (`Alchemy/Kernel/CString.cpp` memanggil
   `GetWritePointer(_CVTBUFSIZE)` yang men-set length ke 309). Ketika output terformat lebih
   panjang dari `len`, `snprintf` memotong tanpa NUL di posisi yang diharapkan sehingga
-  `strlen(dot)` membaca melewati batas buffer.
+  `strlen(dot)` membaca melewati batas buffer, dan semua byte setelah digit adalah isi heap
+  yang kebetulan ada di sana.
 - **Kondisi pemicu:** `_fcvt_s` dengan nilai yang menghasilkan digit lebih banyak daripada
-  `len`. Terkonfirmasi secara empiris dengan probe ASan/UBSan terpisah: output `'0500'` untuk
-  `0.5`, `'12340'` untuk `12.34`, `'0125'` untuk `-0.125`, `'9900'` untuk `9.9` — sisa byte
-  stale setelah terminator, konsisten dengan over-read saat buffer lebih kecil dari string
-  terformat.
+  `len`. **Koreksi saat penutupan Fase 4:** varian output `'0500'`/`'12340'` yang dicatat pada
+  versi awal register **tidak** dapat direproduksi dengan buffer berbentuk pemanggil
+  (`char[310]`, pra-isi `0xAA`); yang dapat direproduksi hanyalah ketidakpastian isi byte
+  setelah digit. Korupsi nyata yang sebelumnya diatribusikan ke entri ini berasal dari
+  `PDR-039` (parameter `dec`/`sign` tertukar), bukan dari over-read.
 - **Fase perbaikan:** Fase 4 — PR `fix/macos-port-p3-hardening`
-- **Gate verifikasi:** Gate standar + unit test `_fcvt_s` dengan buffer kecil tidak membaca
-  melewati batas (hasil deterministik, tidak ada byte stale).
-- **Status kerja:** `todo`
+- **Gate verifikasi:** Gate standar + unit test `_fcvt_s` dengan buffer berukuran pemanggil
+  (309 byte, pra-isi `0xAA`) menghasilkan hasil deterministik, tidak meninggalkan byte stale di
+  dalam rentang terdeklarasi, dan tidak menulis melewati panjang yang dideklarasikan.
+- **Perbaikan:** `buf` di-zero lebih dulu; pemindaian titik desimal dibatasi jumlah byte yang
+  benar-benar ditulis (`snprintf` selalu men-*terminate*); `memmove` dibatasi `count - iDot`;
+  `buf == NULL`/`len <= 0` ditolak dengan `-1`; `snprintf` gagal mengosongkan buffer dan
+  mengembalikan `-1`. Kontrak parameter `dec`/`sign` juga diperbaiki (lihat `PDR-039`).
+- **Status kerja:** `done`
 
 ### PDR-029 — `wsprintf` asumsi buffer 4096
 
@@ -760,7 +778,8 @@ perilaku yang diharapkan selain hilangnya bug tepi.
 - **Fase perbaikan:** Fase 4 — PR `fix/macos-port-p3-hardening`
 - **Gate verifikasi:** Gate standar + audit semua pemanggil `wsprintf`; panjang buffer eksplisit
   atau helper aman yang menerima `sizeof(buf)`.
-- **Status kerja:** `todo`
+- **Perbaikan:** `wsprintf` kini menerima tujuan sebagai referensi array (`template <size_t N> int wsprintf(char (&buf)[N], const char* format, ...)`) sehingga `vsnprintf` memakai ukuran asli buffer; hasil terpotong dilaporkan sebagai `N - 1`, kegagalan `vsnprintf` mengosongkan buffer dan mengembalikan `0`, dan pointer telanjang tidak lagi dapat dikompilasi. Audit menemukan 62 pemanggil, semuanya array `char[256]`/`char[1024]`. Pada Windows overload ini tidak dikompilasi (`#ifndef _WIN32`).
+- **Status kerja:** `done`
 
 ### PDR-030 — `CreateFile` abaikan `dwShareMode`
 
@@ -774,7 +793,8 @@ perilaku yang diharapkan selain hilangnya bug tepi.
 - **Fase perbaikan:** Fase 4 — PR `fix/macos-port-p3-hardening`
 - **Gate verifikasi:** Gate standar + audit pemanggil dan dokumentasi batasan eksplisit
   (atau penerapan `flock`/`O_EXCL` sesuai kebutuhan).
-- **Status kerja:** `todo`
+- **Perbaikan:** `CREATE_NEW` dan `TRUNCATE_EXISTING` kini ditangani eksplisit (`O_CREAT|O_EXCL` dan `O_TRUNC`) alih-alih jatuh ke cabang default dan berperilaku seperti `OPEN_EXISTING`; kedua konstanta ditambahkan dengan guard `#ifndef`. `dwShareMode`/`dwFlags` tetap diabaikan dan batasannya didokumentasikan di kode: audit pemanggil hanya menemukan `FILE_SHARE_READ`/`FILE_SHARE_READ|FILE_SHARE_WRITE`, sehingga `flock` tidak ditambahkan.
+- **Status kerja:** `done`
 
 ### PDR-031 — `SetFilePointer`/`GetFileSize` 32-bit
 
@@ -790,7 +810,8 @@ perilaku yang diharapkan selain hilangnya bug tepi.
 - **Fase perbaikan:** Fase 4 — PR `fix/macos-port-p3-hardening`
 - **Gate verifikasi:** Gate standar + unit test posisi/ukuran 64-bit (menggunakan file sparse
   bila memungkinkan) tidak terpotong.
-- **Status kerja:** `todo`
+- **Perbaikan:** `SetFilePointer` menerapkan high word **masukan** untuk `FILE_BEGIN`, selalu mengisi `*pHighWord` pada sukses, dan mengembalikan `INVALID_SET_FILE_POINTER` saat `lseek` gagal. Tipe balik `DWORD` **bukan** defect (Win32 juga memakai `DWORD`); yang hilang hanya separuh masukan. `GetFileSize` sudah benar dan kini diuji pada berkas sparse 5 GiB.
+- **Status kerja:** `done`
 
 ### PDR-032 — `MoveFile`/`GetTempPath`/`FreePIDL`/`SHGetMalloc`
 
@@ -809,7 +830,8 @@ perilaku yang diharapkan selain hilangnya bug tepi.
 - **Fase perbaikan:** Fase 4 — PR `fix/macos-port-p3-hardening`
 - **Gate verifikasi:** Gate standar + `MoveFile` fallback copy+unlink saat `rename` gagal
   (EXDEV), dan `GetTempPath` menghormati `TMPDIR`.
-- **Status kerja:** `todo`
+- **Perbaikan:** `MoveFile` memakai `rename`, dan saat gagal dengan `EXDEV` memanggil helper baru `posixMoveFileAcrossVolumes` (salin 64 KiB aman `EINTR`, hapus tujuan bila gagal, hapus sumber setelah sukses). `GetTempPath` mengikuti `TMPDIR` dengan fallback `/tmp` dan dipromosikan dari `inline` lokal ke `Alchemy/Include/PathCompat.h` agar dapat diuji. `SHGetMalloc`/`FreePIDL` tetap stub, kini dengan catatan eksplisit bahwa jalur shell macOS tidak pernah mengalokasikan `ITEMIDLIST`.
+- **Status kerja:** `done`
 
 ### PDR-033 — `SDL_SetHint` setelah `SDL_CreateWindow`, HIGHDPI, log `"w"`, `Crash.log` di CWD
 
@@ -830,7 +852,8 @@ perilaku yang diharapkan selain hilangnya bug tepi.
 - **Fase perbaikan:** Fase 4 — PR `fix/macos-port-p3-hardening`
 - **Gate verifikasi:** Gate standar + hint dipasang sebelum pembuatan window (bila jalur
   Metal diaktifkan), dan log/crash log ditulis ke root app-data (lihat PDR-015).
-- **Status kerja:** `todo`
+- **Perbaikan:** log dibuka dengan mode `"a"`; `Crash.log` pindah ke `$HOME/Library/Application Support/Kronosaur/Transcendence/Crash.log` lewat helper baru `GetCrashLogPath()` yang hanya memakai libc (dipanggil sebelum `kernelInit()`); `SDL_SetHint(SDL_HINT_RENDER_DRIVER, "metal")` di `MetalRenderer_Init` dihapus karena dipanggil setelah window dibuat, fungsi itu tidak punya pemanggil, dan memaksa `"metal"` global akan mematahkan fallback software; high-DPI drawable sengaja **tidak** diminta, dengan alasan terdokumentasi di kode.
+- **Status kerja:** `done`
 
 ### PDR-034 — `GetSystemInfo`/`GetLogicalProcessorInformationEx` stub
 
@@ -846,7 +869,8 @@ perilaku yang diharapkan selain hilangnya bug tepi.
 - **Fase perbaikan:** Fase 4 — PR `fix/macos-port-p3-hardening`
 - **Gate verifikasi:** Gate standar + audit bahwa tidak ada jalur macOS yang memanggil kedua
   stub; tambahkan komentar/`ASSERT` agar pemanggilan tak sengaja terdeteksi.
-- **Status kerja:** `todo`
+- **Perbaikan:** `GetSystemInfo` membaca `sysconf(_SC_NPROCESSORS_ONLN)` dan `sysconf(_SC_PAGESIZE)`, mengisi `dwAllocationGranularity` dan `dwActiveProcessorMask` dari host. `GetLogicalProcessorInformationEx` tetap stub jujur (`FALSE` + panjang nol) dengan komentar alasan; tidak ada `ASSERT` yang ditambahkan di titik itu (makro baru didefinisikan jauh setelahnya di `Kernel.h`).
+- **Status kerja:** `done`
 
 ### PDR-035 — `#pragma clang diagnostic ignored "-Wnon-pod-varargs"` menyembunyikan UB varargs
 
@@ -863,7 +887,8 @@ perilaku yang diharapkan selain hilangnya bug tepi.
 - **Fase perbaikan:** Fase 4 — PR `fix/macos-port-p3-hardening`
 - **Gate verifikasi:** Gate standar + hapus pragma lalu perbaiki seluruh call-site yang
   memicu warning (tanpa menambah `-Wno-` global).
-- **Status kerja:** `todo`
+- **Perbaikan:** empat blok `#pragma clang diagnostic push` / `ignored "-Wnon-pod-varargs"` / `pop` dihapus. Build menghasilkan **nol** peringatan `non-pod-varargs` baru, sehingga tidak ada call-site yang perlu diperbaiki dan tidak ada `-Wno-` global yang ditambahkan.
+- **Status kerja:** `done`
 
 ### PDR-036 — `DebugLog` mati di `CLanguageDataBlock.cpp`
 
@@ -877,7 +902,41 @@ perilaku yang diharapkan selain hilangnya bug tepi.
 - **Fase perbaikan:** Fase 4 — PR `fix/macos-port-p3-hardening`
 - **Gate verifikasi:** Gate standar + `DebugLog` mengeluarkan output yang sama dengan jalur
   non-Apple (atau alasan eksplisit bila sengaja dinonaktifkan).
-- **Status kerja:** `todo`
+- **Perbaikan:** pembungkus `#if defined(__APPLE__) && defined(_DEBUG) … return; #else … #endif` dihapus sehingga badan `DebugLog` yang sebenarnya (kini dibangun memakai `CString::Append`) selalu dikompilasi; komentar mencatat penyebab asli (varargs non-POD) dan bahwa badan fungsi sudah ditulis ulang sehingga stub tidak lagi diperlukan.
+- **Status kerja:** `done`
+
+### PDR-039 — `_fcvt_s` menukar parameter `dec`/`sign`
+
+- **Status temuan:** `confirmed`
+- **Prioritas:** `P2`
+- **Lokasi:** `Alchemy/Include/Kernel.h:1501-1535` (badan shim); pemanggil
+  `Alchemy/Kernel/CString.cpp:1755-1767` (`Kernel::strFromDouble`)
+- **Dampak di macOS:** Kontrak CRT adalah
+  `_fcvt_s(buffer, sizeInBytes, value, count, dec, sign)` — indeks titik desimal di parameter
+  kelima dan tanda di parameter keenam. Shim macOS menulis keduanya dalam urutan terbalik,
+  sedangkan pemanggil (`strFromDouble`, yang mendeklarasikan `int iDecimalPoint; int iSign;`
+  dan menyerahkan `&iDecimalPoint, &iSign`) mengikuti urutan CRT. Akibatnya setiap
+  `strFromDouble(value, decimals)` dengan jumlah desimal eksplisit mengembalikan string negatif
+  yang korup: `12.34`/2 → `-0.1234`, `12.34`/0 → `-0.12`, `9.9`/0 → `-0.10`, `0.5`/0 → `-0.0`,
+  `1.5`/1 → `-0.15`. Nilai yang memang sudah negatif tampak "benar" karena tanda yang tertukar
+  kebetulan menghasilkan hasil yang sama.
+- **Kondisi pemicu:** Setiap pemanggilan `Kernel::strFromDouble` dengan `iDecimals >= 0`. Jalur
+  `iDecimals == -1` memakai `_gcvt_s` dan tidak terpengaruh. `strFromDouble` dipakai antara lain
+  oleh `CPerformanceCounters.cpp`, `CDiagnosticsCommand.cpp`, `CHexarc.cpp`, `CShipClass.cpp`,
+  `CItemType.cpp`, `CWeaponClass.cpp`, dan `CLanguage.cpp`, sehingga angka yang ditampilkan
+  maupun yang dipakai untuk diagnosis ikut rusak. Tidak ada padanan di Windows: build Windows
+  memakai CRT asli yang urutannya benar.
+- **Fase perbaikan:** Fase 4 — PR `fix/macos-port-p3-hardening`
+- **Gate verifikasi:** Gate standar + unit test `Kernel::strFromDouble` untuk nilai positif dan
+  negatif dengan jumlah desimal eksplisit (`12.34`/2 → `12.34`, `-0.125`/3 → `-0.125`,
+  `0.5`/0 → `0.0`, `9.9`/0 → `10.0`), plus unit test `_fcvt_s` yang memeriksa posisi keluaran
+  `dec` dan `sign`.
+- **Perbaikan:** urutan parameter shim disamakan dengan kontrak CRT
+  (`_fcvt_s(buf, len, value, decimals, int* dec, int* sign)`); `dec` menerima indeks titik
+  desimal dan `sign` menerima tanda. Komentar di kode mencatat bukti pemanggil dan nilai korup
+  yang diamati. Tes regresi `strFromDouble` ditambahkan di
+  `Transcendence/Tests/MacPortabilityTests.cpp`.
+- **Status kerja:** `done`
 
 ---
 
@@ -929,7 +988,7 @@ Setiap fase dikerjakan pada branch + PR terpisah dari `osx` (sesuai `AGENTS.md`)
 | 1 | `fix/macos-port-p0-input-memory` | PDR-001..PDR-006 | pemetaan VK lengkap + helper `PlatformVKToScancode`, perbaikan pertumbuhan/akuntansi `CMemoryStream`, magic check handle event, pembersihan map `SDLBitmapDestroy` |
 | 2 | `fix/macos-port-p1-functional-fs` | PDR-007..PDR-015 | DIB yang hilang, keputusan MCI/video/audio, kursor & capture, waktu file, `bFailIfExists`, satu root app-data |
 | 3 | `fix/macos-port-p2-platform-perf` | PDR-016..PDR-027 | truncation/isi struct pesan, packing koordinat mouse, crash handler, race timer, semantik `VirtualAlloc`, `ShellExecute` non-blocking, noise `posixResolvePathCase`, evaluasi ulang pemaksaan single-thread paint |
-| 4 | `fix/macos-port-p3-hardening` | PDR-028..PDR-036 | perbaikan defensif dan pembersihan |
+| 4 | `fix/macos-port-p3-hardening` | PDR-028..PDR-036, PDR-039 | perbaikan defensif dan pembersihan |
 | 5 | — | PDR-037..PDR-038 | hanya `deferred` di register; tanpa perubahan kode |
 
 ### Acceptance Criteria Umum per Fase
@@ -966,6 +1025,12 @@ yang sudah ada):
   mengembalikan root yang sama dengan `GetAppLogPath()`.
 - **DIB:** `dibCreate24bitDIB`/`dibCrop` mengembalikan `NOERROR` dengan output valid (atau
   tes menegaskan pemanggil sudah dialihkan).
+- **Hardening (Fase 4):** `_fcvt_s` dengan buffer berukuran pemanggil (309 byte, pra-isi
+  `0xAA`) deterministik, tidak menyisakan byte stale di dalam rentang terdeklarasi, dan tidak
+  menulis melewati panjang terdeklarasi; `Kernel::strFromDouble` mengembalikan tanda dan titik
+  desimal di posisi CRT (`PDR-039`); `wsprintf` memotong ke ukuran array tujuan; disposition
+  `CreateFile`; `SetFilePointer`/`GetFileSize` 64-bit pada berkas sparse 5 GiB; `MoveFile` dan
+  fallback lintas volume; `GetTempPath` mengikuti `TMPDIR`; `GetSystemInfo`.
 
 ## Asumsi & Default
 
@@ -975,5 +1040,8 @@ yang sudah ada):
   atau `composer.json`); gate kualitas = build + `ctest`.
 - Temuan berlabel `likely`/`latent`/`dead-code` yang masih perlu konfirmasi pemanggil dicatat
   apa adanya dan diverifikasi saat fase terkait dikerjakan.
+- Temuan baru yang ditemukan saat sebuah fase dikerjakan diberi ID lanjutan pada fase itu
+  (contoh: `PDR-039` ditemukan dan ditutup pada Fase 4) dan dicatat sebagai entri tersendiri,
+  bukan dilipat diam-diam ke entri lain.
 - Branch `osx` tetap bersih sampai implementasi disetujui; PR dibuat per fase, tidak
   digabungkan langsung.

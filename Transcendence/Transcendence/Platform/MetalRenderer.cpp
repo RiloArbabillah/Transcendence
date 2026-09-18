@@ -44,8 +44,15 @@ bool MetalRenderer_Init(struct CMetalRenderer* pRenderer, void* pView, int cxWid
     if (!pRenderer || !pView)
         return false;
 
-    SDL_Window* pWindow = (SDL_Window*)pView;
-    SDL_SetHint(SDL_HINT_RENDER_DRIVER, "metal");
+    //  PDR-033: this used to call SDL_SetHint(SDL_HINT_RENDER_DRIVER, "metal")
+    //  here, which was doubly ineffective: SDL_HINT_RENDER_DRIVER is read by
+    //  SDL_CreateRenderer(), so setting it after the window exists is already
+    //  too late, and this function has no callers -- AppCore.cpp creates its
+    //  renderer directly with SDL_CreateRenderer(). The hint was removed rather
+    //  than relocated because forcing "metal" globally would also apply to the
+    //  software fallback and make that fallback fail on a machine without a
+    //  Metal device. Renderer selection therefore stays with SDL, which already
+    //  prefers Metal on macOS.
 
     pRenderer->m_cxWidth = cxWidth;
     pRenderer->m_cyHeight = cyHeight;
