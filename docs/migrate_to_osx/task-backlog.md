@@ -2,8 +2,8 @@
 
 ## Document Status
 
-- Version: v1.2
-- Last Updated: 2026-04-30
+- Version: v1.3
+- Last Updated: 2026-09-19
 - Derived From: `PRD.md`
 - Companion Document: `roadmap.md`
 
@@ -657,6 +657,132 @@ This backlog converts the roadmap into actionable engineering work. Tasks are gr
 - Status: `deferred`
 - Reason: useful later, not a blocker for the development port
 
+## Epic N - macOS Port Defect Register Execution
+
+Source of truth: `port-defect-register.md`. Each task is one phase, delivered on its own
+branch and pull request from `osx`; no direct commit to `main`/`master`.
+
+### N-000 Publish the port defect register
+
+- Priority: `P0`
+- Status: `todo`
+- Goal: publish a single register of all static-audit port defects and wire it into the
+  documentation set
+- Deliverable:
+  - `port-defect-register.md` with `PDR-001`..`PDR-038` grouped by fix phase
+  - registration in `index.md`, `task-backlog.md`, `change-log.md`, `../bug_fix_plan.md`,
+    `../macOS_port_status.md`
+- Depends on:
+  - none
+- Acceptance criteria:
+  - every entry records ID, title, finding status, priority, `file:line`, macOS impact,
+    trigger condition, fix phase, verification gate, and work status
+  - no source-code changes in this task
+  - `git diff --check` is clean
+
+### N-001 Phase 1 - input and memory safety (P0)
+
+- Priority: `P0`
+- Status: `todo`
+- Goal: restore complete virtual-key mapping and correct memory-stream accounting/safety
+- Scope:
+  - `PDR-001` complete `PlatformGetAsyncKeyState` VK mapping, including a pure
+    `PlatformVKToScancode` helper and its documentation
+  - `PDR-002` `CMemoryWriteStream::Write` growth loop
+  - `PDR-003` `m_iCommittedSize` accounting and zero-fill on forward `Seek`
+  - `PDR-004` `CloseHandle` pointer-vs-fd disambiguation without heuristic dereference
+  - `PDR-005` magic checks in event wait/set/reset paths
+  - `PDR-006` `SDLBitmapDestroy` map cleanup
+- Depends on:
+  - N-000
+- Acceptance criteria:
+  - `PDR-001`..`PDR-006` marked `done` in the register in the same PR
+  - `cmake --preset macos-debug`, `cmake --build --preset macos-debug`, and
+    `ctest --test-dir build/macos-debug -R mac-portability --output-on-failure` pass
+  - new portability tests cover memory-stream growth/zero-fill/commit accounting, bitmap
+    create/destroy lookup, and every VK used by `DefaultKeyMappings.h`
+  - no Windows behavior change; changes are platform-neutral or guarded
+
+### N-002 Phase 2 - functional and filesystem gaps (P1)
+
+- Priority: `P1`
+- Status: `todo`
+- Goal: stop silent failures in image, video, audio, cursor, file-time, and app-data paths
+- Scope:
+  - `PDR-007` missing DIB creators (`dibCreate16/24/32bitDIB`, `dibCrop`,
+    `dibConvertToDDB`, `dibLoadFromResource`)
+  - `PDR-008` `MCIWnd*` no-op decision
+  - `PDR-009` `CMCIMixerStub.cpp` vs `CMCIMixer.cpp` feature inventory
+  - `PDR-010`/`PDR-011` cursor, capture, and screen/client coordinate conversion
+  - `PDR-012`/`PDR-013` `GetFileTime`/`FileTimeToSystemTime` and `ftLastWriteTime`
+  - `PDR-014` `CopyFile` `bFailIfExists`
+  - `PDR-015` single app-data root consistent with `GetAppLogPath()`
+- Depends on:
+  - N-001
+- Acceptance criteria:
+  - `PDR-007`..`PDR-015` marked `done` (or explicitly `deferred` with reason) in the same PR
+  - filesystem portability tests cover file time, `CopyFile` `bFailIfExists`, and
+    `SHGetFolderPath` matching the log root
+  - DIB tests return `NOERROR` with valid output, or assert that callers were redirected
+  - build and `mac-portability` gate pass; `git diff --check` is clean
+
+### N-003 Phase 3 - platform/event semantics and performance (P2)
+
+- Priority: `P2`
+- Status: `todo`
+- Goal: align message/event semantics with Win32 and remove unnecessary performance caps
+- Scope:
+  - `PDR-016`/`PDR-017` message `WPARAM` width and `hwnd`/`time`/`pt` population
+  - `PDR-018` synchronous `PlatformSendMessage`
+  - `PDR-019` mouse coordinate packing for negative/multi-monitor values
+  - `PDR-020` async-signal-safe crash handler
+  - `PDR-021` timer race
+  - `PDR-022` `VirtualAlloc` `MEM_COMMIT` semantics
+  - `PDR-023` non-blocking `ShellExecute`
+  - `PDR-024` `posixResolvePathCase` stderr noise and cost
+  - `PDR-025`/`PDR-026` re-evaluate forced single-thread paint
+  - `PDR-027` monochrome detection cost
+- Depends on:
+  - N-002
+- Acceptance criteria:
+  - `PDR-016`..`PDR-027` marked `done` (or explicitly `deferred` with reason) in the same PR
+  - coordinate packing tests cover negative values and values above 32767
+  - `PDR-025`/`PDR-026` keep an explicit, documented exit criterion if the cap remains
+  - build and `mac-portability` gate pass; `git diff --check` is clean
+
+### N-004 Phase 4 - hardening and minor defects (P3)
+
+- Priority: `P3`
+- Status: `todo`
+- Goal: defensive correctness and cleanup for the remaining low-severity defects
+- Scope:
+  - `PDR-028` `_fcvt_s` bounded conversion
+  - `PDR-029` `wsprintf` buffer-size safety
+  - `PDR-030` `CreateFile` `dwShareMode`/`dwFlags`
+  - `PDR-031` 64-bit file pointer/size
+  - `PDR-032` `MoveFile`/`GetTempPath`/`FreePIDL`/`SHGetMalloc`
+  - `PDR-033` SDL hint ordering, HIGHDPI hints, log mode, crash-log location
+  - `PDR-034` CPU-info stubs
+  - `PDR-035` varargs pragma removal after fixing call sites
+  - `PDR-036` `DebugLog` on macOS debug builds
+- Depends on:
+  - N-003
+- Acceptance criteria:
+  - `PDR-028`..`PDR-036` marked `done` (or explicitly `deferred` with reason) in the same PR
+  - `_fcvt_s` test proves no out-of-bounds read with a small buffer
+  - build and `mac-portability` gate pass; `git diff --check` is clean
+
+### N-005 Phase 5 - cross-platform regressions (deferred)
+
+- Priority: `P3`
+- Status: `deferred`
+- Reason: `PDR-037` (`#define WINAPI` empty outside `_WIN32`) and `PDR-038`
+  (`CMemoryStream.cpp` stub replacing the Windows implementation) only affect Windows
+  builds; the current plan is macOS-only
+- Acceptance criteria:
+  - both entries remain recorded as `deferred` in `port-defect-register.md`
+  - no source-code change for either entry
+
 ## Critical Path Summary
 
 The shortest path to a native main menu from the current 2026-04-30 state is:
@@ -689,3 +815,7 @@ The shortest path to a first playable build is:
 - J-000 Add milestone no-audio backend seam if `CMCIMixer` remains in the link path
 
 These tasks turn the current static-library build success into an executable link path and should be completed before expanding runtime SDL/Metal behavior or packaging work.
+
+Defect-closure track added 2026-09-19: Epic N (`N-000`..`N-004`) executes the static-audit
+findings from `port-defect-register.md` in four code phases plus the docs phase, each on its
+own branch and pull request from `osx`. Phase 5 (`PDR-037`, `PDR-038`) stays `deferred`.

@@ -2,8 +2,8 @@
 
 ## Document Status
 
-- Version: v1.3
-- Last Updated: 2026-05-11
+- Version: v1.4
+- Last Updated: 2026-09-19
 - Project: Native macOS Apple Silicon port of `kronosaur/TranscendenceDev`
 - Purpose: central navigation portal for planning and implementation documentation
 
@@ -18,16 +18,17 @@ Use this file as the primary entry point for the documentation set.
 ## Recommended Reading Order
 
 1. `../macOS_port_status.md`
-2. `execution-task-plan.md`
-3. `minimax-m27-port-completion-plan.md`
-4. `release-ready-execution-plan.md`
-5. `qa-test-matrix.md`
-6. `architecture.md`
-7. `dependency-matrix.md`
-8. `task-backlog.md`
-9. `cmake-build-plan.md`
-10. `decision-log.md`
-11. `change-log.md`
+2. `port-defect-register.md`
+3. `execution-task-plan.md`
+4. `minimax-m27-port-completion-plan.md`
+5. `release-ready-execution-plan.md`
+6. `qa-test-matrix.md`
+7. `architecture.md`
+8. `dependency-matrix.md`
+9. `task-backlog.md`
+10. `cmake-build-plan.md`
+11. `decision-log.md`
+12. `change-log.md`
 
 ## Core Documents
 
@@ -79,6 +80,15 @@ Use this file as the primary entry point for the documentation set.
 - `change-log.md`
   - chronological log of documentation changes and major planning updates
 
+### Audit and Defect Tracking
+
+- `port-defect-register.md`
+  - single register of all static-audit port defects (`PDR-001`..`PDR-038`) grouped by fix
+    phase, with priority, trigger condition, verification gate, and work status
+
+- `compat-layer-bugfix-plan.md`
+  - executed fix plan for the Windows-to-macOS compatibility layer that preceded this register
+
 ## Document Roles
 
 | Document | Primary Role |
@@ -97,6 +107,8 @@ Use this file as the primary entry point for the documentation set.
 | `qa-test-matrix.md` | how milestone success is validated |
 | `decision-log.md` | why key technical decisions were made |
 | `change-log.md` | what changed in the documentation set over time |
+| `port-defect-register.md` | which port defects exist, how severe they are, and which fix phase closes them |
+| `compat-layer-bugfix-plan.md` | how the already-executed compatibility-layer bugs were fixed |
 
 ## Recommended Usage by Phase
 
@@ -174,6 +186,9 @@ Use this file as the primary entry point for the documentation set.
 - `transcendence_app` builds and launches from the active CMake macOS path
 - the current critical path is runtime stabilization in background universe init and first visible frame, not app-link closure
 - use `../macOS_port_status.md` as the current audited status and completion plan when deciding the next implementation slice
+- `port-defect-register.md` records the full static-audit defect set (`PDR-001`..`PDR-038`) and the
+  phase-by-phase fix plan; use it as the actionable defect list when the runtime blockers above are
+  being closed
 
 ## Related Files in This Folder
 
@@ -191,3 +206,5 @@ Use this file as the primary entry point for the documentation set.
 - `qa-test-matrix.md`
 - `decision-log.md`
 - `change-log.md`
+- `port-defect-register.md`
+- `compat-layer-bugfix-plan.md`

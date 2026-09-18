@@ -4,6 +4,13 @@
 > **Branch:** `osx`
 > **Status:** All phases complete
 
+> **Superseded (2026-09-19):** the "All phases complete" status below is stale. A static code
+> audit on `osx` found defects in the macOS compatibility layer that this plan does not cover
+> (incomplete virtual-key mapping, memory-stream growth/accounting, event-handle safety,
+> bitmap-map lifetime, missing DIB creators, `MCIWnd*`/cursor/file-time no-ops, and more).
+> Use **`docs/migrate_to_osx/port-defect-register.md`** as the current defect list and fix
+> plan; keep this document only as the historical record of the earlier fix rounds.
+
 ---
 
 ## Overview
