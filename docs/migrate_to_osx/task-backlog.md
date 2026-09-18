@@ -2,7 +2,7 @@
 
 ## Document Status
 
-- Version: v1.4
+- Version: v1.5
 - Last Updated: 2026-09-19
 - Derived From: `PRD.md`
 - Companion Document: `roadmap.md`
@@ -710,7 +710,7 @@ branch and pull request from `osx`; no direct commit to `main`/`master`.
 ### N-002 Phase 2 - functional and filesystem gaps (P1)
 
 - Priority: `P1`
-- Status: `todo`
+- Status: `done`
 - Goal: stop silent failures in image, video, audio, cursor, file-time, and app-data paths
 - Scope:
   - `PDR-007` missing DIB creators (`dibCreate16/24/32bitDIB`, `dibCrop`,
@@ -729,6 +729,12 @@ branch and pull request from `osx`; no direct commit to `main`/`master`.
     `SHGetFolderPath` matching the log root
   - DIB tests return `NOERROR` with valid output, or assert that callers were redirected
   - build and `mac-portability` gate pass; `git diff --check` is clean
+- Delivery note: branch `fix/macos-port-p1-functional-fs`, PR open against
+  `fix/macos-port-p0-input-memory` (stacked); not merged. Gate verified locally:
+  `cmake --preset macos-debug`, `cmake --build --preset macos-debug` (including
+  `Transcendence.app` and the tools), and `ctest -R mac-portability` passed.
+  `PDR-008` closed as an explicit video non-goal; `PDR-009` records the `CMCIMixer` parity
+  inventory plus its remaining audio follow-ups in `functional-fs-utilities.md`.
 
 ### N-003 Phase 3 - platform/event semantics and performance (P2)
 

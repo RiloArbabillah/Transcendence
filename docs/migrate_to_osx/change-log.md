@@ -2,7 +2,7 @@
 
 ## Document Status
 
-- Version: v1.6
+- Version: v1.7
 - Last Updated: 2026-09-19
 - Scope: documentation-only changes for the macOS port planning set
 
@@ -33,6 +33,16 @@ Summary:
 ## Entries
 
 ### 2026-09-19
+
+- Document: `functional-fs-utilities.md`, `index.md`, `port-defect-register.md`,
+  `task-backlog.md`, `change-log.md`
+- Change Type: added
+- Summary: documented the macOS functional/filesystem helpers produced by fix phase 2
+  (`Kernel::pathGetAppDataRoot`, the `PathCompat.h` time/copy surface, cursor and
+  screen/client coordinate conversion, the DIB creators, and the video/audio coverage
+  decisions) in `functional-fs-utilities.md`, registered the document in `index.md`, and
+  flipped `PDR-007`..`PDR-015` in `port-defect-register.md` after the phase-2 fixes and
+  `mac-portability` gate passed
 
 - Document: `platform-input-utilities.md`, `index.md`, `port-defect-register.md`, `change-log.md`
 - Change Type: added

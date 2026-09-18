@@ -39,14 +39,19 @@
 #define CSIDL_MYMUSIC 0x000D
 #define MAX_PATH 260
 #define LPMALLOC void*
+#include "PathCompat.h"
 struct WIN32_FIND_DATA { DWORD dwFileAttributes; FILETIME ftCreationTime; FILETIME ftLastAccessTime; FILETIME ftLastWriteTime; DWORD nFileSizeHigh; DWORD nFileSizeLow; DWORD dwReserved0; DWORD dwReserved1; char cFileName[260]; char cAlternateFileName[14]; };
 struct SHFILEOPSTRUCT { void* hwnd; UINT wFunc; char* pFrom; char* pTo; FILEOP_FLAGS fFlags; BOOL fAnyOperationsAborted; void* hNameMappings; char* lpszProgressTitle; };
-inline HRESULT SHGetFolderPath(void* pToken, int iCSIDL, void* pReserved, DWORD dwFlags, char* pDest)
+
+//	The canonical application-data root for the macOS port. The SDL shell
+//	(AppCore.cpp) and the Win32 special-folder shim below must agree on this
+//	location; otherwise the game writes its settings and logs into two
+//	different trees.
+
+static const char *const POSIX_APP_DATA_SUFFIX = "/Library/Application Support/Kronosaur/Transcendence";
+
+static const char *PosixHomeDirectory (void)
 	{
-	//	Map Windows special folders to their macOS equivalents.
-
-	(void)pToken; (void)pReserved; (void)dwFlags;
-
 	const char *pHome = getenv("HOME");
 	if (pHome == NULL || pHome[0] == '\0')
 		{
@@ -55,7 +60,90 @@ inline HRESULT SHGetFolderPath(void* pToken, int iCSIDL, void* pReserved, DWORD 
 			pHome = pPasswd->pw_dir;
 		}
 
-	if (pHome == NULL || pHome[0] == '\0')
+	return ((pHome != NULL && pHome[0] != '\0') ? pHome : NULL);
+	}
+
+//	Creates every missing component of the given path (mkdir -p semantics).
+
+static void PosixMkDirP (const std::string &sPath)
+	{
+	if (sPath.empty())
+		return;
+
+	std::string sAccum;
+	size_t iPos = (sPath[0] == '/') ? 1 : 0;
+	while (iPos <= sPath.size())
+		{
+		size_t iNext = sPath.find('/', iPos);
+		size_t iEnd = (iNext == std::string::npos) ? sPath.size() : iNext;
+		std::string sComp = sPath.substr(iPos, iEnd - iPos);
+		if (!sComp.empty())
+			{
+			sAccum += '/';
+			sAccum += sComp;
+			mkdir(sAccum.c_str(), 0755);
+			}
+		if (iNext == std::string::npos)
+			break;
+		iPos = iNext + 1;
+		}
+	}
+
+//	Returns the canonical application-data root, creating it if necessary. An
+//	empty string means that the home directory could not be determined.
+
+static std::string PosixAppDataRoot (void)
+	{
+	const char *pHome = PosixHomeDirectory();
+	if (pHome == NULL)
+		return std::string();
+
+	std::string sRoot = pHome;
+	sRoot += POSIX_APP_DATA_SUFFIX;
+	PosixMkDirP(sRoot);
+
+	return sRoot;
+	}
+
+//	Converts a Unix time to the FILETIME that Win32 callers expect: a count of
+//	100-nanosecond intervals since 1601-01-01 UTC. The two epochs are
+//	11644473600 seconds apart.
+
+static FILETIME PosixTimeToFileTime (time_t tTime, long lNsec)
+	{
+	return ((unsigned long long)(tTime + 11644473600LL) * 10000000ULL
+			+ (unsigned long long)(lNsec / 100));
+	}
+
+//	macOS exposes nanosecond timestamps through st_*timespec, while other
+//	POSIX systems use st_*tim. Keep the difference in one place.
+
+static long PosixStatAccessTimeNsec (const struct stat &st)
+	{
+#ifdef __APPLE__
+	return st.st_atimespec.tv_nsec;
+#else
+	return st.st_atim.tv_nsec;
+#endif
+	}
+
+static long PosixStatModifyTimeNsec (const struct stat &st)
+	{
+#ifdef __APPLE__
+	return st.st_mtimespec.tv_nsec;
+#else
+	return st.st_mtim.tv_nsec;
+#endif
+	}
+
+HRESULT SHGetFolderPath(void* pToken, int iCSIDL, void* pReserved, DWORD dwFlags, char* pDest)
+	{
+	//	Map Windows special folders to their macOS equivalents.
+
+	(void)pToken; (void)pReserved; (void)dwFlags;
+
+	const char *pHome = PosixHomeDirectory();
+	if (pHome == NULL || pDest == NULL)
 		return E_FAIL;
 
 	const char *pSuffix;
@@ -63,7 +151,9 @@ inline HRESULT SHGetFolderPath(void* pToken, int iCSIDL, void* pReserved, DWORD 
 		{
 		case CSIDL_APPDATA:
 		case CSIDL_LOCAL_APPDATA:
-			pSuffix = "/Library/Application Support";
+			//	One root for both roaming and local app data, matching where
+			//	the SDL shell keeps its log and settings.
+			pSuffix = POSIX_APP_DATA_SUFFIX;
 			break;
 
 		case CSIDL_PERSONAL:
@@ -87,26 +177,7 @@ inline HRESULT SHGetFolderPath(void* pToken, int iCSIDL, void* pReserved, DWORD 
 
 	//	Create the directory if it doesn't exist (mkdir -p semantics)
 
-	{
-	std::string sDir = pDest;
-	std::string sAccum;
-	size_t iPos = (sDir[0] == '/') ? 1 : 0;
-	while (iPos <= sDir.size())
-		{
-		size_t iNext = sDir.find('/', iPos);
-		size_t iEnd = (iNext == std::string::npos) ? sDir.size() : iNext;
-		std::string sComp = sDir.substr(iPos, iEnd - iPos);
-		if (!sComp.empty())
-			{
-			sAccum += '/';
-			sAccum += sComp;
-			mkdir(sAccum.c_str(), 0755);
-			}
-		if (iNext == std::string::npos)
-			break;
-		iPos = iNext + 1;
-		}
-	}
+	PosixMkDirP(pDest);
 
 	return S_OK;
 	}
@@ -136,7 +207,21 @@ inline int SHFileOperation(SHFILEOPSTRUCT* lpFileOp)
 	return (unlink(sPath.c_str()) == 0 ? 0 : 1);
 	}
 
-inline BOOL CopyFile(const char* pSrc, const char* pDst, BOOL bFailIfExists) { return copyfile(pSrc, pDst, nullptr, COPYFILE_ALL) == 0; }
+BOOL CopyFile(const char* pSrc, const char* pDst, BOOL bFailIfExists)
+	{
+	if (pSrc == NULL || pDst == NULL)
+		return FALSE;
+
+	//	Win32 fails when the destination already exists and bFailIfExists is
+	//	set; COPYFILE_EXCL gives copyfile() the same behavior (it fails with
+	//	EEXIST instead of overwriting).
+
+	copyfile_flags_t dwFlags = COPYFILE_ALL;
+	if (bFailIfExists)
+		dwFlags |= COPYFILE_EXCL;
+
+	return (copyfile(pSrc, pDst, nullptr, dwFlags) == 0 ? TRUE : FALSE);
+	}
 
 //	POSIX implementation of the FindFirstFile/FindNextFile/FindClose family
 //	based on opendir/readdir/fnmatch.
@@ -180,7 +265,7 @@ static bool PosixFindNext (SPosixFindHandle *pHandle, WIN32_FIND_DATA *pData)
 				pData->dwFileAttributes |= FILE_ATTRIBUTE_DIRECTORY;
 			pData->nFileSizeLow = (DWORD)((unsigned long long)st.st_size & 0xffffffff);
 			pData->nFileSizeHigh = (DWORD)((unsigned long long)st.st_size >> 32);
-			pData->ftLastWriteTime = (FILETIME)st.st_mtime;
+			pData->ftLastWriteTime = PosixTimeToFileTime(st.st_mtime, PosixStatModifyTimeNsec(st));
 			}
 
 		if (pData->dwFileAttributes == 0)
@@ -260,8 +345,60 @@ inline BOOL FindClose(void* hFind)
 	delete pHandle;
 	return TRUE;
 	}
-inline BOOL GetFileTime(HANDLE hFile, FILETIME* pCreation, FILETIME* pLastAccess, FILETIME* pLastWrite) { return TRUE; }
-inline BOOL FileTimeToSystemTime(FILETIME* pFileTime, SYSTEMTIME* pSystemTime) { return TRUE; }
+BOOL GetFileTime(HANDLE hFile, FILETIME* pCreation, FILETIME* pLastAccess, FILETIME* pLastWrite)
+	{
+	if (hFile == NULL || hFile == INVALID_HANDLE_VALUE)
+		return FALSE;
+
+	//	File handles are POSIX descriptors in this port, so fstat() is the
+	//	authority on the timestamps.
+
+	struct stat st;
+	if (fstat((int)(intptr_t)hFile, &st) != 0)
+		return FALSE;
+
+	if (pCreation)
+		*pCreation = PosixTimeToFileTime(st.st_birthtime, 0);
+
+	if (pLastAccess)
+		*pLastAccess = PosixTimeToFileTime(st.st_atime, PosixStatAccessTimeNsec(st));
+
+	if (pLastWrite)
+		*pLastWrite = PosixTimeToFileTime(st.st_mtime, PosixStatModifyTimeNsec(st));
+
+	return TRUE;
+	}
+
+BOOL FileTimeToSystemTime(FILETIME* pFileTime, SYSTEMTIME* pSystemTime)
+	{
+	if (pFileTime == NULL || pSystemTime == NULL)
+		return FALSE;
+
+	//	Win32 returns UTC calendar time, so do not apply a timezone here.
+
+	const unsigned long long dwFileTime = (unsigned long long)*pFileTime;
+	const unsigned long long dwSeconds = dwFileTime / 10000000ULL;
+	const unsigned long long dwNanos = (dwFileTime % 10000000ULL) * 100ULL;
+
+	if (dwSeconds < 11644473600ULL)
+		return FALSE;
+
+	time_t tTime = (time_t)(dwSeconds - 11644473600ULL);
+	struct tm tmUtc;
+	if (gmtime_r(&tTime, &tmUtc) == NULL)
+		return FALSE;
+
+	pSystemTime->wYear = (WORD)(tmUtc.tm_year + 1900);
+	pSystemTime->wMonth = (WORD)(tmUtc.tm_mon + 1);
+	pSystemTime->wDayOfWeek = (WORD)tmUtc.tm_wday;
+	pSystemTime->wDay = (WORD)tmUtc.tm_mday;
+	pSystemTime->wHour = (WORD)tmUtc.tm_hour;
+	pSystemTime->wMinute = (WORD)tmUtc.tm_min;
+	pSystemTime->wSecond = (WORD)tmUtc.tm_sec;
+	pSystemTime->wMilliseconds = (WORD)(dwNanos / 1000000ULL);
+
+	return TRUE;
+	}
 inline DWORD GetTempPath(DWORD nBufferLength, char* lpBuffer) { if (lpBuffer && nBufferLength > 4) { strlcpy(lpBuffer, "/tmp", nBufferLength); return strlen(lpBuffer); } return 4; }
 inline DWORD GetFileAttributes(const char* lpFileName) {
 #ifndef _WIN32
@@ -1142,10 +1279,15 @@ CString Kernel::pathGetSpecialFolder (ESpecialFolders iFolder)
 			switch (iFolder)
 				{
 				case folderAppData:
-					strncpy(pDest, home, MAX_PATH - 1);
+					{
+					//	Same root as the shim above, so that a failed lookup
+					//	cannot silently relocate the application data.
+
+					std::string sRoot = PosixAppDataRoot();
+					strncpy(pDest, sRoot.c_str(), MAX_PATH - 1);
 					pDest[MAX_PATH - 1] = '\0';
-					strncat(pDest, "/Library/Application Support", MAX_PATH - strlen(pDest) - 1);
 					break;
+					}
 
 				case folderDocuments:
 					strncpy(pDest, home, MAX_PATH - 1);
@@ -1190,6 +1332,23 @@ CString Kernel::pathGetSpecialFolder (ESpecialFolders iFolder)
 	//	Done
 
 	return sPath;
+	}
+
+CString Kernel::pathGetAppDataRoot (void)
+
+//	pathGetAppDataRoot
+//
+//	Returns the one directory that holds the application's settings, saved
+//	games and logs. Callers must not build their own version of this path,
+//	otherwise the application ends up with two data roots.
+
+	{
+#ifdef _WIN32
+	return pathGetSpecialFolder(folderAppData);
+#else
+	std::string sRoot = PosixAppDataRoot();
+	return CString(sRoot.c_str());
+#endif
 	}
 
 bool Kernel::pathIsAbsolute (const CString &sPath)

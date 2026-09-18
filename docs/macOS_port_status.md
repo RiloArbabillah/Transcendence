@@ -14,6 +14,13 @@ and pull request at a time from `osx`; the cross-platform findings (`PDR-037`, `
 `deferred` because this plan is macOS-only. The older `docs/bug_fix_plan.md` is superseded and
 kept only as history.
 
+Status: phase 0 (register) is published, and phases 1 and 2 (`PDR-001`..`PDR-015`) are closed on
+their phase branches with the `mac-portability` gate green. Phases 3 and 4 (`PDR-016`..`PDR-036`)
+are still `todo`. The public helpers added by phases 1 and 2 are documented in
+`docs/migrate_to_osx/platform-input-utilities.md` and
+`docs/migrate_to_osx/functional-fs-utilities.md`. Runtime-only checks (real window cursor warp,
+video/intro playback, audio fade transitions) remain separate, unverified gates.
+
 ## Build Status
 
 **Current State:** the macOS app target builds and launches from the CMake-generated build tree. The active runtime path uses the SDL shell, software frame generation, SDL event forwarding, and a compatibility SDL software renderer while the Metal callback crash is avoided.

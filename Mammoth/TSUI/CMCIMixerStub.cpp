@@ -278,9 +278,12 @@ void CMCIMixer::GetDebugInfo(TArray<CString> *retLines) const
 		retLines->DeleteAll();
 		char buf[256];
 		snprintf(buf, sizeof(buf), "Audio: %s", g_bInitialized ? "initialized" : "not initialized");
-		retLines->Insert(*new CString(buf));
+		//	Insert a copy of the buffer. Allocating the CString with new
+		//	would leak it, because Insert() copies the value into the array.
+
+		retLines->Insert(CString(buf));
 		snprintf(buf, sizeof(buf), "Music playing: %s", g_bMusicPlaying ? "yes" : "no");
-		retLines->Insert(*new CString(buf));
+		retLines->Insert(CString(buf));
 		}
 	}
 

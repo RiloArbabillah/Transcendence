@@ -2,7 +2,7 @@
 
 ## Document Status
 
-- Version: v1.5
+- Version: v1.6
 - Last Updated: 2026-09-19
 - Project: Native macOS Apple Silicon port of `kronosaur/TranscendenceDev`
 - Purpose: central navigation portal for planning and implementation documentation
@@ -73,6 +73,11 @@ Use this file as the primary entry point for the documentation set.
   - public reference for the macOS platform input helpers (`PlatformVKToScancode`,
     `PlatformAsyncKeyStateForState`) that translate Win32 virtual-key codes to SDL state
 
+- `functional-fs-utilities.md`
+  - public reference for the macOS functional/filesystem helpers (`pathGetAppDataRoot`,
+    `PathCompat.h` time and copy surface, cursor/screen-client conversion, DIB creators) and
+    for the video/audio coverage decisions taken in fix phase 2
+
 ### Validation and Governance
 
 - `qa-test-matrix.md`
@@ -106,6 +111,7 @@ Use this file as the primary entry point for the documentation set.
 | `resource-loader-plan.md` | how to replace milestone-1 Win32 resource loading with a file-based path |
 | `image-portability-seam.md` | how to remove the remaining `HBITMAP` dependency from milestone-1 image ingestion |
 | `platform-input-utilities.md` | how Win32 virtual-key codes are translated to SDL input state on macOS |
+| `functional-fs-utilities.md` | how DIB creation, cursor/coordinate conversion, file times, and the single app-data root work on macOS |
 | `execution-task-plan.md` | what is actively being debugged and what the next verified slice is |
 | `minimax-m27-port-completion-plan.md` | how to execute the release-ready path from the current runnable baseline |
 | `release-ready-execution-plan.md` | how to close the remaining gaps to a tester-usable `.app` |
@@ -194,6 +200,8 @@ Use this file as the primary entry point for the documentation set.
 - `port-defect-register.md` records the full static-audit defect set (`PDR-001`..`PDR-038`) and the
   phase-by-phase fix plan; use it as the actionable defect list when the runtime blockers above are
   being closed
+- fix phases 1 and 2 (`PDR-001`..`PDR-015`) are closed on their phase branches and documented in
+  `platform-input-utilities.md` and `functional-fs-utilities.md`; phases 3 and 4 are still `todo`
 
 ## Related Files in This Folder
 
@@ -213,4 +221,5 @@ Use this file as the primary entry point for the documentation set.
 - `change-log.md`
 - `port-defect-register.md`
 - `platform-input-utilities.md`
+- `functional-fs-utilities.md`
 - `compat-layer-bugfix-plan.md`
