@@ -43,11 +43,13 @@
 struct WIN32_FIND_DATA { DWORD dwFileAttributes; FILETIME ftCreationTime; FILETIME ftLastAccessTime; FILETIME ftLastWriteTime; DWORD nFileSizeHigh; DWORD nFileSizeLow; DWORD dwReserved0; DWORD dwReserved1; char cFileName[260]; char cAlternateFileName[14]; };
 struct SHFILEOPSTRUCT { void* hwnd; UINT wFunc; char* pFrom; char* pTo; FILEOP_FLAGS fFlags; BOOL fAnyOperationsAborted; void* hNameMappings; char* lpszProgressTitle; };
 
-//	The canonical application-data root for the macOS port. The SDL shell
-//	(AppCore.cpp) and the Win32 special-folder shim below must agree on this
-//	location; otherwise the game writes its settings and logs into two
-//	different trees.
+//	The macOS equivalent of %APPDATA%, and the canonical application-data
+//	root under it. As on Windows, the special-folder shim returns only the
+//	per-user folder (callers append "Kronosaur/Transcendence" themselves), and
+//	the SDL shell (AppCore.cpp) uses the full root. If the two disagree, the
+//	game writes its settings and logs into two different trees.
 
+static const char *const POSIX_USER_APP_DATA_SUFFIX = "/Library/Application Support";
 static const char *const POSIX_APP_DATA_SUFFIX = "/Library/Application Support/Kronosaur/Transcendence";
 
 static const char *PosixHomeDirectory (void)
@@ -151,9 +153,9 @@ HRESULT SHGetFolderPath(void* pToken, int iCSIDL, void* pReserved, DWORD dwFlags
 		{
 		case CSIDL_APPDATA:
 		case CSIDL_LOCAL_APPDATA:
-			//	One root for both roaming and local app data, matching where
-			//	the SDL shell keeps its log and settings.
-			pSuffix = POSIX_APP_DATA_SUFFIX;
+			//	One folder for both roaming and local app data. Like %APPDATA%,
+			//	it does not include the vendor/product directory.
+			pSuffix = POSIX_USER_APP_DATA_SUFFIX;
 			break;
 
 		case CSIDL_PERSONAL:
@@ -1305,12 +1307,12 @@ CString Kernel::pathGetSpecialFolder (ESpecialFolders iFolder)
 				{
 				case folderAppData:
 					{
-					//	Same root as the shim above, so that a failed lookup
+					//	Same folder as the shim above, so that a failed lookup
 					//	cannot silently relocate the application data.
 
-					std::string sRoot = PosixAppDataRoot();
-					strncpy(pDest, sRoot.c_str(), MAX_PATH - 1);
+					strncpy(pDest, home, MAX_PATH - 1);
 					pDest[MAX_PATH - 1] = '\0';
+					strncat(pDest, POSIX_USER_APP_DATA_SUFFIX, MAX_PATH - strlen(pDest) - 1);
 					break;
 					}
 

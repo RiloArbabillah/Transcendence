@@ -809,8 +809,11 @@ class CHumanInterface
 		LONG WMChar (char chChar, DWORD dwKeyData);
 		LONG WMKeyDown (int iVirtKey, DWORD dwKeyData);
 		LONG WMKeyUp (int iVirtKey, DWORD dwKeyData);
+		LONG WMLButtonDblClick (int x, int y, DWORD dwFlags);
 		LONG WMLButtonDown (int x, int y, DWORD dwFlags);
 		LONG WMLButtonUp (int x, int y, DWORD dwFlags);
+		LONG WMMButtonDblClick (int x, int y, DWORD dwFlags);
+		LONG WMRButtonDblClick (int x, int y, DWORD dwFlags);
 		LONG WMRButtonDown (int x, int y, DWORD dwFlags);
 		LONG WMRButtonUp (int x, int y, DWORD dwFlags);
 		LONG WMMButtonDown (int x, int y, DWORD dwFlags);
@@ -845,9 +848,6 @@ class CHumanInterface
 		bool WMCreate (HWND hWnd, CString *retsError);
 		void WMDestroy (void);
 		LONG WMDisplayChange (int iBitDepth, int cxWidth, int cyHeight);
-		LONG WMLButtonDblClick (int x, int y, DWORD dwFlags);
-		LONG WMMButtonDblClick (int x, int y, DWORD dwFlags);
-		LONG WMRButtonDblClick (int x, int y, DWORD dwFlags);
 		LONG WMTimer (DWORD dwID);
 
 		static LONG APIENTRY MainWndProc (HWND hWnd, UINT message, UINT wParam, LONG lParam);

@@ -10,6 +10,7 @@
 #include <ctime>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 namespace
 	{
@@ -37,12 +38,51 @@ namespace
 		}
 	}
 
+static DWORD WINAPI SleepThread (LPVOID pData)
+	{
+	::Sleep((DWORD)(uintptr_t)pData);
+	return 0;
+	}
+
+static DWORD ElapsedMs (DWORD dwStart)
+	{
+	return ::GetTickCount() - dwStart;
+	}
+
 int main()
 	{
 	if (!kernelInit())
 		return 1;
 
 	bool bSuccess = true;
+
+	//	Thread handles must be waitable (as on Win32) so that thread pools shut
+	//	down as soon as their threads exit, and closing one must not touch an
+	//	unrelated file descriptor.
+
+	{
+	HANDLE hThread = kernelCreateThread(SleepThread, (LPVOID)(uintptr_t)50);
+	DWORD dwStart = ::GetTickCount();
+	bSuccess = Check(::WaitForSingleObject(hThread, 0) == WAIT_TIMEOUT, "running thread is not signaled") && bSuccess;
+	bSuccess = Check(::WaitForSingleObject(hThread, 3000) == WAIT_OBJECT_0 && ElapsedMs(dwStart) < 1000,
+			"WaitForSingleObject returns when the thread exits") && bSuccess;
+	::CloseHandle(hThread);
+
+	HANDLE Threads[2];
+	Threads[0] = kernelCreateThread(SleepThread, (LPVOID)(uintptr_t)20);
+	Threads[1] = kernelCreateThread(SleepThread, (LPVOID)(uintptr_t)200);
+	dwStart = ::GetTickCount();
+	DWORD dwResult = ::WaitForMultipleObjects(2, Threads, TRUE, 3000);
+	DWORD dwElapsed = ElapsedMs(dwStart);
+	bSuccess = Check(dwResult == WAIT_OBJECT_0 && dwElapsed >= 150 && dwElapsed < 1000,
+			"WaitForMultipleObjects(bWaitAll) waits for every thread") && bSuccess;
+
+	int fdProbe = dup(STDERR_FILENO);
+	::CloseHandle(Threads[0]);
+	::CloseHandle(Threads[1]);
+	bSuccess = Check(fcntl(fdProbe, F_GETFD) != -1, "closing thread handles leaves other descriptors open") && bSuccess;
+	close(fdProbe);
+	}
 	bSuccess = Check(strCompare(CONSTLIT("Alpha"), CONSTLIT("alpha")) == 0, "case-insensitive comparison") && bSuccess;
 	bSuccess = Check(strCompare(CONSTLIT("alpha"), CONSTLIT("beta")) < 0, "comparison ordering") && bSuccess;
 	bSuccess = Check(strStartsWithOld(CONSTLIT("Transcendence"), CONSTLIT("trans")), "case-insensitive prefix") && bSuccess;
@@ -58,9 +98,13 @@ int main()
 	bSuccess = Check(!AssetFont.IsEmpty() && AssetFont.MeasureText(CONSTLIT("Header")) > 0, "serialized font atlas and metrics") && bSuccess;
 	const int cxWord = Font.MeasureText(CONSTLIT("alpha"));
 	TArray<CString> Lines;
-	bSuccess = Check(Font.BreakText(CONSTLIT("alpha beta gamma"), cxWord + Font.GetAverageWidth(), &Lines) == 3, "font word wrapping") && bSuccess;
-	bSuccess = Check(Lines.GetCount() == 3 && strEquals(Lines[0], CONSTLIT("alpha")) && strEquals(Lines[2], CONSTLIT("gamma")), "wrapped line contents") && bSuccess;
-	bSuccess = Check(Font.CalcHeight(CONSTLIT("alpha beta gamma"), cxWord + Font.GetAverageWidth()) == 3 * Font.GetHeight(), "wrapped text height") && bSuccess;
+	//	The font is proportional (as GDI fonts are), so every word must be no
+	//	wider than the measured "alpha". As on Windows, a wrapped line keeps
+	//	the space it was broken at.
+
+	bSuccess = Check(Font.BreakText(CONSTLIT("alpha beta alpha"), cxWord + Font.GetAverageWidth(), &Lines) == 3, "font word wrapping") && bSuccess;
+	bSuccess = Check(Lines.GetCount() == 3 && strEquals(Lines[0], CONSTLIT("alpha ")) && strEquals(Lines[1], CONSTLIT("beta ")) && strEquals(Lines[2], CONSTLIT("alpha")), "wrapped line contents") && bSuccess;
+	bSuccess = Check(Font.CalcHeight(CONSTLIT("alpha beta alpha"), cxWord + Font.GetAverageWidth()) == 3 * Font.GetHeight(), "wrapped text height") && bSuccess;
 
 	Lines.DeleteAll();
 	Font.BreakText(CONSTLIT("alpha beta"), cxWord + Font.GetAverageWidth(), &Lines, CG16bitFont::TruncateLine);
@@ -119,7 +163,7 @@ int main()
 					char szHead[8];
 					const size_t iCopy = dwMappedSize < sizeof(szHead) ? dwMappedSize : sizeof(szHead);
 					memcpy(szHead, pView, iCopy);
-					bSuccess = Check(true, "mapping data readable");
+					bSuccess = Check(true, "mapping data readable") && bSuccess;
 					}
 
 				bSuccess = Check(UnmapViewOfFile(pView) == TRUE, "UnmapViewOfFile") && bSuccess;
@@ -293,6 +337,60 @@ int main()
 			&& PlatformAsyncKeyStateForState(VK_MENU, EmptyState, 0, KMOD_LALT) == (SHORT)0x8000
 			&& PlatformAsyncKeyStateForState(VK_NUMLOCK, EmptyState, 0, KMOD_NUM) == (SHORT)0x8000,
 			"modifier virtual keys") && bSuccess;
+	}
+
+	//	Key messages: the event path must be the exact inverse of the polling
+	//	map, so punctuation and keypad keys arrive as their Win32 VK instead of
+	//	a raw SDL scancode that aliases an unrelated key.
+
+	{
+	bool bRoundTrip = true;
+	for (int vk = 1; vk < 256; vk++)
+		{
+		SDL_Scancode sc = PlatformVKToScancode(vk);
+		if (sc != SDL_SCANCODE_UNKNOWN && PlatformScancodeToVK(sc) != vk)
+			bRoundTrip = false;
+		}
+	bSuccess = Check(bRoundTrip, "scancode -> VK inverts VK -> scancode") && bSuccess;
+
+	bSuccess = Check(PlatformScancodeToVK(SDL_SCANCODE_MINUS) == VK_OEM_MINUS
+			&& PlatformScancodeToVK(SDL_SCANCODE_EQUALS) == VK_OEM_PLUS
+			&& PlatformScancodeToVK(SDL_SCANCODE_RIGHTBRACKET) == VK_OEM_6
+			&& PlatformScancodeToVK(SDL_SCANCODE_PAUSE) == VK_PAUSE
+			&& PlatformScancodeToVK(SDL_SCANCODE_KP_ENTER) == VK_RETURN
+			&& PlatformScancodeToVK(SDL_SCANCODE_RSHIFT) == VK_SHIFT
+			&& PlatformScancodeToVK(SDL_SCANCODE_A) == 'A'
+			&& PlatformVKToScancode('1') == SDL_SCANCODE_1
+			&& PlatformVKToScancode('0') == SDL_SCANCODE_0,
+			"punctuation, pause, keypad enter and modifiers map to Win32 VKs") && bSuccess;
+	bSuccess = Check(PlatformScancodeToVK(SDL_SCANCODE_APPLICATION) == 0
+			&& PlatformScancodeToVK(SDL_SCANCODE_UNKNOWN) == 0,
+			"keys without a Win32 VK are dropped") && bSuccess;
+
+	bSuccess = Check(PlatformKeyData(SDL_SCANCODE_A, true, false) == 1
+			&& PlatformKeyData(SDL_SCANCODE_A, true, true) == (1 | (1 << 30))
+			&& PlatformKeyData(SDL_SCANCODE_A, false, false) == (1 | (1 << 30) | (1u << 31))
+			&& PlatformKeyData(SDL_SCANCODE_UP, true, false) == (1 | (1 << 24)),
+			"key data carries repeat, transition and extended bits") && bSuccess;
+
+	bSuccess = Check(PlatformIsSystemKey(SDL_SCANCODE_LALT, KMOD_NONE)
+			&& PlatformIsSystemKey(SDL_SCANCODE_F10, KMOD_NONE)
+			&& PlatformIsSystemKey(SDL_SCANCODE_X, KMOD_LALT)
+			&& !PlatformIsSystemKey(SDL_SCANCODE_X, (SDL_Keymod)(KMOD_LALT | KMOD_LCTRL))
+			&& !PlatformIsSystemKey(SDL_SCANCODE_X, KMOD_LSHIFT),
+			"Alt, F10 and Alt+key are system keys") && bSuccess;
+
+	bSuccess = Check(PlatformKeyControlChar(SDL_SCANCODE_BACKSPACE, KMOD_NONE) == '\b'
+			&& PlatformKeyControlChar(SDL_SCANCODE_RETURN, KMOD_NONE) == '\r'
+			&& PlatformKeyControlChar(SDL_SCANCODE_ESCAPE, KMOD_NONE) == '\x1b'
+			&& PlatformKeyControlChar(SDL_SCANCODE_C, KMOD_LCTRL) == 3
+			&& PlatformKeyControlChar(SDL_SCANCODE_C, KMOD_NONE) == 0,
+			"control characters match TranslateMessage") && bSuccess;
+
+	char Chars[16];
+	int iCount = PlatformUTF8ToANSIChars("a\xC3\xA9\xE2\x82\xAC", Chars, (int)sizeof(Chars));
+	bSuccess = Check(iCount == 3 && Chars[0] == 'a' && (unsigned char)Chars[1] == 0xE9 && Chars[2] == '?',
+			"UTF-8 text input becomes one ANSI character per code point") && bSuccess;
 	}
 
 	//	PDR-006: destroying a bitmap must drop its lookup entry, so that the
@@ -492,6 +590,12 @@ int main()
 
 	//	PDR-015: the Win32 special-folder shim, the kernel helper and the SDL
 	//	shell's log path must all name the same application-data root.
+	//
+	//	As on Windows, CSIDL_APPDATA is the per-user folder that *contains*
+	//	the vendor directory (%APPDATA% <-> ~/Library/Application Support);
+	//	the game appends "Kronosaur/Transcendence" itself. If the shim already
+	//	included that suffix, settings and saves would land in a doubled
+	//	".../Kronosaur/Transcendence/Kronosaur/Transcendence" tree.
 
 	char szAppData[1024];
 	memset(szAppData, 0, sizeof(szAppData));
@@ -503,12 +607,14 @@ int main()
 	bSuccess = Check(SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA, NULL, SHGFP_TYPE_CURRENT, szLocalAppData) == S_OK
 			&& strcmp(szLocalAppData, szAppData) == 0,
 			"roaming and local app data share one root") && bSuccess;
+	bSuccess = Check(strEndsWithOld(CString(szAppData), CONSTLIT("/Library/Application Support")),
+			"CSIDL_APPDATA maps to Application Support, like %APPDATA%") && bSuccess;
 
 	Kernel::CString sAppDataRoot = Kernel::pathGetAppDataRoot();
 	bSuccess = Check(!sAppDataRoot.IsBlank(), "pathGetAppDataRoot is not blank") && bSuccess;
-	bSuccess = Check(strcmp(szAppData, sAppDataRoot.GetASCIIZPointer()) == 0,
-			"pathGetAppDataRoot agrees with SHGetFolderPath") && bSuccess;
-	bSuccess = Check(strEndsWithOld(CString(szAppData), CONSTLIT("/Library/Application Support/Kronosaur/Transcendence")),
+	bSuccess = Check(strEquals(sAppDataRoot, pathAddComponent(pathGetSpecialFolder(folderAppData), CONSTLIT("Kronosaur/Transcendence"))),
+			"pathGetAppDataRoot equals the game's AppData + Kronosaur/Transcendence") && bSuccess;
+	bSuccess = Check(strEndsWithOld(sAppDataRoot, CONSTLIT("/Library/Application Support/Kronosaur/Transcendence")),
 			"application data lives under the Kronosaur bundle") && bSuccess;
 	}
 

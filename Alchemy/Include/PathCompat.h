@@ -62,8 +62,8 @@
 
 //	Maps the CSIDL_* constants above onto the macOS directories and creates
 //	the result (mkdir -p semantics). CSIDL_APPDATA and CSIDL_LOCAL_APPDATA
-//	both resolve to the single canonical application-data root, so that the
-//	game does not end up with two of them.
+//	both resolve to ~/Library/Application Support, the equivalent of
+//	%APPDATA%; callers append "Kronosaur/Transcendence" as they do on Windows.
 
 HRESULT SHGetFolderPath (void *pToken, int iCSIDL, void *pReserved, DWORD dwFlags, char *pDest);
 

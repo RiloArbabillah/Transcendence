@@ -348,24 +348,25 @@ HANDLE Kernel::kernelCreateThread (LPTHREAD_START_ROUTINE pfStart, LPVOID pData)
 
 	pthread_attr_destroy(&attr);
 
-	//	Store the pipe write-end as the "thread handle". When the thread exits
-	//	we close the write-end, causing the read-end to signal EOF. Waiters
-	//	can poll the read-end to detect thread completion.
-
-	//	We repurpose the SEventHandle struct to hold the pipe fds.
+	//	The thread handle is the read end of the pipe, wrapped in an event
+	//	handle so that WaitForSingleObject, WaitForMultipleObjects and
+	//	CloseHandle recognize it. Only the detached joiner below holds the
+	//	write end; it closes it when the thread exits, which makes the read
+	//	end report end-of-file (the "signaled" state). The handle itself never
+	//	owns the write end, so CloseHandle cannot close a descriptor that the
+	//	joiner has already closed and the process has since reused.
 
 	SEventHandle *pHandle = new SEventHandle;
 	pHandle->dwMagic = EVENT_MAGIC;
 	pHandle->fd[0] = fds[0];
-	pHandle->fd[1] = fds[1];
+	pHandle->fd[1] = -1;
 	pHandle->bManualReset = true;
+	KernelHandleRegistry::RegisterHandle(pHandle);
 
-	//	Close the write-end in a detached cleanup thread so that
-	// WaitForSingleObject on the read-end will unblock.
-
-	std::thread([thread, fds]() {
+	const int fdWrite = fds[1];
+	std::thread([thread, fdWrite]() {
 		pthread_join(thread, NULL);
-		close(fds[1]);
+		close(fdWrite);
 		}).detach();
 
 	return (HANDLE)pHandle;

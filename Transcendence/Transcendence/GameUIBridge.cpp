@@ -141,6 +141,21 @@ static LRESULT DispatchGameUIMessage(const SPlatformMessage& message)
 		PlatformUnpackPoint((DWORD)lParam, &x, &y);
 		g_pHI->WMMButtonDown(x, y, (DWORD)wParam);
 		}
+	else if (msg == WM_LBUTTONDBLCLK)
+		{
+		PlatformUnpackPoint((DWORD)lParam, &x, &y);
+		g_pHI->WMLButtonDblClick(x, y, (DWORD)wParam);
+		}
+	else if (msg == WM_RBUTTONDBLCLK)
+		{
+		PlatformUnpackPoint((DWORD)lParam, &x, &y);
+		g_pHI->WMRButtonDblClick(x, y, (DWORD)wParam);
+		}
+	else if (msg == WM_MBUTTONDBLCLK)
+		{
+		PlatformUnpackPoint((DWORD)lParam, &x, &y);
+		g_pHI->WMMButtonDblClick(x, y, (DWORD)wParam);
+		}
 	else if (msg == WM_LBUTTONUP)
 		{
 		PlatformUnpackPoint((DWORD)lParam, &x, &y);
@@ -170,7 +185,7 @@ static LRESULT DispatchGameUIMessage(const SPlatformMessage& message)
 		g_pHI->WMMove((int)LOWORD((DWORD)lParam), (int)HIWORD((DWORD)lParam));
 		}
 	else if (msg == WM_CHAR)
-		g_pHI->WMChar((char)wParam, 0);
+		g_pHI->WMChar((char)wParam, (DWORD)lParam);
 
 	return 0;
 	}
@@ -194,6 +209,17 @@ void UpdateGameUI(SAppState& state)
         g_pHI->OnAnimate();
     }
 }
+
+//	The frame period CHumanInterface::MainLoop uses on Windows: 60 fps, or 30
+//	fps if the use60fps option is off (integer milliseconds, as there).
+
+int GetGameUIFrameDelay(void)
+	{
+	if (g_pHI && !g_pHI->GetOptions().m_bUse60fps)
+		return 1000 / 30;
+
+	return 1000 / 60;
+	}
 
 bool RequestGameClose(void)
 {

@@ -224,6 +224,38 @@
 
 SDL_Scancode PlatformVKToScancode(int vk);
 
+//	The inverse of PlatformVKToScancode(), used to synthesize WM_KEYDOWN and
+//	WM_KEYUP. Right-hand modifiers report the generic VK (as Win32 does in
+//	WM_KEYDOWN) and keypad Enter reports VK_RETURN. Keys with no Win32
+//	equivalent return 0 so that they cannot alias an unrelated VK.
+
+int PlatformScancodeToVK(SDL_Scancode sc);
+
+//	Builds the WM_KEYDOWN/WM_KEYUP lParam: repeat count 1, the extended-key
+//	flag (bit 24), the previous key state (bit 30, set for auto-repeat and
+//	for every key-up) and the transition state (bit 31, set for key-up).
+
+DWORD PlatformKeyData(SDL_Scancode sc, bool bDown, bool bRepeat);
+
+//	Win32 delivers Alt, F10 and keys pressed while Alt (but not Ctrl) is held
+//	as WM_SYSKEYDOWN/WM_SYSKEYUP, which the game's window procedure leaves to
+//	DefWindowProc. Returns true for those keys so the shell can drop them.
+
+bool PlatformIsSystemKey(SDL_Scancode sc, SDL_Keymod mod);
+
+//	The WM_CHAR that TranslateMessage() generates for a key that produces no
+//	SDL text input: Backspace, Tab, Enter, Esc and Ctrl+letter control codes.
+//	Returns 0 if the key generates no such character.
+
+char PlatformKeyControlChar(SDL_Scancode sc, SDL_Keymod mod);
+
+//	Converts SDL's UTF-8 text input into the single-byte characters an ANSI
+//	window receives in WM_CHAR. Code points up to U+00FF map directly
+//	(Latin-1, which matches Windows-1252 for printable characters); anything
+//	else becomes '?', as a best-fit conversion would. Returns the count.
+
+int PlatformUTF8ToANSIChars(const char *pUTF8, char *retChars, int iMaxChars);
+
 //	GetAsyncKeyState() semantics (0x8000 when the key is down) evaluated
 //	against an explicit input-state snapshot. Callers that own live SDL state
 //	should use PlatformGetAsyncKeyState() instead; this entry point exists so

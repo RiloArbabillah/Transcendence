@@ -69,8 +69,14 @@ class CMCIMixer
 		bool CreateParentWindow (void);
 		void EnqueueRequest (ERequestType iType, CMusicResource *pTrack = NULL, int iPos = 0, bool bReplace = false);
 		bool FindChannel (HWND hMCI, SChannel **retpChannel = NULL);
+#ifdef _WIN32
 		inline int GetPlayLength (HWND hMCI) { return MCIWndGetLength(hMCI); }
 		inline int GetPlayPos (HWND hMCI) { return MCIWndGetPosition(hMCI); }
+#else
+		int GetPlayLength (HWND hMCI);
+		int GetPlayPos (HWND hMCI);
+		void CheckForTrackEnd (void);
+#endif
 		CString GetRequestDesc (const SRequest &Request) const;
 		bool InitChannels (void);
 		void LogDebug (const CString &sMsg);
@@ -107,6 +113,9 @@ class CMCIMixer
 		HANDLE m_hWorkEvent;				//	Tell thread to work
 		HANDLE m_hResultEvent;				//	Thread has a result
 		HANDLE m_hAbortEvent;				//	Tell thread to stop
+#ifndef _WIN32
+		HANDLE m_hThreadDoneEvent;			//	Set by the thread when it exits
+#endif
 		bool m_bNoStopNotify;
 		bool m_bDebugMode;
 

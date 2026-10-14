@@ -152,6 +152,10 @@ void CG32bitImage::Copy (const CG32bitImage &Src)
 	m_pBMI = NULL;
 	}
 
+#if defined(__APPLE__) && !defined(PLATFORM_API_WIN32)
+extern "C" bool macosCopyImageToClipboard (const void *pPixels, int cxWidth, int cyHeight, int iPitch);
+#endif
+
 bool CG32bitImage::CopyToClipboard (void)
 
 //	CopyToClipboard
@@ -193,6 +197,8 @@ bool CG32bitImage::CopyToClipboard (void)
 		return false;
 
 	return true;
+#elif defined(__APPLE__)
+	return macosCopyImageToClipboard(m_pRGBA, m_cxWidth, m_cyHeight, m_iPitch);
 #else
 	return false;
 #endif

@@ -157,7 +157,9 @@ set(ALCHEMY_GRAPHICS_SOURCES
     #"Alchemy/Graphics/Regions.cpp"
     "Alchemy/DirectXUtil/CScreenMgrSDL.cpp"
     "Alchemy/DirectXUtil/CSoundMgrSDL.cpp"
-    "Alchemy/DirectXUtil/CG16bitFontSDL.cpp"
+    "Alchemy/DirectXUtil/CG16bitFont.cpp"
+    "Alchemy/DirectXUtil/CG16bitFontMac.cpp"
+    "Alchemy/DirectXUtil/ClipboardMacOS.mm"
     "Alchemy/DirectXUtil/CG32bitImage.cpp"
     "Alchemy/DirectXUtil/CG32bitPixel.cpp"
     "Alchemy/DirectXUtil/32bitBlt.cpp"
@@ -262,7 +264,7 @@ set(MAMMOTH_TSUI_SOURCES
     "Mammoth/TSUI/CMapLegendPainter.cpp"
     "Mammoth/TSUI/CMapScaleCounter.cpp"
     "Mammoth/TSUI/CSoundtrackManager.cpp"
-    "Mammoth/TSUI/CMCIMixerStub.cpp"
+    "Mammoth/TSUI/CMCIMixerMac.cpp"
     "Mammoth/TSUI/CTilePainter.cpp"
     "Mammoth/TSUI/CTimersHUD.cpp"
     "Mammoth/TSUI/IHUDPainter.cpp"
@@ -444,6 +446,8 @@ target_link_libraries(alchemy_jpeg PUBLIC
 target_link_libraries(alchemy_graphics PUBLIC
     alchemy_kernel
     SDL2_image::SDL2_image-static
+    "-framework ApplicationServices"
+    "-framework AppKit"
 )
 
 # mammoth_tse - Transcendence Space Engine

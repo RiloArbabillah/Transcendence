@@ -261,17 +261,33 @@ static void PlatformSyncWindowOrigin(void)
 
 void PlatformWarpMouseInWindow(int xClient, int yClient)
 	{
-	if (g_AppState.pWindow)
-		SDL_WarpMouseInWindow(g_AppState.pWindow, xClient, yClient);
+	if (g_AppState.pWindow == nullptr)
+		return;
+
+	//	Client coordinates are framebuffer pixels; the renderer scales the
+	//	framebuffer to the window (see RecreateFrameBuffer), so convert back to
+	//	window points before warping.
+
+	int xWindow = xClient;
+	int yWindow = yClient;
+	if (g_AppState.pRenderer)
+		SDL_RenderLogicalToWindow(g_AppState.pRenderer, (float)xClient, (float)yClient, &xWindow, &yWindow);
+
+	SDL_WarpMouseInWindow(g_AppState.pWindow, xWindow, yWindow);
 	}
 
 int PlatformShowCursor(BOOL bShow)
 	{
-	SDL_ShowCursor(bShow ? SDL_ENABLE : SDL_DISABLE);
+	//	Win32 keeps a display counter that starts at 0: ShowCursor(TRUE)
+	//	increments it, ShowCursor(FALSE) decrements it, and the cursor is
+	//	visible while it is >= 0. Callers pair the calls, so a plain on/off
+	//	switch would hide the cursor while an outer caller still shows it.
 
-	//	Win32 returns the resulting display counter.
+	static int s_iDisplayCount = 0;
+	s_iDisplayCount += (bShow ? 1 : -1);
 
-	return (bShow ? 1 : 0);
+	SDL_ShowCursor(s_iDisplayCount >= 0 ? SDL_ENABLE : SDL_DISABLE);
+	return s_iDisplayCount;
 	}
 
 BOOL PlatformSetCapture(HWND hWnd)
@@ -443,6 +459,13 @@ static void RecreateFrameBuffer(int cxWidth, int cyHeight)
         return;
         }
 
+    //	The framebuffer is a fixed logical size that the renderer scales to the
+    //	window, keeping its aspect ratio (letterboxed if needed). With a
+    //	logical size set, SDL also converts mouse
+    //	event coordinates from window points to framebuffer pixels.
+
+    SDL_RenderSetLogicalSize(g_AppState.pRenderer, g_AppState.cxWidth, g_AppState.cyHeight);
+
     g_AppState.pFrameBuffer = new uint32_t[g_AppState.cxWidth * g_AppState.cyHeight];
     memset(g_AppState.pFrameBuffer, 0, g_AppState.cxWidth * g_AppState.cyHeight * sizeof(uint32_t));
 }
@@ -510,17 +533,20 @@ int App_Init(void)
 
     PlatformSyncWindowOrigin();
 
+    //	No vsync: the main loop paces frames itself (see App_Run), and vsync
+    //	would tie the game speed to the display refresh rate.
+
     g_AppState.pRenderer = SDL_CreateRenderer(
         g_AppState.pWindow,
         0,
-        SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
+        SDL_RENDERER_ACCELERATED
     );
 
     if (!g_AppState.pRenderer)
         g_AppState.pRenderer = SDL_CreateRenderer(
             g_AppState.pWindow,
             0,
-            SDL_RENDERER_SOFTWARE | SDL_RENDERER_PRESENTVSYNC
+            SDL_RENDERER_SOFTWARE
         );
 
     if (!g_AppState.pRenderer)
@@ -582,126 +608,6 @@ void App_Shutdown(void)
     if (g_Log) { fclose(g_Log); g_Log = nullptr; }
 }
 
-static unsigned int SDLKeyToVK(SDL_Scancode scanCode)
-{
-    switch (scanCode)
-    {
-    case SDL_SCANCODE_UP: return VK_UP;
-    case SDL_SCANCODE_DOWN: return VK_DOWN;
-    case SDL_SCANCODE_LEFT: return VK_LEFT;
-    case SDL_SCANCODE_RIGHT: return VK_RIGHT;
-    case SDL_SCANCODE_RETURN: return VK_RETURN;
-    case SDL_SCANCODE_ESCAPE: return VK_ESCAPE;
-    case SDL_SCANCODE_SPACE: return VK_SPACE;
-    case SDL_SCANCODE_BACKSPACE: return VK_BACK;
-    case SDL_SCANCODE_TAB: return VK_TAB;
-    case SDL_SCANCODE_LSHIFT: return VK_SHIFT;
-    case SDL_SCANCODE_RSHIFT: return VK_SHIFT;
-    case SDL_SCANCODE_LCTRL: return VK_CONTROL;
-    case SDL_SCANCODE_RCTRL: return VK_CONTROL;
-    case SDL_SCANCODE_LALT: return VK_MENU;
-    case SDL_SCANCODE_RALT: return VK_MENU;
-    case SDL_SCANCODE_F1: return VK_F1;
-    case SDL_SCANCODE_F2: return VK_F2;
-    case SDL_SCANCODE_F3: return VK_F3;
-    case SDL_SCANCODE_F4: return VK_F4;
-    case SDL_SCANCODE_F5: return VK_F5;
-    case SDL_SCANCODE_F6: return VK_F6;
-    case SDL_SCANCODE_F7: return VK_F7;
-    case SDL_SCANCODE_F8: return VK_F8;
-    case SDL_SCANCODE_F9: return VK_F9;
-    case SDL_SCANCODE_F10: return VK_F10;
-    case SDL_SCANCODE_F11: return VK_F11;
-    case SDL_SCANCODE_F12: return VK_F12;
-    case SDL_SCANCODE_PAGEUP: return VK_PRIOR;
-    case SDL_SCANCODE_PAGEDOWN: return VK_NEXT;
-    case SDL_SCANCODE_HOME: return VK_HOME;
-    case SDL_SCANCODE_END: return VK_END;
-    case SDL_SCANCODE_INSERT: return VK_INSERT;
-    case SDL_SCANCODE_DELETE: return VK_DELETE;
-    case SDL_SCANCODE_LGUI: return VK_LWIN;
-    case SDL_SCANCODE_RGUI: return VK_RWIN;
-    case SDL_SCANCODE_A: return 0x41;
-    case SDL_SCANCODE_B: return 0x42;
-    case SDL_SCANCODE_C: return 0x43;
-    case SDL_SCANCODE_D: return 0x44;
-    case SDL_SCANCODE_E: return 0x45;
-    case SDL_SCANCODE_F: return 0x46;
-    case SDL_SCANCODE_G: return 0x47;
-    case SDL_SCANCODE_H: return 0x48;
-    case SDL_SCANCODE_I: return 0x49;
-    case SDL_SCANCODE_J: return 0x4A;
-    case SDL_SCANCODE_K: return 0x4B;
-    case SDL_SCANCODE_L: return 0x4C;
-    case SDL_SCANCODE_M: return 0x4D;
-    case SDL_SCANCODE_N: return 0x4E;
-    case SDL_SCANCODE_O: return 0x4F;
-    case SDL_SCANCODE_P: return 0x50;
-    case SDL_SCANCODE_Q: return 0x51;
-    case SDL_SCANCODE_R: return 0x52;
-    case SDL_SCANCODE_S: return 0x53;
-    case SDL_SCANCODE_T: return 0x54;
-    case SDL_SCANCODE_U: return 0x55;
-    case SDL_SCANCODE_V: return 0x56;
-    case SDL_SCANCODE_W: return 0x57;
-    case SDL_SCANCODE_X: return 0x58;
-    case SDL_SCANCODE_Y: return 0x59;
-    case SDL_SCANCODE_Z: return 0x5A;
-    case SDL_SCANCODE_0: return 0x30;
-    case SDL_SCANCODE_1: return 0x31;
-    case SDL_SCANCODE_2: return 0x32;
-    case SDL_SCANCODE_3: return 0x33;
-    case SDL_SCANCODE_4: return 0x34;
-    case SDL_SCANCODE_5: return 0x35;
-    case SDL_SCANCODE_6: return 0x36;
-    case SDL_SCANCODE_7: return 0x37;
-    case SDL_SCANCODE_8: return 0x38;
-    case SDL_SCANCODE_9: return 0x39;
-    case SDL_SCANCODE_KP_0: return 0x60;
-    case SDL_SCANCODE_KP_1: return 0x61;
-    case SDL_SCANCODE_KP_2: return 0x62;
-    case SDL_SCANCODE_KP_3: return 0x63;
-    case SDL_SCANCODE_KP_4: return 0x64;
-    case SDL_SCANCODE_KP_5: return 0x65;
-    case SDL_SCANCODE_KP_6: return 0x66;
-    case SDL_SCANCODE_KP_7: return 0x67;
-    case SDL_SCANCODE_KP_8: return 0x68;
-    case SDL_SCANCODE_KP_9: return 0x69;
-    case SDL_SCANCODE_KP_PLUS: return 0x6B;
-    case SDL_SCANCODE_KP_MINUS: return 0x6D;
-    case SDL_SCANCODE_KP_MULTIPLY: return 0x6A;
-    case SDL_SCANCODE_KP_DIVIDE: return 0x6F;
-    case SDL_SCANCODE_KP_PERIOD: return 0x6E;
-    default: return (unsigned int)scanCode;
-    }
-}
-
-static DWORD SDLScancodeToKeyData(SDL_Scancode scanCode)
-{
-    constexpr DWORD EXTENDED_BIT = (1 << 24);
-
-    switch (scanCode)
-    {
-    case SDL_SCANCODE_UP:
-    case SDL_SCANCODE_DOWN:
-    case SDL_SCANCODE_LEFT:
-    case SDL_SCANCODE_RIGHT:
-    case SDL_SCANCODE_HOME:
-    case SDL_SCANCODE_END:
-    case SDL_SCANCODE_PAGEUP:
-    case SDL_SCANCODE_PAGEDOWN:
-    case SDL_SCANCODE_INSERT:
-    case SDL_SCANCODE_DELETE:
-    case SDL_SCANCODE_KP_ENTER:
-    case SDL_SCANCODE_RCTRL:
-    case SDL_SCANCODE_RALT:
-        return EXTENDED_BIT;
-
-    default:
-        return 0;
-    }
-}
-
 //	WM_SIZE and WM_MOVE carry two *unsigned* 16-bit halves -- a client size and
 //	a window position -- rather than the signed point that WM_MOUSEMOVE and the
 //	mouse-button messages carry, so they are packed here instead of through
@@ -736,20 +642,42 @@ int App_PumpEvents(void)
         switch (event.type)
         {
         case SDL_KEYDOWN:
-            PlatformPostMessage(
-                WM_KEYDOWN,
-                (WPARAM)SDLKeyToVK(event.key.keysym.scancode),
-                (LPARAM)(uintptr_t)SDLScancodeToKeyData(event.key.keysym.scancode));
-            break;
         case SDL_KEYUP:
-            PlatformPostMessage(
-                WM_KEYUP,
-                (WPARAM)SDLKeyToVK(event.key.keysym.scancode),
-                (LPARAM)(uintptr_t)SDLScancodeToKeyData(event.key.keysym.scancode));
+            {
+                const SDL_Scancode sc = event.key.keysym.scancode;
+                const bool bDown = (event.type == SDL_KEYDOWN);
+
+                //	Win32 routes these through WM_SYSKEYDOWN/WM_SYSKEYUP, which
+                //	the game never handles.
+
+                if (PlatformIsSystemKey(sc, (SDL_Keymod)event.key.keysym.mod))
+                    break;
+
+                const int iVK = PlatformScancodeToVK(sc);
+                if (iVK == 0)
+                    break;
+
+                PlatformPostMessage(
+                    (bDown ? WM_KEYDOWN : WM_KEYUP),
+                    (WPARAM)iVK,
+                    (LPARAM)(uintptr_t)PlatformKeyData(sc, bDown, event.key.repeat != 0));
+
+                //	TranslateMessage also turns some keys into WM_CHAR. SDL
+                //	reports printable characters through SDL_TEXTINPUT, but not
+                //	these control characters.
+
+                const char chControl = (bDown ? PlatformKeyControlChar(sc, (SDL_Keymod)event.key.keysym.mod) : 0);
+                if (chControl)
+                    PlatformPostMessage(WM_CHAR, (WPARAM)(unsigned char)chControl, (LPARAM)(uintptr_t)PlatformKeyData(sc, true, event.key.repeat != 0));
+            }
             break;
         case SDL_TEXTINPUT:
-            for (const char* p = event.text.text; *p; p++)
-                PlatformPostMessage(WM_CHAR, (WPARAM)(unsigned char)*p, 0);
+            {
+                char Chars[SDL_TEXTINPUTEVENT_TEXT_SIZE];
+                const int iCount = PlatformUTF8ToANSIChars(event.text.text, Chars, (int)sizeof(Chars));
+                for (int i = 0; i < iCount; i++)
+                    PlatformPostMessage(WM_CHAR, (WPARAM)(unsigned char)Chars[i], 1);
+            }
             break;
         case SDL_MOUSEMOTION:
             PlatformSetMouseClientPos(event.motion.x, event.motion.y);
@@ -759,9 +687,14 @@ int App_PumpEvents(void)
             break;
         case SDL_MOUSEBUTTONDOWN:
             {
-                int msg = WM_LBUTTONDOWN;
-                if (event.button.button == SDL_BUTTON_RIGHT) msg = WM_RBUTTONDOWN;
-                else if (event.button.button == SDL_BUTTON_MIDDLE) msg = WM_MBUTTONDOWN;
+                //	With CS_DBLCLKS, Win32 replaces the second button-down of a
+                //	double-click with WM_xBUTTONDBLCLK; a third click starts a
+                //	new pair.
+
+                const bool bDblClick = (event.button.clicks >= 2 && (event.button.clicks % 2) == 0);
+                int msg = (bDblClick ? WM_LBUTTONDBLCLK : WM_LBUTTONDOWN);
+                if (event.button.button == SDL_BUTTON_RIGHT) msg = (bDblClick ? WM_RBUTTONDBLCLK : WM_RBUTTONDOWN);
+                else if (event.button.button == SDL_BUTTON_MIDDLE) msg = (bDblClick ? WM_MBUTTONDBLCLK : WM_MBUTTONDOWN);
                 int x = event.button.x;
                 int y = event.button.y;
                 PlatformSetMouseClientPos(x, y);
@@ -785,22 +718,19 @@ int App_PumpEvents(void)
             break;
         case SDL_MOUSEWHEEL:
             {
-                int x = 0;
-                int y = 0;
-                SDL_GetMouseState(&x, &y);
-
                 //	Win32 puts the cursor position in the WM_MOUSEWHEEL payload
                 //	in *screen* coordinates (unlike WM_MOUSEMOVE, which uses
-                //	client coordinates), and GlobalToLocal expects that.
+                //	client coordinates), and GlobalToLocal expects that. The
+                //	cursor cache holds the last framebuffer (logical) position
+                //	from the motion/button events, which SDL has already scaled.
 
-                int xWindow = 0;
-                int yWindow = 0;
-                PlatformGetWindowOrigin(&xWindow, &yWindow);
+                POINT ptCursor;
+                PlatformGetCursorPos(&ptCursor);
 
                 const int iDelta = (event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -event.wheel.y : event.wheel.y);
                 PlatformPostMessage(WM_MOUSEWHEEL,
                     (WPARAM)PlatformPackMouseWheel((WORD)SDLMouseStateToMKFlags(SDL_GetMouseState(nullptr, nullptr)), iDelta * 120),
-                    (LPARAM)(uintptr_t)PlatformPackPoint(x + xWindow, y + yWindow));
+                    (LPARAM)(uintptr_t)PlatformPackPoint(ptCursor.x, ptCursor.y));
             }
             break;
         case SDL_WINDOWEVENT:
@@ -885,6 +815,30 @@ void App_PresentFrameBuffer(void)
 
 struct SPlatformScreenInfo PlatformGetScreenInfo(void) { return { g_AppState.pFrameBuffer, g_AppState.cxWidth, g_AppState.cyHeight, g_AppState.cxWidth * (int)sizeof(uint32_t) }; }
 void PlatformResizeScreen(int cxWidth, int cyHeight) { RecreateFrameBuffer(cxWidth, cyHeight); }
+
+//	Win32 switches the window between a WS_POPUP covering the screen and a
+//	centered WS_OVERLAPPEDWINDOW (CScreenMgr3D::Init). The SDL equivalents are
+//	a desktop-fullscreen window and a centered normal window. The window size
+//	is the client size; the framebuffer is scaled to it.
+
+void PlatformSetWindowMode(bool bFullScreen, int cxWindow, int cyWindow)
+	{
+	if (g_AppState.pWindow == nullptr)
+		return;
+
+	if (bFullScreen)
+		SDL_SetWindowFullscreen(g_AppState.pWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
+	else
+		{
+		SDL_SetWindowFullscreen(g_AppState.pWindow, 0);
+		if (cxWindow > 0 && cyWindow > 0)
+			SDL_SetWindowSize(g_AppState.pWindow, cxWindow, cyWindow);
+		SDL_SetWindowPosition(g_AppState.pWindow, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+		}
+
+	log_va("PlatformSetWindowMode: %s %d x %d", (bFullScreen ? "fullscreen" : "windowed"), cxWindow, cyWindow);
+	PlatformSyncWindowOrigin();
+	}
 void PlatformPresentScreen(void) { App_PresentFrameBuffer(); }
 uint32_t* App_GetFrameBuffer(void) { return g_AppState.pFrameBuffer; }
 int App_GetFrameBufferWidth(void) { return g_AppState.cxWidth; }
@@ -1252,13 +1206,33 @@ int App_Run(const char *pszCommandLine)
 		}
 
 	log_msg("App_Run: entering main loop");
+
+	//	Pace frames the way CHumanInterface::MainLoop does on Windows: one
+	//	animation per frame period, then sleep until the next one. The game
+	//	advances the simulation once per frame, so the pace must not depend on
+	//	the display refresh rate (e.g. a 120 Hz ProMotion screen).
+
+	const Uint32 dwFrameDelay = (Uint32)GetGameUIFrameDelay();
+	Uint32 dwStartTime = SDL_GetTicks();
+
 	while (g_AppState.bRunning)
 	{
+		const Uint32 dwNextFrame = dwStartTime + dwFrameDelay;
+
 		if (!App_PumpEvents()) {
             log_msg("App_Run: App_PumpEvents requested exit");
             break;
 		}
 		UpdateGameUI(g_AppState);
+
+		const Uint32 dwNow = SDL_GetTicks();
+		if (dwNextFrame > dwNow)
+			{
+			SDL_Delay(dwNextFrame - dwNow);
+			dwStartTime = dwNextFrame;
+			}
+		else
+			dwStartTime = dwNow;
 	}
 
 	    log_va("App_Run: exit main loop (bRunning=%d)", (g_AppState.bRunning ? 1 : 0));
@@ -1288,13 +1262,18 @@ int PlatformGetSystemMetrics(int nIndex)
     int cx = g_AppState.cxWidth;
     int cy = g_AppState.cyHeight;
 
+    //	Win32 reports the current desktop resolution. SDL_GetWindowDisplayMode
+    //	is the mode the window would switch to for exclusive fullscreen, which
+    //	is not the same thing.
+
     SDL_DisplayMode dm;
-    if (g_AppState.pWindow && SDL_GetWindowDisplayMode(g_AppState.pWindow, &dm) == 0)
+    int iDisplay = (g_AppState.pWindow ? SDL_GetWindowDisplayIndex(g_AppState.pWindow) : -1);
+    if (iDisplay >= 0 && SDL_GetDesktopDisplayMode(iDisplay, &dm) == 0)
         {
         cx = dm.w;
         cy = dm.h;
         }
-    else if (SDL_GetCurrentDisplayMode(0, &dm) == 0)
+    else if (SDL_GetDesktopDisplayMode(0, &dm) == 0)
         {
         cx = dm.w;
         cy = dm.h;

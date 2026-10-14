@@ -356,13 +356,9 @@ void CIntroSession::CreateIntroSystem (void)
 		g_pUniverse->SetPOV(pShip1);
 		}
 
-	//	Enable intro sound effects unless the user has explicitly disabled sound.
-	//	This keeps the main menu combat vignette audible on macOS and avoids
-	//	silently muting the projectile -> collision -> damage -> hit effect path.
+	//	No sound
 
-	const bool bNoSound = g_pTrans->m_pTC->GetOptionBoolean(CGameSettings::noSound);
-	g_pUniverse->SetSound(!bNoSound);
-	::kernelDebugLogPattern("CIntroSession::CreateIntroSystem sound setting: noSound=%d universeSound=%d.", (int)bNoSound, (int)g_pUniverse->GetSound());
+	g_pUniverse->SetSound(false);
 
 	g_pTrans->m_iLastShipCreated = g_pUniverse->GetTicks();
 

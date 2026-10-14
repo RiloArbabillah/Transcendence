@@ -36,7 +36,6 @@ bool CHumanInterface::WMCreate (HWND hWnd, CString *retsError)
 		::kernelDebugLogPattern("Unable to initialize sound manager.");
 
 	m_SoundMgr.SetWaveVolume(m_Options.m_iSoundVolume);
-	m_SoundMgr.SetMusicVolume(m_Options.m_iSoundVolume);
 
 	if (m_Background.Init(m_hWnd, ID_BACKGROUND_PROCESSOR_MAC) != NOERROR)
 		{
@@ -53,7 +52,53 @@ bool CHumanInterface::WMCreate (HWND hWnd, CString *retsError)
 	if (m_Visuals.Init(NULL, retsError) != NOERROR)
 		return false;
 
-	m_ScreenMgr.Init(m_Options.m_cxScreenDesired, m_Options.m_cyScreenDesired, retsError);
+	//	Compute the size of the screen buffer the same way CScreenMgr3D::Init
+	//	does on Windows. If we're in windowed mode or forcing a specific size,
+	//	take the size passed in (scaling up to a minimum height); otherwise use
+	//	the whole desktop, scaled down if it is taller than the maximum.
+
+	static constexpr int MIN_SCREEN_HEIGHT = 768;
+
+	int cxDevice;
+	int cyDevice;
+	int cxScreen;
+	int cyScreen;
+	if (m_Options.m_bWindowedMode || m_Options.m_bForceScreenSize)
+		{
+		cxDevice = m_Options.m_cxScreenDesired;
+		cyDevice = m_Options.m_cyScreenDesired;
+
+		if (cyDevice < MIN_SCREEN_HEIGHT)
+			{
+			cxScreen = mathRound((Metric)MIN_SCREEN_HEIGHT * cxDevice / cyDevice);
+			cyScreen = MIN_SCREEN_HEIGHT;
+			}
+		else
+			{
+			cxScreen = cxDevice;
+			cyScreen = cyDevice;
+			}
+		}
+	else
+		{
+		cxDevice = ::GetSystemMetrics(SM_CXSCREEN);
+		cyDevice = ::GetSystemMetrics(SM_CYSCREEN);
+
+		if (m_Options.m_cyMaxScreen != -1 && cyDevice > m_Options.m_cyMaxScreen)
+			{
+			cxScreen = mathRound((Metric)m_Options.m_cyMaxScreen * cxDevice / cyDevice);
+			cyScreen = m_Options.m_cyMaxScreen;
+			}
+		else
+			{
+			cxScreen = cxDevice;
+			cyScreen = cyDevice;
+			}
+		}
+
+	PlatformSetWindowMode(!m_Options.m_bWindowedMode, cxDevice, cyDevice);
+
+	m_ScreenMgr.Init(cxScreen, cyScreen, retsError);
 	if (!m_ScreenMgr.CheckIsReady())
 		{
 		if (retsError && retsError->IsBlank())
@@ -146,6 +191,27 @@ LONG CHumanInterface::WMChar (char chChar, DWORD dwKeyData)
 	return 0;
 	}
 
+LONG CHumanInterface::WMLButtonDblClick (int x, int y, DWORD dwFlags)
+
+//	WMLButtonDblClick
+
+	{
+	CaptureMouse();
+
+	if (m_pCurSession)
+		{
+		int xLocal, yLocal;
+		m_ScreenMgr.ClientToLocal(x, y, &xLocal, &yLocal);
+
+		m_iLastVirtualKey = VK_LBUTTON;
+		m_pCurSession->HILButtonDblClick(xLocal, yLocal, dwFlags);
+		m_iLastVirtualKey = 0;
+		}
+
+	m_bLButtonDown = true;
+	return 0;
+	}
+
 LONG CHumanInterface::WMLButtonDown (int x, int y, DWORD dwFlags)
 
 //	WMLButtonDown
@@ -181,6 +247,7 @@ LONG CHumanInterface::WMLButtonUp (int x, int y, DWORD dwFlags)
 		m_pCurSession->HILButtonUp(xLocal, yLocal, dwFlags);
 		}
 
+	m_bLButtonDown = false;
 	return 0;
 	}
 
@@ -200,6 +267,24 @@ LONG CHumanInterface::WMMouseMove (int x, int y, DWORD dwFlags)
 		m_pCurSession->HIMouseMove(xLocal, yLocal, dwFlags);
 		}
 
+	return 0;
+	}
+
+LONG CHumanInterface::WMRButtonDblClick (int x, int y, DWORD dwFlags)
+
+//	WMRButtonDblClick
+
+	{
+	CaptureMouse();
+
+	if (m_pCurSession)
+		{
+		int xLocal, yLocal;
+		m_ScreenMgr.ClientToLocal(x, y, &xLocal, &yLocal);
+		m_pCurSession->HIRButtonDblClick(xLocal, yLocal, dwFlags);
+		}
+
+	m_bRButtonDown = true;
 	return 0;
 	}
 
@@ -239,6 +324,27 @@ LONG CHumanInterface::WMRButtonUp (int x, int y, DWORD dwFlags)
 		}
 
 	m_bRButtonDown = false;
+	return 0;
+	}
+
+LONG CHumanInterface::WMMButtonDblClick (int x, int y, DWORD dwFlags)
+
+//	WMMButtonDblClick
+
+	{
+	CaptureMouse();
+
+	if (m_pCurSession)
+		{
+		int xLocal, yLocal;
+		m_ScreenMgr.ClientToLocal(x, y, &xLocal, &yLocal);
+
+		m_iLastVirtualKey = VK_MBUTTON;
+		m_pCurSession->HIMButtonDblClick(xLocal, yLocal, dwFlags);
+		m_iLastVirtualKey = 0;
+		}
+
+	m_bMButtonDown = true;
 	return 0;
 	}
 

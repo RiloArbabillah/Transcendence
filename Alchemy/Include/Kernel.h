@@ -1029,13 +1029,12 @@ inline bool PlatformReportUnsupportedFeature (const char *pszFeature)
 	return true;
 	}
 
-//	PDR-025/PDR-026: the macOS port keeps two render workarounds on by default
-//	-- single-threaded background painting and forced single-threaded object
-//	painting -- while the SDL presenter is validated against the intro session.
-//	Each one can be turned off from the environment so that the multithreaded
-//	paths stay reachable for validation, and so that the workaround can be
-//	retired once they pass. A value that is not one of the documented "off"
-//	spellings keeps the workaround on, so a typo fails safe.
+//	PDR-025/PDR-026: the macOS port had two render workarounds -- single-
+//	threaded background painting and forced single-threaded object painting --
+//	for intro crashes that were later traced to arm64 pointer truncation. They
+//	are now off by default, so painting is multithreaded as on Windows. Each
+//	can still be turned back on from the environment; any value other than one
+//	of the documented "off" spellings turns it on.
 
 inline bool PlatformEnvFlagIsOff (const char *pszValue)
 	{
@@ -1067,7 +1066,7 @@ inline bool PlatformRenderWorkaroundEnabled (const char *pszEnvVar)
 	const char *pszValue = getenv(pszEnvVar);
 
 	if (pszValue == NULL || pszValue[0] == '\0')
-		return true;
+		return false;
 
 	return !PlatformEnvFlagIsOff(pszValue);
 	}
@@ -1402,7 +1401,8 @@ inline void CloseHandle(HANDLE h)
 			{
 			KernelHandleRegistry::UnregisterHandle(pEvent);
 			close(pEvent->fd[0]);
-			close(pEvent->fd[1]);
+			if (pEvent->fd[1] != -1)
+				close(pEvent->fd[1]);
 			delete pEvent;
 			return;
 			}
@@ -1908,7 +1908,8 @@ inline DWORD WaitForSingleObject(HANDLE h, DWORD dwTimeout) {
     pfd.events = POLLIN;
     int timeout_ms = (dwTimeout == INFINITE) ? -1 : (int)dwTimeout;
     int rc = poll(&pfd, 1, timeout_ms);
-    if (rc > 0 && (pfd.revents & POLLIN)) {
+    //	POLLHUP: a thread handle's pipe reports end-of-file once the thread exits.
+    if (rc > 0 && (pfd.revents & (POLLIN | POLLHUP))) {
         if (!p->bManualReset) {
             char buf[64];
             while (read(p->fd[0], buf, sizeof(buf)) > 0) {}
@@ -1918,8 +1919,26 @@ inline DWORD WaitForSingleObject(HANDLE h, DWORD dwTimeout) {
     return WAIT_TIMEOUT;
 }
 
+inline DWORD GetTickCount (void);
+
 inline DWORD WaitForMultipleObjects(DWORD nCount, const HANDLE* pHandles, BOOL bWaitAll, DWORD dwTimeout) {
     if (nCount == 0) return WAIT_TIMEOUT;
+    if (bWaitAll) {
+        //	Wait for each object in turn within the overall timeout. (Unlike
+        //	Win32 this does not acquire auto-reset events atomically, which
+        //	no caller relies on.)
+        const DWORD dwStart = GetTickCount();
+        for (DWORD i = 0; i < nCount; i++) {
+            DWORD dwLeft = INFINITE;
+            if (dwTimeout != INFINITE) {
+                const DWORD dwElapsed = GetTickCount() - dwStart;
+                dwLeft = (dwElapsed >= dwTimeout ? 0 : dwTimeout - dwElapsed);
+            }
+            if (WaitForSingleObject(pHandles[i], dwLeft) != WAIT_OBJECT_0)
+                return WAIT_TIMEOUT;
+        }
+        return WAIT_OBJECT_0;
+    }
     struct pollfd *pFds = (struct pollfd *)alloca(nCount * sizeof(struct pollfd));
     for (DWORD i = 0; i < nCount; i++) {
         SEventHandle *p = (KernelHandleRegistry::IsHandle((void *)pHandles[i]) ? (SEventHandle *)pHandles[i] : NULL);
@@ -1931,7 +1950,7 @@ inline DWORD WaitForMultipleObjects(DWORD nCount, const HANDLE* pHandles, BOOL b
     int rc = poll(pFds, nCount, timeout_ms);
     if (rc > 0) {
         for (DWORD i = 0; i < nCount; i++) {
-            if (pFds[i].revents & POLLIN) {
+            if (pFds[i].revents & (POLLIN | POLLHUP)) {
                 SEventHandle *p = (SEventHandle *)pHandles[i];
                 if (p && !p->bManualReset) {
                     char buf[64];

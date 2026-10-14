@@ -380,8 +380,21 @@ void CSoundMgr::Play(int iChannel, int iVolume, int iPan, bool bLoop)
 
 void CSoundMgr::Stop(int iChannel)
 {
-    (void)iChannel;
-    Mix_HaltChannel(-1);
+    //	Like the DirectSound version, stop every playing instance of this one
+    //	sound and nothing else.
+
+    if (iChannel < 0 || iChannel >= m_Channels.GetCount())
+        return;
+
+    SChannel *pChannel = GetChannel(iChannel);
+    if (!pChannel->pBuffer)
+        return;
+
+    Mix_Chunk *pChunk = reinterpret_cast<Mix_Chunk *>(pChannel->pBuffer);
+    const int iMixChannels = Mix_AllocateChannels(-1);
+    for (int i = 0; i < iMixChannels; i++)
+        if (Mix_Playing(i) && Mix_GetChunk(i) == pChunk)
+            Mix_HaltChannel(i);
 }
 
 bool CSoundMgr::CanPlayMusic(const CString &sFilename)

@@ -23,6 +23,7 @@ CG16bitFont::CG16bitFont (void)
 	{
 	}
 
+#ifdef _WIN32
 CG16bitFont::CG16bitFont (const CG16bitFont &Src)
 
 	{
@@ -39,6 +40,7 @@ CG16bitFont &CG16bitFont:: operator= (const CG16bitFont &Src)
 	ASSERT(false);
 	return *this;
 	}
+#endif
 
 int CG16bitFont::BreakText (const CString &sText, int cxWidth, TArray<CString> *retLines, DWORD dwFlags) const
 
@@ -273,6 +275,7 @@ int CG16bitFont::CalcHeight (const CString &sText, int cxWidth, DWORD dwFlags) c
 	return iLines * GetHeight();
 	}
 
+#ifdef _WIN32
 ALERROR CG16bitFont::Create (const CString &sTypeface, int iSize, bool bBold, bool bItalic, bool bUnderline)
 
 //	Create
@@ -431,6 +434,7 @@ Fail:
 	DeleteDC(hDC);
 	return error;
 	}
+#endif
 
 ALERROR CG16bitFont::CreateFromFile (const CString &sFilespec)
 
@@ -456,6 +460,7 @@ ALERROR CG16bitFont::CreateFromFile (const CString &sFilespec)
 	return NOERROR;
 	}
 
+#ifdef _WIN32
 ALERROR CG16bitFont::CreateFromResource (HINSTANCE hInst, const char *pszRes)
 
 //	CreateFromResource
@@ -501,6 +506,7 @@ ALERROR CG16bitFont::CreateFromResource (HINSTANCE hInst, const char *pszRes)
 
 	return NOERROR;
 	}
+#endif
 
 void CG16bitFont::DrawText (CG16bitImage &Dest, 
 							int x, 

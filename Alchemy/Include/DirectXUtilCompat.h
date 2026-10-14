@@ -707,6 +707,7 @@ struct SPlatformScreenInfo {
 
 SPlatformScreenInfo PlatformGetScreenInfo(void);
 void PlatformResizeScreen(int cxWidth, int cyHeight);
+void PlatformSetWindowMode(bool bFullScreen, int cxWindow, int cyWindow);
 void PlatformPresentScreen(void);
 
 using namespace Kernel;

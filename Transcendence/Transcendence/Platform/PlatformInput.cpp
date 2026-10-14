@@ -15,8 +15,13 @@ SDL_Scancode PlatformVKToScancode(int vk)
 	if (vk >= 'A' && vk <= 'Z')
 		return (SDL_Scancode)(SDL_SCANCODE_A + (vk - 'A'));
 
-	if (vk >= '0' && vk <= '9')
-		return (SDL_Scancode)(SDL_SCANCODE_0 + (vk - '0'));
+	//	SDL orders the digit row as 1..9 followed by 0.
+
+	if (vk == '0')
+		return SDL_SCANCODE_0;
+
+	if (vk >= '1' && vk <= '9')
+		return (SDL_Scancode)(SDL_SCANCODE_1 + (vk - '1'));
 
 	switch (vk)
 		{
@@ -89,6 +94,122 @@ SDL_Scancode PlatformVKToScancode(int vk)
 	//	button state instead.
 
 	return SDL_SCANCODE_UNKNOWN;
+	}
+
+int PlatformScancodeToVK(SDL_Scancode sc)
+	{
+	switch (sc)
+		{
+		case SDL_SCANCODE_UNKNOWN:	return 0;
+		case SDL_SCANCODE_RSHIFT:	return VK_SHIFT;
+		case SDL_SCANCODE_RCTRL:	return VK_CONTROL;
+		case SDL_SCANCODE_RALT:		return VK_MENU;
+		case SDL_SCANCODE_KP_ENTER:	return VK_RETURN;
+		default:
+			break;
+		}
+
+	for (int vk = 1; vk < 256; vk++)
+		if (PlatformVKToScancode(vk) == sc)
+			return vk;
+
+	return 0;
+	}
+
+DWORD PlatformKeyData(SDL_Scancode sc, bool bDown, bool bRepeat)
+	{
+	DWORD dwData = 1;
+
+	switch (sc)
+		{
+		case SDL_SCANCODE_UP:
+		case SDL_SCANCODE_DOWN:
+		case SDL_SCANCODE_LEFT:
+		case SDL_SCANCODE_RIGHT:
+		case SDL_SCANCODE_HOME:
+		case SDL_SCANCODE_END:
+		case SDL_SCANCODE_PAGEUP:
+		case SDL_SCANCODE_PAGEDOWN:
+		case SDL_SCANCODE_INSERT:
+		case SDL_SCANCODE_DELETE:
+		case SDL_SCANCODE_KP_ENTER:
+		case SDL_SCANCODE_KP_DIVIDE:
+		case SDL_SCANCODE_RCTRL:
+		case SDL_SCANCODE_RALT:
+			dwData |= (1 << 24);
+			break;
+
+		default:
+			break;
+		}
+
+	if (!bDown || bRepeat)
+		dwData |= (1 << 30);
+
+	if (!bDown)
+		dwData |= (1u << 31);
+
+	return dwData;
+	}
+
+bool PlatformIsSystemKey(SDL_Scancode sc, SDL_Keymod mod)
+	{
+	if (sc == SDL_SCANCODE_LALT || sc == SDL_SCANCODE_RALT || sc == SDL_SCANCODE_F10)
+		return true;
+
+	return ((mod & KMOD_ALT) && !(mod & KMOD_CTRL));
+	}
+
+char PlatformKeyControlChar(SDL_Scancode sc, SDL_Keymod mod)
+	{
+	switch (sc)
+		{
+		case SDL_SCANCODE_BACKSPACE:	return '\b';
+		case SDL_SCANCODE_TAB:			return '\t';
+		case SDL_SCANCODE_RETURN:
+		case SDL_SCANCODE_KP_ENTER:		return '\r';
+		case SDL_SCANCODE_ESCAPE:		return '\x1b';
+		default:
+			break;
+		}
+
+	if ((mod & KMOD_CTRL) && !(mod & KMOD_ALT) && sc >= SDL_SCANCODE_A && sc <= SDL_SCANCODE_Z)
+		return (char)(1 + (sc - SDL_SCANCODE_A));
+
+	return 0;
+	}
+
+int PlatformUTF8ToANSIChars(const char *pUTF8, char *retChars, int iMaxChars)
+	{
+	const unsigned char *pPos = (const unsigned char *)pUTF8;
+	int iCount = 0;
+
+	while (pPos && *pPos && iCount < iMaxChars)
+		{
+		unsigned int dwCode;
+		int iExtra;
+		if (*pPos < 0x80)			{ dwCode = *pPos; iExtra = 0; }
+		else if ((*pPos & 0xE0) == 0xC0)	{ dwCode = *pPos & 0x1F; iExtra = 1; }
+		else if ((*pPos & 0xF0) == 0xE0)	{ dwCode = *pPos & 0x0F; iExtra = 2; }
+		else if ((*pPos & 0xF8) == 0xF0)	{ dwCode = *pPos & 0x07; iExtra = 3; }
+		else						{ dwCode = '?'; iExtra = 0; }
+		pPos++;
+
+		for (int i = 0; i < iExtra; i++)
+			{
+			if ((*pPos & 0xC0) != 0x80)
+				{
+				dwCode = '?';
+				break;
+				}
+			dwCode = (dwCode << 6) | (*pPos & 0x3F);
+			pPos++;
+			}
+
+		retChars[iCount++] = (char)(dwCode <= 0xFF ? dwCode : '?');
+		}
+
+	return iCount;
 	}
 
 SHORT PlatformAsyncKeyStateForState(int vk, const Uint8 *pKeyState, Uint32 dwMouseButtons, SDL_Keymod mod)

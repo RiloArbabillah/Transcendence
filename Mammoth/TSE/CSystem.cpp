@@ -522,15 +522,9 @@ void CSystem::CalcViewportCtx (SViewportPaintCtx &Ctx, const RECT &rcView, CSpac
 	Ctx.bForceSTPaint = m_Universe.GetDebugOptions().IsForceSTPaintEnabled();
 
 	#if defined(__APPLE__)
-	//	PDR-026: the Apple Silicon port still reproduces intro-session crashes in
-	//	sprite and viewport image paint paths (PaintImage/PaintViewport) under the
-	//	normal smoke run, so object painting stays single-threaded until the SDL
-	//	presenter and the intro viewport are stable under interactive validation.
-	//
-	//	The workaround can be turned off with TRANSCENDENCE_FORCE_ST_PAINT=off so
-	//	that the threaded paint paths stay reachable for validation; see
-	//	docs/migrate_to_osx/platform-event-utilities.md. Retire the workaround once
-	//	the intro session renders cleanly with it off.
+	//	PDR-026: object painting is multithreaded, as on Windows. Setting
+	//	TRANSCENDENCE_FORCE_ST_PAINT=on forces it single-threaded again (the old
+	//	workaround for an intro-render crash).
 
 	if (PlatformRenderWorkaroundEnabled("TRANSCENDENCE_FORCE_ST_PAINT"))
 		Ctx.bForceSTPaint = true;

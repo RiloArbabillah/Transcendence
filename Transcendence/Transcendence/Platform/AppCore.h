@@ -82,6 +82,7 @@ struct SAppState& GetAppState(void);
 
 bool InitGameUI(SAppState& state, const char *pszCommandLine = nullptr);
 void UpdateGameUI(SAppState& state);
+int GetGameUIFrameDelay(void);
 bool RequestGameClose(void);
 void CleanUpGameUI(void);
 
